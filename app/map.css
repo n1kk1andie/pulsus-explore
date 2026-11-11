@@ -144,3 +144,38 @@
 }
 @media (max-width:379px){.xa-brand img{height:38px}.xa .xa-you{font-size:11px;padding:5px 9px}}
 @media (max-width:339px){.xa-brand img{height:30px}}
+
+/* colours: night (the default look) and day */
+.xa{--good:#3ddc97;--watch:#f5b947;--bad:#ff4f6d;--few:#3a4a7d;--next:#25306a;--none:#141c45;--fade:#0a0f2c}
+.xa.is-light{--bg:#eef1f8;--panel:#ffffff;--panel2:#eef1f8;--line:#d6dcec;--ink:#121a42;--mute:#5b6490;
+  --good:#17a86b;--watch:#d99a12;--bad:#e23a5a;--few:#b4bdd8;--next:#cfd6ea;--none:#e2e6f1;--fade:#eef1f8;background:#dfe5f2}
+.xa.is-light .xa-map{background:#dfe5f2}
+.xa.is-light .xa-c{stroke:#ffffff}
+.xa .xa-dot{stroke:var(--bg)}
+.xa.is-light .xa-c.on{stroke:#121a42}
+.xa.is-light .xa-top{background:linear-gradient(#eef1f8e6,#eef1f800)}
+.xa.is-light .xa-search,.xa.is-light .xa-fabs button,.xa.is-light .xa-time,.xa.is-light .xa-card,.xa.is-light .xa-sheet,.xa.is-light .xa-tray{box-shadow:0 6px 20px #121a4222}
+.xa.is-light .xa-key span{background:#ffffffe6}
+.xa.is-light .xa-overlay{background:#eef1f8f2}
+.xa.is-light .xa-states{background:#eef1f8f0}
+.xa.is-light .xa-tile.on{outline-color:#121a42}
+.xa.is-light a{color:#d0284a}
+.xa.is-light .xa-fabs button.on{color:#fff}
+.xa.is-light .xa-ev.is-operational-full{background:#17a86b22;color:#0f7a4d}
+.xa.is-light .xa-ev.is-operational-limited{background:#d99a1222;color:#8a6106}
+@media (max-width:519px){.xa.is-light .xa .xa-you,.xa.is-light .xa-you{background:#ff4f6d14;color:#c41f42}}
+
+/* "Get Pulsus Explore updates", as in GeoATM */
+.xa-invite{align-self:flex-start;max-width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px 5px 5px 12px;box-shadow:0 6px 18px #0005}
+.xa-inv-row{display:flex;align-items:center;gap:8px}
+.xa-inv-ic{color:var(--accent);display:grid;place-items:center}
+.xa-inv-t{flex:1;font-size:13.5px;font-weight:600}
+.xa .xa-inv-go{border:0;border-radius:8px;background:var(--accent);color:#fff;font-weight:700;font-size:13px;padding:6px 12px}
+.xa .xa-inv-x{width:30px;height:30px;border:0;background:none;color:var(--mute);display:grid;place-items:center;border-radius:8px;padding:0}
+.xa-inv-open{padding:2px 2px 4px 0}
+.xa-sub-form.compact{margin-top:4px}
+.xa-sub-form.compact input[type=email]{padding:8px 12px;font-size:16px}
+.xa-sub-form.compact .xa-btn{padding:7px 14px;font-size:13px}
+.xa-sub-form.compact p{font-size:11.5px}
+.xa-top{z-index:2}
+.xa.is-wide .xa-top{background:none}

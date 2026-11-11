@@ -22,7 +22,8 @@ const PLATFORM = (process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pul
 const WORD: Record<Measure, string> = { ohi: "Organisational Health", oh: "Operational Health" };
 const SHORT: Record<Measure, string> = { ohi: "Org. Health", oh: "Op. Health" };
 const NOUN: Record<SectorId, string> = { banks: "banks", "credit-unions": "credit unions", insurance: "insurers", government: "agencies", hospitals: "hospitals", universities: "universities" };
-const COLOR = { good: "#3ddc97", watch: "#f5b947", bad: "#ff4f6d", few: "#3a4a7d", next: "#25306a", none: "#141c45" } as const;
+// The colours follow day or night through CSS variables (app/map.css).
+const COLOR = { good: "var(--good)", watch: "var(--watch)", bad: "var(--bad)", few: "var(--few)", next: "var(--next)", none: "var(--none)" } as const;
 const BAND_WORD = { good: "Stable", watch: "Steady", bad: "Fragile" } as const;
 
 const TILES: [string, number, number][] = [
@@ -61,7 +62,7 @@ function Spark({ values, color, h = 56 }: { values: (number | null)[]; color: st
   const d = "M" + pts.map((p) => `${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" L");
   return (
     <svg className="xa-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" aria-hidden="true">
-      <path d={`${d} L${w},${h} L0,${h} Z`} fill={color} opacity="0.15" /><path d={d} fill="none" stroke={color} strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
+      <path d={`${d} L${w},${h} L0,${h} Z`} style={{ fill: color }} opacity="0.15" /><path d={d} fill="none" style={{ stroke: color }} strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
     </svg>
   );
 }
@@ -86,12 +87,32 @@ const I_MOVERS = "M7 20V5M3 9l4-4 4 4M17 4v15M13 15l4 4 4-4";
 const I_INFO = "M12 11v6M12 7.5v.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
 const I_SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
 
+/** Day or night: the reader's choice, kept on this device; until they choose, the device's own setting. */
+function useTheme(): ["light" | "dark", () => void] {
+  const [t, setT] = useState<"light" | "dark">("dark");
+  useEffect(() => {
+    const cur = document.documentElement.dataset.pzTheme;
+    setT(cur === "dark" || cur === "light" ? cur : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  }, []);
+  const toggle = () => {
+    const next = t === "dark" ? "light" : "dark";
+    document.documentElement.dataset.pzTheme = next;
+    try { localStorage.setItem("pz-theme", next); } catch { /* storage blocked: this visit only */ }
+    setT(next);
+  };
+  return [t, toggle];
+}
+const I_SUN = "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4";
+const I_MOON = "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z";
+const I_MAIL = "M3 5h18v14H3zM3 7l9 6 9-6";
+
 // ── the camera: what part of the map is in view ─────────────────────────────
 interface Cam { cx: number; cy: number; zoom: number }
 
 export default function MapApp({ data, world }: { data: ExploreData; world: World }) {
   const layers = useMemo(() => Object.fromEntries(data.layers.map((l) => [l.layer, l])) as Record<string, AtlasLayer>, [data]);
   const defs = useMemo(() => LAYERS.filter((d) => layers[d.id]), [layers]);
+  const [theme, toggleTheme] = useTheme();
   const [sector, setSector] = useState<SectorId>("banks");
   const [measure, setMeasure] = useState<Measure>("ohi");
   const [band, setBand] = useState<Band>("");
@@ -317,7 +338,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   );
 
   return (
-    <div className={`xa${wide ? " is-wide" : ""}${sel ? " has-card" : ""}`} ref={box}>
+    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel ? " has-card" : ""}`} ref={box}>
       {/* the map */}
       <svg className="xa-map" viewBox={vb} role="img" aria-label={`World map: ${WORD[measure]} of ${NOUN[sector]} by country. Use search to choose a place.`}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
@@ -327,11 +348,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           const col = r ? fill(r.g, r.l) : NEXT[c.id] ? COLOR.next : COLOR.none;
           const dim = r ? dimmed(r.g, r.l) : !!band;
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)));
-          return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} fill={col} className={`xa-c${on ? " on" : ""}${dim ? " dim" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
+          return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${dim ? " dim" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
         {markers.map((m) => centres[m.iso] && (
           <g key={m.iso} className="xa-mark" transform={`translate(${centres[m.iso][0]} ${centres[m.iso][1]}) scale(${1 / cam.zoom})`}>
-            <circle r="13" fill={m.color} opacity="0.25" className="xa-pulse" /><circle r="5" fill={m.color} stroke="#0a0f2c" strokeWidth="1.5" />
+            <circle r="13" style={{ fill: m.color }} opacity="0.25" className="xa-pulse" /><circle r="5" className="xa-dot" style={{ fill: m.color }} strokeWidth="1.5" />
           </g>
         ))}
       </svg>
@@ -345,7 +366,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
               const g = statesLayer.regions[s]; const v = valueAt(g, measure, at); const b = bandOf(v, measure, statesLayer.bands);
               const col = b ? COLOR[b] : g?.hidden ? COLOR.few : COLOR.next;
               return (
-                <button key={s} className={`xa-tile${sel?.region === s ? " on" : ""}${dimmed(g, statesLayer) ? " dim" : ""}`} style={{ gridColumn: x + 1, gridRow: y + 1, borderColor: col, background: `${col}22` }}
+                <button key={s} className={`xa-tile${sel?.region === s ? " on" : ""}${dimmed(g, statesLayer) ? " dim" : ""}`} style={{ gridColumn: x + 1, gridRow: y + 1, borderColor: col, background: `color-mix(in srgb, ${col} 14%, transparent)` }}
                   aria-label={`${STATE_NAME[s]}: ${v ?? "not shown"}`} onClick={() => setSel({ layerId: statesLayer.layer, region: s })}>
                   <b>{s}</b><span style={{ color: col }}>{v ?? "·"}</span>
                 </button>
@@ -358,12 +379,13 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       {/* the top: brand, search, sectors */}
       <header className="xa-top">
         <div className="xa-brand">
-          <a href="/" aria-label="Pulsus Explore"><img src="/pulsus-platform-logo-light.png" alt="Pulsus" /></a>
+          <a href="/" aria-label="Pulsus Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
           <span className="xa-tag">Explore</span>
           <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Explore Your Organisation →</button>
         </div>
         <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
         {chips}
+        {!sel && !sheet && !states && <Invite />}
       </header>
 
       {/* the side buttons */}
@@ -371,6 +393,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters"><Ico d={I_FILTER} /></button>
         <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Movers and hotspots"><Ico d={I_MOVERS} /></button>
         <button className={sheet === "about" ? "on" : ""} onClick={() => setSheet(sheet === "about" ? "" : "about")} aria-label="About these figures"><Ico d={I_INFO} /></button>
+        <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
       </div>
 
       {!sel && !sheet && !pins.length && (
@@ -478,7 +501,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 }
 
 /** Subscribe for updates: just an email address, kept by Pulsus Platform. */
-function Subscribe() {
+function Subscribe({ autoFocus = false, compact = false, onDone }: { autoFocus?: boolean; compact?: boolean; onDone?: () => void } = {}) {
   const started = useRef(Date.now());
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState("");   // never seen by people: bots fill it
@@ -489,17 +512,48 @@ function Subscribe() {
     try {
       const r = await fetch(`${PLATFORM}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind: "subscribe", email, consent: true, website, elapsedMs: Date.now() - started.current }) });
       const j = await r.json().catch(() => ({}));
-      if (r.ok && j.ok) { setState("done"); return; }
+      if (r.ok && j.ok) { setState("done"); try { localStorage.setItem(INVITE_KEY, "subscribed"); } catch { /* this visit only */ } onDone?.(); return; }
       setState("error"); setMsg(r.status === 429 ? "Too many tries just now. Please try again later." : "That email address doesn't look right.");
     } catch { setState("error"); setMsg("You seem to be offline. Try again when you have a connection."); }
   };
   if (state === "done") return <p className="xa-done" role="status">Thank you, you&apos;re subscribed.</p>;
   return (
-    <form className="xa-sub-form" onSubmit={submit}>
-      <input required type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={254} placeholder="Your email address" aria-label="Email" />
+    <form className={`xa-sub-form${compact ? " compact" : ""}`} onSubmit={submit}>
+      <input required autoFocus={autoFocus} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={254} placeholder="Your email address" aria-label="Email" />
       <input className="xa-hp" aria-hidden="true" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
       <button className="xa-btn" disabled={state === "sending"}>{state === "sending" ? "Subscribing" : "Subscribe"}</button>
-      <p className="xa-muted small">{msg ? <span role="alert">{msg}</span> : <>Updates on new sectors and quarterly figures. Unsubscribe any time; see <a href="/privacy">Privacy</a>.</>}</p>
+      <p className="xa-muted small">{msg ? <span role="alert">{msg}</span> : <>New sectors and quarterly figures. No spam; unsubscribe any time. See <a href="/privacy">Privacy</a>.</>}</p>
     </form>
+  );
+}
+
+/** "Get Pulsus Explore updates": a one-line invitation, as in GeoATM. It opens
+ *  into an email field when tapped and goes away for good once dismissed or
+ *  subscribed (remembered on this device only). */
+const INVITE_KEY = "pulsus-explore.updates";
+function Invite() {
+  const [show, setShow] = useState(false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => { try { setShow(!localStorage.getItem(INVITE_KEY)); } catch { setShow(true); } }, []);
+  const remember = (v: "dismissed" | "subscribed") => { try { localStorage.setItem(INVITE_KEY, v); } catch { /* this visit only */ } };
+  const dismiss = () => { remember("dismissed"); setShow(false); };
+  if (!show) return null;
+  const X = <button type="button" className="xa-inv-x" onClick={dismiss} aria-label="Dismiss"><Ico d="M6 6l12 12M18 6L6 18" size={16} /></button>;
+  return (
+    <div className="xa-invite" role="region" aria-label="Get Pulsus Explore updates">
+      {!open ? (
+        <div className="xa-inv-row">
+          <span className="xa-inv-ic"><Ico d={I_MAIL} size={17} /></span>
+          <span className="xa-inv-t">Get Pulsus Explore updates</span>
+          <button type="button" className="xa-inv-go" onClick={() => setOpen(true)}>Subscribe</button>
+          {X}
+        </div>
+      ) : (
+        <div className="xa-inv-open">
+          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus Explore updates</span>{X}</div>
+          <Subscribe autoFocus compact onDone={() => { remember("subscribed"); setTimeout(() => setShow(false), 2500); }} />
+        </div>
+      )}
+    </div>
   );
 }
