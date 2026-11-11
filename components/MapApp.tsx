@@ -563,7 +563,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     <div className="xa-ab">
       <section className="xa-panel">
         <h2 className="xa-h2">A free window on the world</h2>
-        <p>Pulsus Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
+        <p>Pulsus <span className="xa-red">Explore</span> shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
         <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data. Only totals are shown: medians and the Stable / Steady / Fragile split. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings, credit ratings or advice.</p>
       </section>
       <section className="xa-panel">
@@ -591,7 +591,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <h2 className="xa-h2">Pulsus Platform plans</h2>
         <p className="xa-muted">Explore reads the world from public data. Pulsus Platform reads your own organisation from its own systems.</p>
         <dl className="xa-plans">
-          <div><dt>Pulsus Explore</dt><dd>The world&apos;s sectors, as you see them here. No account needed.</dd><dd className="xa-price">Free</dd></div>
+          <div><dt>Pulsus <span className="xa-red">Explore</span></dt><dd>The world&apos;s sectors, as you see them here. No account needed.</dd><dd className="xa-price">Free</dd></div>
           <div><dt>Operational Intelligence</dt><dd>What needs attention today: the daily brief and alerts from your own data.</dd><dd className="xa-price">US$3,000 a month</dd></div>
           <div><dt>Executive Intelligence</dt><dd>Adds the diagnosis, treatments, recovery and where you stand among these peers, with the Board Pack.</dd><dd className="xa-price">US$4,000 a month</dd></div>
           <div><dt>Oversight Intelligence</dt><dd>For those who watch over many organisations at once.</dd><dd className="xa-price">Contact us</dd></div>
@@ -611,7 +611,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <button className="xa-btn ghost" onClick={toggleTheme}><Ico d={theme === "dark" ? I_SUN : I_MOON} size={16} /> {theme === "dark" ? "Switch to day" : "Switch to night"}</button>
       </section>
       <footer className="xa-foot">
-        <p>Pulsus Explore is part of Pulsus Platform.</p>
+        <p>Pulsus <span className="xa-red">Explore</span> is part of Pulsus Platform.</p>
         <p><a href="/privacy">Privacy</a> · <a href={ABOUT}>about.pulsus.tech</a></p>
         <p>© 2026 Tumblehill Holdings LLC</p>
       </footer>
@@ -738,7 +738,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <main className="xa-page">
           <header className="xa-page-top">
             {brand}
-            {view === "about" && <h1 className="xa-h1">About Pulsus Explore</h1>}
+            {view === "about" && <h1 className="xa-h1">About Pulsus <span className="xa-red">Explore</span></h1>}
           </header>
           {view === "overview" && overview}
           {view === "directory" && directory}
@@ -866,13 +866,13 @@ function Invite() {
       {!open ? (
         <div className="xa-inv-row">
           <span className="xa-inv-ic"><Ico d={I_MAIL} size={17} /></span>
-          <span className="xa-inv-t">Get Pulsus Explore updates</span>
+          <span className="xa-inv-t">Get Pulsus <span className="xa-red">Explore</span> updates</span>
           <button type="button" className="xa-inv-go" onClick={() => setOpen(true)}>Subscribe</button>
           {X}
         </div>
       ) : (
         <div className="xa-inv-open">
-          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus Explore updates</span>{X}</div>
+          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus <span className="xa-red">Explore</span> updates</span>{X}</div>
           <Subscribe autoFocus compact onDone={() => { remember("subscribed"); setTimeout(() => setShow(false), 2500); }} />
         </div>
       )}
