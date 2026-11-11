@@ -22,7 +22,8 @@
   background:linear-gradient(#0a0f2ccc,#0a0f2c00)}
 .xa-top>*{pointer-events:auto}
 .xa-brand{display:flex;align-items:center;gap:8px}
-.xa-brand img{height:22px;display:block}
+.xa-brand img{height:40px;display:block}
+.xa.is-wide .xa-brand img{height:48px}
 .xa-tag{font:600 11px Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .xa-you{margin-left:auto;background:var(--accent);border:0;border-radius:999px;padding:7px 13px;font-weight:600;font-size:13px;color:#fff}
 .xa-search{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:10px 16px;text-align:left;color:var(--mute);box-shadow:0 6px 20px #0006}
@@ -129,3 +130,6 @@
 .xa.is-wide .xa-states{padding:150px 400px 90px 16px}
 .xa.is-wide .xa-tiles,.xa.is-wide .xa-crumb{max-width:600px}
 .xa.is-wide .xa-brand{max-width:520px}
+.xa-you{white-space:nowrap}
+@media (max-width:379px){.xa-brand img{height:34px}.xa-you{font-size:12px;padding:6px 10px}.xa-tag{font-size:10px}}
+@media (max-width:339px){.xa-tag{display:none}}
