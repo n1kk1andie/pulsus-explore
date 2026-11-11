@@ -580,7 +580,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <div><dt>Oversight Intelligence</dt><dd>For those who watch over many organisations at once.</dd><dd className="xa-price">Contact us</dd></div>
         </dl>
         <div className="xa-btns">
-          <a className="xa-btn" href={`${ABOUT}/demo/`}>Take a peek</a>
+          <a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a>
           <a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a>
         </div>
         <p className="xa-note">Take a peek opens Pulsus Platform with a fictional organisation, Meridian Society, so you can see every screen before you sign up. Or <a href={`${ABOUT}/walkthrough/`}>talk to us about a plan</a>.</p>
@@ -787,7 +787,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <div className="xa-you-in">
               <h3>Connect your organisation to see yours.</h3>
               <p className="xa-muted">Explore is a free window on the world, read from public data. Pulsus Platform reads an organisation from its own systems the same way: Operational Intelligence shows what needs attention today; Executive Intelligence adds the diagnosis, treatments, recovery and where it stands among these peers; Oversight Intelligence watches over many organisations at once.</p>
-              <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/`}>Take a peek</a><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a><a className="xa-btn ghost" href={`${ABOUT}/walkthrough/`}>Talk to us</a></div>
+              <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a><a className="xa-btn ghost" href={`${ABOUT}/walkthrough/`}>Talk to us</a></div>
               <p className="xa-note">Take a peek: Pulsus Platform with a fictional organisation, no sign-up needed.</p>
               <h3>Subscribe for updates</h3>
               <Subscribe />
