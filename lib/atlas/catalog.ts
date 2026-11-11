@@ -22,12 +22,12 @@ export const SECTORS: SectorDef[] = [
 /** The live layers, each a file in lib/atlas built by scripts/atlas. */
 /** How deep the evidence behind a reading goes. Public data gives financial
  *  ratios or a handful of operational measures; only an organisation's own
- *  systems give an operational assessment. */
+ *  systems give a comprehensive operational assessment. */
 export type Evidence = "financial" | "operational-limited" | "operational-full";
 export const EVIDENCE: { id: Evidence; label: string; text: string }[] = [
   { id: "financial", label: "Financial indicators", text: "Public financial ratios only: profitability, capital, loan quality and costs. They show financial condition, not how operations actually run." },
   { id: "operational-limited", label: "Limited operational indicators", text: "A few published operational measures, such as how budgets are committed, reporting accuracy and request backlogs. Part of the operational picture, not all of it." },
-  { id: "operational-full", label: "Operational assessment", text: "An organisation's own systems, read continuously across its operations, with causes, treatments and recovery. Available only from the organisation's own data." },
+  { id: "operational-full", label: "Comprehensive operational assessment", text: "An organisation's own systems, read continuously across its operations, with causes, treatments and recovery. Available only from the organisation's own data." },
 ];
 export const evidenceOf = (e: Evidence) => EVIDENCE.find((x) => x.id === e)!;
 
