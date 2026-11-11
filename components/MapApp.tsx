@@ -1,6 +1,6 @@
 "use client";
 
-// Pulsus Explore, as an app: the world map fills the screen and everything
+// Explore, the free view of Pulsus Platform, as an app: the world map fills the screen and everything
 // floats over it. Tap a country to fly there and open its card; drill into
 // states; play the years; see the movers; pin up to four groups to compare;
 // search; filter. No sign-in. The figures are the finished, anonymous
@@ -457,7 +457,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
   const brand = (
     <div className="xa-brand">
-      <a href="/" aria-label="Pulsus Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
+      <a href="/" aria-label="Pulsus Platform · Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
       <span className="xa-tag">Explore</span>
       <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Explore Your Organisation →</button>
     </div>
@@ -563,24 +563,17 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     <div className="xa-ab">
       <section className="xa-panel">
         <h2 className="xa-h2">A free window on the world</h2>
-        <p>Pulsus <span className="xa-red">Explore</span> shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
-        <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data. Only totals are shown: medians and the Stable / Steady / Fragile split. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings, credit ratings or advice.</p>
+        <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
+        <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole; <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
+        <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
       </section>
       <section className="xa-panel">
         <h2 className="xa-h2">How the numbers are made</h2>
         <p>Operational Health and Organisational Health are calculated using fixed rules on our servers. The same inputs always produce the same results, making every figure consistent, verifiable and reproducible.</p>
         <ul className="xa-principles">
-          <li><b>Grounded, not generative.</b> Every figure, band and change is computed by those rules. No AI writes or alters a number.</li>
-          <li><b>A pointer, not a source of record.</b> Explore shows where to look. For any institution, the regulator&apos;s published data is authoritative.</li>
-          <li><b>Read-only.</b> Figures are read from regulators&apos; public releases; nothing is changed, and no institution is named.</li>
-          <li><b>Small groups held back.</b> Groups too small to keep anonymous are hidden, and a place needs at least {INSIGHT_MIN} organisations to appear among the movers and hotspots, so one institution can&apos;t swing the ranking.</li>
-          <li><b>Not an official rating.</b> These are Pulsus readings of public data, not regulatory ratings, credit ratings or advice.</li>
+          <li><b>Totals only.</b> Each institution is read from its public figures, then only medians and the Stable / Steady / Fragile split are shown. No institution is named; groups too small to keep anonymous are hidden, and a place needs at least {INSIGHT_MIN} organisations to appear among the movers and hotspots.</li>
+          <li><b>Not an official rating.</b> These are Pulsus readings of public data, not regulatory ratings, credit ratings or advice. For any institution, the regulator&apos;s published data is authoritative.</li>
         </ul>
-      </section>
-      <section className="xa-panel">
-        <h2 className="xa-h2">How to read it</h2>
-        <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole. <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
-        <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
         {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
       </section>
       <section className="xa-panel">
@@ -588,10 +581,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
       </section>
       <section className="xa-panel">
-        <h2 className="xa-h2">Pulsus Platform plans</h2>
-        <p className="xa-muted">Explore reads the world from public data. Pulsus Platform reads your own organisation from its own systems.</p>
+        <h2 className="xa-h2">Pulsus Platform</h2>
+        <p>Explore is the free view of Pulsus Platform. The Platform reads your own organisation from its own systems, the same way.</p>
+        <p><a href={`${ABOUT}/#about`}>About Pulsus Platform →</a></p>
         <dl className="xa-plans">
-          <div><dt>Pulsus <span className="xa-red">Explore</span></dt><dd>The world&apos;s sectors, as you see them here. No account needed.</dd><dd className="xa-price">Free</dd></div>
+          <div><dt>Free</dt><dd>Explore, as you see it here. No account needed.</dd><dd className="xa-price">Free</dd></div>
           <div><dt>Operational Intelligence</dt><dd>What needs attention today: the daily brief and alerts from your own data.</dd><dd className="xa-price">US$3,000 a month</dd></div>
           <div><dt>Executive Intelligence</dt><dd>Adds the diagnosis, treatments, recovery and where you stand among these peers, with the Board Pack.</dd><dd className="xa-price">US$4,000 a month</dd></div>
           <div><dt>Oversight Intelligence</dt><dd>For those who watch over many organisations at once.</dd><dd className="xa-price">Contact us</dd></div>
@@ -611,7 +605,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <button className="xa-btn ghost" onClick={toggleTheme}><Ico d={theme === "dark" ? I_SUN : I_MOON} size={16} /> {theme === "dark" ? "Switch to day" : "Switch to night"}</button>
       </section>
       <footer className="xa-foot">
-        <p>Pulsus <span className="xa-red">Explore</span> is part of Pulsus Platform.</p>
+        <p>Pulsus Platform · Explore</p>
         <p><a href="/privacy">Privacy</a> · <a href={ABOUT}>about.pulsus.tech</a></p>
         <p>© 2026 Tumblehill Holdings LLC</p>
       </footer>
@@ -738,7 +732,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <main className="xa-page">
           <header className="xa-page-top">
             {brand}
-            {view === "about" && <h1 className="xa-h1">About Pulsus <span className="xa-red">Explore</span></h1>}
+            {view === "about" && <h1 className="xa-h1">About Explore</h1>}
           </header>
           {view === "overview" && overview}
           {view === "directory" && directory}
@@ -849,7 +843,7 @@ function Subscribe({ autoFocus = false, compact = false, onDone }: { autoFocus?:
   );
 }
 
-/** "Get Pulsus Explore updates": a one-line invitation, as in GeoATM. It opens
+/** "Get Pulsus Platform updates": a one-line invitation, as in GeoATM. It opens
  *  into an email field when tapped and goes away for good once dismissed or
  *  subscribed (remembered on this device only). */
 const INVITE_KEY = "pulsus-explore.updates";
@@ -862,17 +856,17 @@ function Invite() {
   if (!show) return null;
   const X = <button type="button" className="xa-inv-x" onClick={dismiss} aria-label="Dismiss"><Ico d="M6 6l12 12M18 6L6 18" size={16} /></button>;
   return (
-    <div className="xa-invite" role="region" aria-label="Get Pulsus Explore updates">
+    <div className="xa-invite" role="region" aria-label="Get Pulsus Platform updates">
       {!open ? (
         <div className="xa-inv-row">
           <span className="xa-inv-ic"><Ico d={I_MAIL} size={17} /></span>
-          <span className="xa-inv-t">Get Pulsus <span className="xa-red">Explore</span> updates</span>
+          <span className="xa-inv-t">Get Pulsus Platform updates</span>
           <button type="button" className="xa-inv-go" onClick={() => setOpen(true)}>Subscribe</button>
           {X}
         </div>
       ) : (
         <div className="xa-inv-open">
-          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus <span className="xa-red">Explore</span> updates</span>{X}</div>
+          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus Platform updates</span>{X}</div>
           <Subscribe autoFocus compact onDone={() => { remember("subscribed"); setTimeout(() => setShow(false), 2500); }} />
         </div>
       )}

@@ -1,4 +1,4 @@
-/* Pulsus Explore as an app: the map fills the screen, everything floats over it. */
+/* Explore, the free view of Pulsus Platform, as an app: the map fills the screen, everything floats over it. */
 .xa{--bg:#0a0f2c;--panel:#121a42;--panel2:#18215a;--line:#26306a;--ink:#eef1ff;--mute:#9aa3cc;--accent:#ff4f6d;
   position:fixed;inset:0;overflow:hidden;background:var(--bg);color:var(--ink);font:15px/1.45 "IBM Plex Sans",system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
 .xa *{box-sizing:border-box}
@@ -165,7 +165,7 @@
 .xa.is-light .xa-ev.is-operational-limited{background:#d99a1222;color:#8a6106}
 @media (max-width:519px){.xa.is-light .xa .xa-you,.xa.is-light .xa-you{background:#ff4f6d14;color:#c41f42}}
 
-/* "Get Pulsus Explore updates", as in GeoATM */
+/* "Get Pulsus Platform updates", as in GeoATM */
 .xa-invite{align-self:flex-start;max-width:min(420px,100%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px 5px 5px 12px;box-shadow:0 6px 18px #0005}
 .xa-inv-row{display:flex;align-items:center;gap:8px}
 .xa-inv-ic{color:var(--accent);display:grid;place-items:center}
@@ -301,6 +301,3 @@
 .xa-kind{margin:0}
 .xa-principles{margin:4px 0 0;padding-left:18px}
 .xa-principles li{font-size:14.5px;margin:0 0 8px}
-/* "Pulsus Explore": the last word in Pulsus red */
-.xa .xa-red{color:var(--accent)}
-.xa.is-light .xa-red{color:#d0284a}

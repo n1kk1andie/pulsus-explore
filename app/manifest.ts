@@ -4,8 +4,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Pulsus Explore",
-    short_name: "Explore",
+    name: "Pulsus Platform · Explore",
+    short_name: "Pulsus",
     description: "A free window on the world's sectors, read from public data.",
     start_url: "/",
     scope: "/",

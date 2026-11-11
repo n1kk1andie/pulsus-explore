@@ -2,11 +2,11 @@ import type { Metadata, Viewport } from "next";
 import "./explore.css";
 
 export const metadata: Metadata = {
-  title: "Pulsus Explore",
+  title: "Pulsus Platform · Explore",
   description: "A free window on the world's sectors: the health of banks, credit unions, insurers and government agencies, read from public data. Aggregated; no institution is named.",
-  applicationName: "Pulsus Explore",
+  applicationName: "Pulsus Platform",
   manifest: "/manifest.webmanifest",
-  appleWebApp: { capable: true, statusBarStyle: "default", title: "Explore" },
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Pulsus" },
   icons: { icon: [{ url: "/icon-192.png", type: "image/png" }], apple: "/icon-192.png" },
 };
 
