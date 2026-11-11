@@ -1,0 +1,24 @@
+{
+  "name": "pulsus-explore",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pulsus Explore: a free window on the world's sectors, read from public data. Aggregated; no institution is named.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "node --experimental-strip-types --no-warnings --test tests/*.test.mjs",
+    "sync-data": "node scripts/sync-data.mjs"
+  },
+  "dependencies": {
+    "next": "16.3.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "typescript": "5.9.3"
+  }
+}

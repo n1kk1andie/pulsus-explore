@@ -1,0 +1,20 @@
+// The shape of an Explore layer (anonymous totals only — lib/atlas/catalog.ts).
+// The layers themselves are loaded on the server (lib/atlas/serve.ts) and sent
+// at each visitor's depth (lib/atlas/explore.ts).
+
+export interface AtlasGroup { n: number; hidden?: boolean; oh?: number; ohi?: number; split?: { stable: number; steady: number; fragile: number }; trend?: { period: string; oh: number | null; ohi: number | null }[] }
+export interface AtlasLayer {
+  layer: string; sector: string; scope: string; regionKind: "state" | "country"; countries: string[];
+  source: string; asOf: string; cadence?: "quarterly" | "yearly"; measures: string[]; minGroup: number;
+  bands: { ssiStable: number; ssiSteady: number; ohiHealthy: number; ohiWatch: number };
+  national: AtlasGroup; regions: Record<string, AtlasGroup>;
+  peers: Record<string, { label: string; n: number; oh: number[]; ohi: number[] }>;
+}
+
+/** A layer's reading for one country: the whole layer when it covers just that
+ *  country by states, else that country's group. */
+export function countryGroup(l: AtlasLayer, iso: string): AtlasGroup | null {
+  if (!l.countries.includes(iso)) return null;
+  if (l.regionKind === "state") return l.national;
+  return l.regions[iso] || null;
+}
