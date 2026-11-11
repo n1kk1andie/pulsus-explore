@@ -133,3 +133,6 @@
 .xa-you{white-space:nowrap}
 @media (max-width:379px){.xa-brand img{height:34px}.xa-you{font-size:12px;padding:6px 10px}.xa-tag{font-size:10px}}
 @media (max-width:339px){.xa-tag{display:none}}
+/* the longer button: the small "Explore" word steps aside on phones */
+@media (max-width:519px){.xa-tag{display:none}}
+@media (max-width:339px){.xa-brand img{height:26px}.xa-brand{gap:6px}.xa-you{font-size:11px;padding:6px 8px}}
