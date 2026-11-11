@@ -179,3 +179,15 @@
 .xa-sub-form.compact p{font-size:11.5px}
 .xa-top{z-index:2}
 .xa.is-wide .xa-top{background:none}
+
+/* each country's number on the map: it changes as the slider moves */
+.xa-val{pointer-events:none}
+.xa-val rect{fill:var(--panel);stroke:var(--line);stroke-width:1}
+.xa-val text{font:700 12px Sora,sans-serif;fill:var(--ink)}
+.xa-val.is-good rect{stroke:var(--good)}.xa-val.is-watch rect{stroke:var(--watch)}.xa-val.is-bad rect{stroke:var(--bad)}
+.xa-val.dim{opacity:.25}
+/* the quarter being shown, while looking back */
+.xa-period{position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));margin:0;display:flex;flex-direction:column;gap:0;pointer-events:none;text-shadow:0 1px 8px var(--bg)}
+.xa-period b{font:800 30px Sora,sans-serif;line-height:1.1}
+.xa-period span{font-size:12px;color:var(--mute)}
+.xa.is-wide .xa-period{left:16px;bottom:84px}
