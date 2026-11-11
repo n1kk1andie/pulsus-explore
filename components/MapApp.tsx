@@ -164,6 +164,9 @@ function allSectors(ls: AtlasLayer[]): AtlasLayer {
   const countries = [...new Set(ls.flatMap((l) => l.countries))];
   const regions: Record<string, AtlasGroup> = {};
   for (const iso of countries) regions[iso] = combine(ls.map((l) => countryGroup(l, iso)).filter((g): g is AtlasGroup => !!g), periods);
+  // The US state by state: the sectors read by state, together (keys "US-TX").
+  const byState = ls.filter((l) => l.regionKind === "state" && l.countries.includes("840"));
+  for (const code of new Set(byState.flatMap((l) => Object.keys(l.regions)))) regions[`US-${code}`] = combine(byState.map((l) => l.regions[code]).filter((g): g is AtlasGroup => !!g), periods);
   const latest = ls.map((l) => l.asOf).sort().pop() || "";
   return { ...ls[0], layer: ALL, sector: "all", scope: "all", regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
 }
@@ -207,7 +210,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
   // ── names and groups ──────────────────────────────────────────────────────
   const cname = useCallback((iso: string) => world.countries.find((c) => c.id === iso)?.name || iso, [world]);
-  const place = useCallback((l: AtlasLayer, region: string) => (l.regionKind === "state" ? STATE_NAME[region] || region : cname(region)), [cname]);
+  const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? STATE_NAME[region.slice(3)] || region : l.regionKind === "state" ? STATE_NAME[region] || region : cname(region)), [cname]);
   const groupOf = useCallback((s: NonNullable<Sel>): { def: LayerDef; l: AtlasLayer; g: AtlasGroup; title: string } | null => {
     const l = layers[s.layerId]; const def = defs.find((d) => d.id === s.layerId);
     if (!l || !def) return null;
@@ -290,6 +293,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     if (moved.current > 8) return;
     const r = atCountry(iso);
     if (!r) { setSel({ layerId: "", region: iso }); flyToCountry(iso); setSheet(""); return; }
+    // The US opens state by state, where every quarter visibly moves the tiles.
+    const byState = r.l.regionKind === "state" ? r.l.layer : r.def.id === ALL && iso === "840" && Object.keys(r.l.regions).some((k) => k.startsWith("US-")) ? ALL : null;
+    if (byState) { setStates(byState); setSel(null); setSheet(""); flyToCountry(iso); return; }
     setSel({ layerId: r.def.id, region: r.l.regionKind === "state" ? null : r.l.countries.length === 1 ? null : iso });
     setStates(null); setSheet(""); flyToCountry(iso);
   };
@@ -402,10 +408,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {def.id === ALL && sel.region && (
           <div className="xa-by">
             <p className="xa-label">By sector · tap to open</p>
-            {realDefs.map((d) => { const rl = real[d.id]; const rg = countryGroup(rl, sel.region!); if (!rg) return null;
+            {realDefs.map((d) => { const rl = real[d.id]; const st = sel.region!.startsWith("US-") ? sel.region!.slice(3) : null;
+              const rg = st ? (rl.regionKind === "state" && rl.countries.includes("840") ? rl.regions[st] : null) : countryGroup(rl, sel.region!); if (!rg) return null;
               const rv = valueAt(rg, measure, at); const rb = bandOf(rv, measure, rl.bands);
               return (
-                <button key={d.id} onClick={() => choose(d.id, rl.regionKind === "state" ? null : rl.countries.length === 1 ? null : sel.region)}>
+                <button key={d.id} onClick={() => choose(d.id, st ? st : rl.regionKind === "state" ? null : rl.countries.length === 1 ? null : sel.region)}>
                   <span><b>{SECTORS.find((x) => x.id === d.sector)?.label}</b><small>{n0(rg.n)} {NOUN[d.sector]} · {d.publisher}</small></span>
                   <em style={{ color: rb ? COLOR[rb] : undefined }}>{rg.hidden ? "few" : rv ?? "—"}</em>
                 </button>
@@ -413,6 +420,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           </div>
         )}
         <div className="xa-btns">
+          {def.id === ALL && sel.region === "840" && !states && Object.keys(l.regions).some((k) => k.startsWith("US-")) && <button className="xa-btn" onClick={() => { setStates(ALL); setSel(null); }}>See the states ›</button>}
           {l.regionKind === "state" && sel.region === null && !states && <button className="xa-btn" onClick={() => { setStates(l.layer); }}>See the states ›</button>}
           {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
         </div>
@@ -613,23 +621,34 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       </svg>
 
       {/* the states, when a country is read by state */}
-      {statesLayer && (
+      {statesLayer && (() => {
+        const isAll = statesLayer.layer === ALL;
+        const key = (st: string) => (isAll ? `US-${st}` : st);
+        const whole = isAll ? statesLayer.regions["840"] : statesLayer.national;
+        const wv = valueAt(whole, measure, at); const wb = bandOf(wv, measure, statesLayer.bands);
+        const noun = isAll ? "organisations" : NOUN[defs.find((d) => d.id === statesLayer.layer)!.sector];
+        return (
         <div className="xa-states">
-          <nav className="xa-crumb" aria-label="Where you are"><button onClick={() => { setStates(null); setSel({ layerId: statesLayer.layer, region: null }); flyToCountry(statesLayer.countries[0]); }}>‹ World</button><span>›</span>{cname(statesLayer.countries[0])}<span>·</span>{NOUN[defs.find((d) => d.id === statesLayer.layer)!.sector]}</nav>
+          <nav className="xa-crumb" aria-label="Where you are"><button onClick={() => { setStates(null); setSel(null); flyTo(home); }}>‹ World</button><span>›</span>{cname("840")}<span>·</span>{isAll ? "all sectors" : noun}</nav>
+          <div className="xa-states-h">
+            <div><h2>{isAll ? "United States by state" : `US ${noun} by state`}</h2><p className="xa-sub">{WORD[measure]} · {at ? when(statesLayer, at) : `latest, ${when(statesLayer, statesLayer.asOf)}`} · tap a state for its detail</p></div>
+            <button className="xa-states-all" onClick={() => setSel(isAll ? { layerId: ALL, region: "840" } : { layerId: statesLayer.layer, region: null })}><small>Whole US</small><strong style={{ color: wb ? COLOR[wb] : undefined }}>{wv ?? "—"}</strong></button>
+          </div>
           <div className="xa-tiles" role="group" aria-label="States">
             {TILES.map(([s, x, y]) => {
-              const g = statesLayer.regions[s]; const v = valueAt(g, measure, at); const b = bandOf(v, measure, statesLayer.bands);
+              const g = statesLayer.regions[key(s)]; const v = valueAt(g, measure, at); const b = bandOf(v, measure, statesLayer.bands);
               const col = b ? COLOR[b] : g?.hidden ? COLOR.few : COLOR.next;
               return (
-                <button key={s} className={`xa-tile${sel?.region === s ? " on" : ""}${dimmed(g, statesLayer) ? " dim" : ""}`} style={{ gridColumn: x + 1, gridRow: y + 1, borderColor: col, background: `color-mix(in srgb, ${col} 14%, transparent)` }}
-                  aria-label={`${STATE_NAME[s]}: ${v ?? "not shown"}`} onClick={() => setSel({ layerId: statesLayer.layer, region: s })}>
+                <button key={s} className={`xa-tile${sel?.region === key(s) ? " on" : ""}${dimmed(g, statesLayer) ? " dim" : ""}`} style={{ gridColumn: x + 1, gridRow: y + 1, color: col, background: `color-mix(in srgb, ${col} 16%, transparent)`, transition: "background .3s" }}
+                  aria-label={`${STATE_NAME[s]}: ${v ?? "not shown"}`} onClick={() => setSel({ layerId: statesLayer.layer, region: key(s) })}>
                   <b>{s}</b><span style={{ color: col }}>{v ?? "·"}</span>
                 </button>
               );
             })}
           </div>
+          <p className="xa-muted xa-small">{isAll ? "Banks and credit unions, state by state; US federal agencies are read for the country as a whole." : `Groups of fewer than ${statesLayer.minGroup} ${noun} are not shown.`} Press ▶ to watch the quarters change.</p>
         </div>
-      )}
+        ); })()}
 
       {/* the top: brand, search, sectors */}
       <header className="xa-top">

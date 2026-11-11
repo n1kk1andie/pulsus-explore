@@ -270,3 +270,21 @@
 .xa-page .xa-brand{max-width:none}
 .xa .xa-seg button{white-space:nowrap}
 @media (max-width:379px){.xa .xa-seg button{font-size:12px;padding:7px 4px}}
+/* the US by state, as on the Platform's Calibrate screen */
+.xa-states-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;max-width:760px;margin:0 auto 10px}
+.xa-states-h h2{font-size:17px}
+.xa-states-h .xa-sub{margin:2px 0 0}
+.xa .xa-states-all{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:6px 12px;text-align:center}
+.xa-states-all small{display:block;font-size:11px;color:var(--mute)}
+.xa-states-all strong{font:800 22px Sora,sans-serif}
+.xa .xa-tile{border:0;border-radius:6px;gap:1px}
+.xa .xa-tile b{font:500 clamp(10px,3.2vw,15px) "IBM Plex Sans",sans-serif;color:inherit}
+.xa .xa-tile span{font:700 clamp(9px,2.7vw,13px) Sora,sans-serif}
+.xa .xa-tile{color:var(--ink)}
+.xa-states .xa-small{font-size:12.5px;max-width:760px;margin:12px auto 0}
+.xa .xa-tile span,.xa .xa-tile b{transition:color .3s}
+/* in the states view the header already names the quarter; keep the tiles clear */
+.xa-states ~ .xa-key,.xa-states ~ .xa-period{display:none}
+.xa:not(.is-wide) .xa-states ~ .xa-fabs{display:none}
+.xa.is-wide .xa-states .xa-tiles,.xa.is-wide .xa-states .xa-states-h,.xa.is-wide .xa-states .xa-crumb,.xa.is-wide .xa-states .xa-small{max-width:560px}
+.xa-states{padding-bottom:110px}
