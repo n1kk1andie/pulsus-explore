@@ -10,7 +10,9 @@ export default function Privacy() {
       <h1>Privacy</h1>
       <p className="pz-muted">Last updated 11 November 2026.</p>
       <h2 className="pz-h3">What Pulsus Explore collects</h2>
-      <p>Nothing about you. Explore has no accounts, no sign-in, no forms, no advertising and no analytics or tracking. It does not ask for, read or store personal data, contacts, location or anything on your device.</p>
+      <p>Nothing, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no analytics or tracking. It does not read your contacts, location or anything else on your device.</p>
+      <h2 className="pz-h3">If you subscribe for updates</h2>
+      <p>The subscribe form asks for your name, email, organisation, role and country. They go to Pulsus Platform, are stored encrypted, and are used only to send you updates about Pulsus Explore and Pulsus Platform. They are never sold or shared. To stop the updates or have your details deleted, reply to any update or contact us (below), and we will remove them.</p>
       <h2 className="pz-h3">What is stored on your device</h2>
       <p>Your light or dark theme choice, and a copy of the app and its public figures so it opens without a connection. Both stay on your device; clearing the app&apos;s data removes them.</p>
       <h2 className="pz-h3">What our servers see</h2>

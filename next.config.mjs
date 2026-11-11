@@ -16,7 +16,7 @@ const csp = [
   "font-src 'self' https://fonts.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "script-src 'self' 'unsafe-inline'",
-  "connect-src 'self'",
+  `connect-src 'self' ${(process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pulsus.tech").replace(/\/+$/, "")}`,
   "worker-src 'self'",
   "manifest-src 'self'",
 ].join("; ");

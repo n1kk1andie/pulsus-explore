@@ -8,7 +8,10 @@ Google Play Store.
 Explore is the public front door. Its one way out is **"Connect your
 organisation to see yours"**, which leads businesses to Pulsus Platform.
 Everyday visitors and business customers never share a space: this app has no
-sign-in, no accounts and no customer data.
+sign-in, no accounts and no customer data. Visitors can **subscribe for
+updates**; the form posts to Pulsus Platform's lead store
+(`executive.pulsus.tech/api/leads`, which accepts explore.pulsus.tech), so
+subscribers appear in the operator console under Leads.
 
 ## What is in this repo, and what is not
 
@@ -27,8 +30,8 @@ npm test           # depth, anonymity, and no engine code
 npm run build
 ```
 
-Optional: `NEXT_PUBLIC_PLATFORM_URL` (the Pulsus Platform address) adds a
-"Start a 14-day trial" button beside "Talk to us".
+Optional: `NEXT_PUBLIC_PLATFORM_URL` (default `https://executive.pulsus.tech`):
+where subscriptions are sent and the trial button leads.
 
 ## Refreshing the figures (each quarter)
 
@@ -72,8 +75,11 @@ reach the app with no new store release.
 
    Without it the app still works, but shows a browser address bar.
 5. Store listing: privacy policy URL **https://explore.pulsus.tech/privacy**.
-   Data safety: no data collected or shared. No accounts, so no account
-   deletion is needed. Icon: `public/icon-512.png` (vector source
+   Data safety: only if the user subscribes, it collects name, email
+   address and (as other info) organisation, role and country, for
+   communications; optional; encrypted in transit; not shared; deletion on
+   request. No accounts, so no in-app account deletion is needed. Icon:
+   `public/icon-512.png`, the Pulsus Platform mark (vector source
    `public/icon.svg`).
 
 © 2026 Tumblehill Holdings LLC.
