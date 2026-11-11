@@ -106,6 +106,21 @@ const I_SUN = "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.
 const I_MOON = "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z";
 const I_MAIL = "M3 5h18v14H3zM3 7l9 6 9-6";
 
+/** The middle and width of a country's largest piece of land (so France's
+ *  number sits on France, not between it and French Guiana). */
+function mainland(d: string): [number, number, number] {
+  let best: [number, number, number] = [0, 0, 0]; let area = -1;
+  for (const part of d.split(/(?=M)/)) {
+    const xs: number[] = [], ys: number[] = [];
+    for (const m of part.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)) { xs.push(+m[1]); ys.push(+m[2]); }
+    if (!xs.length) continue;
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+    const a = (x1 - x0) * (y1 - y0);
+    if (a > area) { area = a; best = [(x0 + x1) / 2, (y0 + y1) / 2, x1 - x0]; }
+  }
+  return best;
+}
+
 // ── the camera: what part of the map is in view ─────────────────────────────
 interface Cam { cx: number; cy: number; zoom: number }
 
@@ -273,12 +288,23 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     for (const x of insight.down.slice(0, 3)) add(x.layer, x.region, x.regionKind, COLOR.bad);
     return m;
   }, [insight, layers, defs, sector]);
-  const [centres, setCentres] = useState<Record<string, [number, number]>>({});
+  // Every country's middle and width, measured once the map is drawn: where its number and marker sit.
+  const [centres, setCentres] = useState<Record<string, [number, number, number]>>({});
   useEffect(() => {
-    const c: Record<string, [number, number]> = {};
-    for (const { iso } of markers) { const p = paths.current.get(iso); if (p) { const b = iso === "840" ? { x: 170, y: 117, width: 147, height: 76 } : p.getBBox(); c[iso] = [b.x + b.width / 2, b.y + b.height / 2]; } }
+    const c: Record<string, [number, number, number]> = {};
+    for (const k of world.countries) c[k.id] = mainland(k.d);
     setCentres(c);
-  }, [markers]);
+  }, [world]);
+  // Each covered country's reading at the chosen period: shown on the map, so the slider visibly moves it.
+  const labels = useMemo(() => {
+    const out: { iso: string; v: number; b: Exclude<Band, ""> }[] = [];
+    for (const c of world.countries) {
+      const r = atCountry(c.id); if (!r || !centres[c.id]) continue;
+      const v = valueAt(r.g, measure, at); const b = bandOf(v, measure, r.l.bands);
+      if (v !== undefined && b) out.push({ iso: c.id, v, b });
+    }
+    return out;
+  }, [world, atCountry, centres, measure, at]);
   const unpinned = (k: string) => { const [layerId, region] = k.split("|"); return { layerId, region: region || null }; };
 
   // ── the card ─────────────────────────────────────────────────────────────
@@ -350,6 +376,15 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)));
           return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${dim ? " dim" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
+        {labels.map(({ iso, v, b }) => {
+          const [x, y, w] = centres[iso];
+          if (w / u < 26 && sel?.region !== iso) return null;   // too small on screen at this zoom: tap or zoom in
+          return (
+            <g key={iso} className={`xa-val is-${b}${band && band !== b ? " dim" : ""}`} transform={`translate(${x} ${y}) scale(${u})`}>
+              <rect x={-16} y={8} width={32} height={19} rx={9.5} /><text x={0} y={22} textAnchor="middle">{v}</text>
+            </g>
+          );
+        })}
         {markers.map((m) => centres[m.iso] && (
           <g key={m.iso} className="xa-mark" transform={`translate(${centres[m.iso][0]} ${centres[m.iso][1]}) scale(${1 / cam.zoom})`}>
             <circle r="13" style={{ fill: m.color }} opacity="0.25" className="xa-pulse" /><circle r="5" className="xa-dot" style={{ fill: m.color }} strokeWidth="1.5" />
@@ -396,7 +431,10 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
       </div>
 
-      {!sel && !sheet && !pins.length && (
+      {at && !sel && !(sheet && !wide) && (
+        <p className="xa-period" aria-live="polite"><b>{when(inSector[0]?.l || {}, at)}</b><span>{WORD[measure]} then · the numbers and colours show that quarter</span></p>
+      )}
+      {!at && !sel && !sheet && !pins.length && (
         <p className="xa-key" aria-hidden="true"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
       )}
 
