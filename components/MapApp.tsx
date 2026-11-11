@@ -21,7 +21,8 @@ const ABOUT = "https://about.pulsus.tech";
 const PLATFORM = (process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pulsus.tech").replace(/\/+$/, "");
 const WORD: Record<Measure, string> = { ohi: "Organisational Health", oh: "Operational Health" };
 const SHORT: Record<Measure, string> = { ohi: "Org. Health", oh: "Op. Health" };
-const NOUN: Record<SectorId, string> = { banks: "banks", "credit-unions": "credit unions", insurance: "insurers", government: "agencies", hospitals: "hospitals", universities: "universities" };
+type Sector = SectorId | "all";
+const NOUN: Record<Sector, string> = { all: "organisations", banks: "banks", "credit-unions": "credit unions", insurance: "insurers", government: "agencies", hospitals: "hospitals", universities: "universities" };
 // The colours follow day or night through CSS variables (app/map.css).
 const COLOR = { good: "var(--good)", watch: "var(--watch)", bad: "var(--bad)", few: "var(--few)", next: "var(--next)", none: "var(--none)" } as const;
 const BAND_WORD = { good: "Stable", watch: "Steady", bad: "Fragile" } as const;
@@ -121,14 +122,47 @@ function mainland(d: string): [number, number, number] {
   return best;
 }
 
+/** All sectors together: for each country, its sectors' groups combined.
+ *  Counts and the Stable/Steady/Fragile split add up exactly; the readings
+ *  are each sector's median weighted by its size (labelled as such). */
+const ALL = "all-sectors";
+const ALL_DEF: LayerDef = { id: ALL, sector: "all" as SectorId, title: "All sectors", publisher: "Every source in Explore", asOf: "", evidence: "financial" };
+function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
+  const vis = gs.filter((g) => !g.hidden);
+  const n = gs.reduce((t, g) => t + g.n, 0);
+  if (!vis.length) return { n, hidden: true };
+  const avg = (k: Measure, at: string | null) => {
+    let w = 0, t = 0;
+    for (const g of vis) { const v = valueAt(g, k, at); if (v !== undefined) { w += g.n; t += v * g.n; } }
+    return w ? Math.round(t / w) : undefined;
+  };
+  const split = vis.every((g) => g.split) ? vis.reduce((t, g) => ({ stable: t.stable + g.split!.stable, steady: t.steady + g.split!.steady, fragile: t.fragile + g.split!.fragile }), { stable: 0, steady: 0, fragile: 0 }) : undefined;
+  return {
+    n: vis.reduce((t, g) => t + g.n, 0), ohi: avg("ohi", null), oh: avg("oh", null), split,
+    trend: periods.map((p) => ({ period: p, ohi: avg("ohi", p) ?? null, oh: avg("oh", p) ?? null })),
+  };
+}
+function allSectors(ls: AtlasLayer[]): AtlasLayer {
+  // The timeline follows the quarterly sources; yearly ones carry their latest year.
+  const periods = [...new Set(ls.filter((l) => l.cadence !== "yearly").flatMap((l) => (l.national.trend || []).map((t) => t.period)))].sort();
+  const countries = [...new Set(ls.flatMap((l) => l.countries))];
+  const regions: Record<string, AtlasGroup> = {};
+  for (const iso of countries) regions[iso] = combine(ls.map((l) => countryGroup(l, iso)).filter((g): g is AtlasGroup => !!g), periods);
+  const latest = ls.map((l) => l.asOf).sort().pop() || "";
+  return { ...ls[0], layer: ALL, sector: "all", scope: "all", regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
+}
+
 // ── the camera: what part of the map is in view ─────────────────────────────
 interface Cam { cx: number; cy: number; zoom: number }
 
 export default function MapApp({ data, world }: { data: ExploreData; world: World }) {
-  const layers = useMemo(() => Object.fromEntries(data.layers.map((l) => [l.layer, l])) as Record<string, AtlasLayer>, [data]);
-  const defs = useMemo(() => LAYERS.filter((d) => layers[d.id]), [layers]);
+  const real = useMemo(() => Object.fromEntries(data.layers.map((l) => [l.layer, l])) as Record<string, AtlasLayer>, [data]);
+  const realDefs = useMemo(() => LAYERS.filter((d) => real[d.id]), [real]);
+  // "All sectors": every country's sectors read together (lib below), as one more layer.
+  const layers = useMemo((): Record<string, AtlasLayer> => ({ ...real, [ALL]: allSectors(realDefs.map((d) => real[d.id])) }), [real, realDefs]);
+  const defs = useMemo(() => [...realDefs, ALL_DEF], [realDefs]);
   const [theme, toggleTheme] = useTheme();
-  const [sector, setSector] = useState<SectorId>("banks");
+  const [sector, setSector] = useState<Sector>("all");
   const [measure, setMeasure] = useState<Measure>("ohi");
   const [band, setBand] = useState<Band>("");
   const [sel, setSel] = useState<Sel>(null);
@@ -252,13 +286,13 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // ── search ───────────────────────────────────────────────────────────────
   const allGroups = useMemo(() => {
     const out: { layerId: string; region: string | null; label: string; g: AtlasGroup }[] = [];
-    for (const def of defs) {
+    for (const def of realDefs) {
       const l = layers[def.id];
       out.push({ layerId: def.id, region: null, label: def.title, g: l.national });
       for (const [r, g] of Object.entries(l.regions)) if (!g.hidden && !(l.regionKind === "country" && l.countries.length === 1)) out.push({ layerId: def.id, region: r, label: `${place(l, r)}: ${NOUN[def.sector]}`, g });
     }
     return out;
-  }, [defs, layers, place]);
+  }, [realDefs, layers, place]);
   const hits = useMemo(() => {
     const t = q.trim().toLowerCase(); if (t.length < 2) return [];
     const words = t.split(/\s+/);
@@ -281,7 +315,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const markers = useMemo(() => {
     const m: { iso: string; color: string }[] = [];
     const add = (layer: string, region: string, kind: string, color: string) => {
-      const l = layers[layer]; const def = defs.find((d) => d.id === layer); if (!l || def?.sector !== sector) return;
+      const l = layers[layer]; const def = defs.find((d) => d.id === layer); if (!l || !def || (sector !== "all" && def.sector !== sector)) return;
       const iso = kind === "state" ? l.countries[0] : region; if (!m.some((x) => x.iso === iso)) m.push({ iso, color });
     };
     for (const x of insight.up.slice(0, 3)) add(x.layer, x.region, x.regionKind, COLOR.good);
@@ -343,18 +377,31 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             )}
           </>
         )}
+        {def.id === ALL && sel.region && (
+          <div className="xa-by">
+            <p className="xa-label">By sector · tap to open</p>
+            {realDefs.map((d) => { const rl = real[d.id]; const rg = countryGroup(rl, sel.region!); if (!rg) return null;
+              const rv = valueAt(rg, measure, at); const rb = bandOf(rv, measure, rl.bands);
+              return (
+                <button key={d.id} onClick={() => choose(d.id, rl.regionKind === "state" ? null : rl.countries.length === 1 ? null : sel.region)}>
+                  <span><b>{SECTORS.find((x) => x.id === d.sector)?.label}</b><small>{n0(rg.n)} {NOUN[d.sector]} · {d.publisher}</small></span>
+                  <em style={{ color: rb ? COLOR[rb] : undefined }}>{rg.hidden ? "few" : rv ?? "—"}</em>
+                </button>
+              ); })}
+          </div>
+        )}
         <div className="xa-btns">
           {l.regionKind === "state" && sel.region === null && !states && <button className="xa-btn" onClick={() => { setStates(l.layer); }}>See the states ›</button>}
           {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
         </div>
-        <p className="xa-note"><span className={`xa-ev is-${def.evidence}`}>{evidenceOf(def.evidence).label}</span> {def.publisher}. No institution is named.</p>
+        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has; the split counts every one. No institution is named.</> : <><span className={`xa-ev is-${def.evidence}`}>{evidenceOf(def.evidence).label}</span> {def.publisher}. No institution is named.</>}</p>
       </div>
     );
   })();
 
   const chips = (
     <div className="xa-chips" role="group" aria-label="Sector">
-      {SECTORS.map((s) => (
+      {[{ id: "all" as Sector, label: "All sectors", status: "live", where: "Every sector, together" }, ...SECTORS].map((s) => (
         <button key={s.id} className={`xa-chip${sector === s.id ? " on" : ""}`} disabled={s.status !== "live"} aria-pressed={sector === s.id}
           onClick={() => { setSector(s.id); setSel(null); setStates(null); flyTo(home); }} title={s.status === "live" ? s.where : "Coming next"}>
           {s.label}{s.status !== "live" && <small> · next</small>}
@@ -519,7 +566,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
               <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data, then only totals are shown: medians and the Stable / Steady / Fragile split, by country, state and size. No institution is named, and groups too small to keep anonymous are hidden. A reading of public figures, not a rating or advice.</p>
               {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
               <p className="xa-label">Sources</p>
-              <ul>{defs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}</ul>
+              <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}</ul>
               <p><a href="/privacy">Privacy</a> · © 2026 Tumblehill Holdings LLC</p>
             </div>
           )}
