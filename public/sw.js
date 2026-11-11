@@ -1,6 +1,6 @@
 // Pulsus Explore's service worker: keeps the app and its public figures
 // available offline, and refreshes them whenever there is a connection.
-const CACHE = "pulsus-explore-v1";
+const CACHE = "pulsus-explore-v2";
 const CORE = ["/", "/offline.html", "/manifest.webmanifest", "/icon-192.png", "/pulsus-platform-logo.png", "/pulsus-platform-logo-light.png"];
 
 self.addEventListener("install", (e) => {
