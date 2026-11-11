@@ -301,3 +301,6 @@
 .xa-kind{margin:0}
 .xa-principles{margin:4px 0 0;padding-left:18px}
 .xa-principles li{font-size:14.5px;margin:0 0 8px}
+/* "Pulsus Explore": the last word in Pulsus red */
+.xa .xa-red{color:var(--accent)}
+.xa.is-light .xa-red{color:#d0284a}
