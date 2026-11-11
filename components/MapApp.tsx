@@ -360,7 +360,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-brand">
           <a href="/" aria-label="Pulsus Explore"><img src="/pulsus-platform-logo-light.png" alt="Pulsus" /></a>
           <span className="xa-tag">Explore</span>
-          <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Your organisation →</button>
+          <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Explore Your Organisation →</button>
         </div>
         <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
         {chips}
@@ -425,7 +425,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {(sheet === "movers" || sheet === "filters" || sheet === "about" || sheet === "you") && (
         <aside className="xa-sheet" role="dialog" aria-label={sheet}>
-          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and hotspots" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "Your organisation"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
+          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and hotspots" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "Explore Your Organisation"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
           {sheet === "movers" && (
             <>
               <div className="xa-tabs" role="tablist">
