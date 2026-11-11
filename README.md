@@ -75,10 +75,9 @@ reach the app with no new store release.
 
    Without it the app still works, but shows a browser address bar.
 5. Store listing: privacy policy URL **https://explore.pulsus.tech/privacy**.
-   Data safety: only if the user subscribes, it collects name, email
-   address and (as other info) organisation, role and country, for
-   communications; optional; encrypted in transit; not shared; deletion on
-   request. No accounts, so no in-app account deletion is needed. Icon:
+   Data safety: only if the user subscribes, it collects the email
+   address, for communications; optional; encrypted in transit; not shared;
+   deletion on request. No accounts, so no in-app account deletion is needed. Icon:
    `public/icon-512.png`, the Pulsus Platform mark (vector source
    `public/icon.svg`).
 
