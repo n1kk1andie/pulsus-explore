@@ -4,7 +4,7 @@
 .xa *{box-sizing:border-box}
 .xa h2,.xa h3{font-family:Sora,system-ui,sans-serif;margin:0}
 .xa h2{font-size:18px;font-weight:700}.xa h3{font-size:16px;font-weight:700;margin:14px 0 6px}
-.xa button{font:inherit;color:inherit;cursor:pointer}
+:where(.xa) button{font:inherit;color:inherit;cursor:pointer}
 .xa a{color:#ff8fa3}
 .xa-map{position:absolute;inset:0;width:100%;height:100%;touch-action:none;user-select:none;cursor:grab}
 .xa-map:active{cursor:grabbing}
@@ -25,7 +25,7 @@
 .xa-brand img{height:40px;display:block}
 .xa.is-wide .xa-brand img{height:48px}
 .xa-tag{font:600 11px Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
-.xa-you{margin-left:auto;background:var(--accent);border:0;border-radius:999px;padding:7px 13px;font-weight:600;font-size:13px;color:#fff}
+.xa .xa-you{margin-left:auto;background:var(--accent);border:0;border-radius:999px;padding:7px 13px;font-weight:600;font-size:13px;color:#fff}
 .xa-search{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:10px 16px;text-align:left;color:var(--mute);box-shadow:0 6px 20px #0006}
 .xa-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
 .xa-chips::-webkit-scrollbar{display:none}
@@ -130,9 +130,17 @@
 .xa.is-wide .xa-states{padding:150px 400px 90px 16px}
 .xa.is-wide .xa-tiles,.xa.is-wide .xa-crumb{max-width:600px}
 .xa.is-wide .xa-brand{max-width:520px}
-.xa-you{white-space:nowrap}
-@media (max-width:379px){.xa-brand img{height:34px}.xa-you{font-size:12px;padding:6px 10px}.xa-tag{font-size:10px}}
+.xa .xa-you{white-space:nowrap}
+@media (max-width:379px){.xa-brand img{height:34px}.xa .xa-you{font-size:12px;padding:6px 10px}.xa-tag{font-size:10px}}
 @media (max-width:339px){.xa-tag{display:none}}
 /* the longer button: the small "Explore" word steps aside on phones */
 @media (max-width:519px){.xa-tag{display:none}}
-@media (max-width:339px){.xa-brand img{height:26px}.xa-brand{gap:6px}.xa-you{font-size:11px;padding:6px 8px}}
+@media (max-width:339px){.xa-brand img{height:26px}.xa-brand{gap:6px}.xa .xa-you{font-size:11px;padding:6px 8px}}
+/* phones: the logo leads; the button is a quiet outlined pill beside it */
+.xa{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:519px){
+  .xa-brand img{height:44px}
+  .xa .xa-you{font-size:12px;font-weight:500;padding:5px 11px;background:#ff4f6d26;border:1px solid #ff4f6d;color:#ffd5dc}
+}
+@media (max-width:379px){.xa-brand img{height:38px}.xa .xa-you{font-size:11px;padding:5px 9px}}
+@media (max-width:339px){.xa-brand img{height:30px}}
