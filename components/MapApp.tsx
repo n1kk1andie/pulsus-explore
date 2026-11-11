@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
 import { countryGroup } from "../lib/atlas/layers";
+import { INSIGHT_MIN } from "../lib/atlas/explore";
 import { ELSEWHERE, EVIDENCE, LAYERS, NEXT, SECTORS, evidenceOf, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
@@ -198,6 +199,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   useEffect(() => { try { window.history.replaceState(null, "", view === "overview" ? window.location.pathname + window.location.search : `#${view}`); } catch { /* ignore */ } }, [view]);
   const [dirQ, setDirQ] = useState("");
   const [dirSort, setDirSort] = useState<"high" | "low" | "change" | "az">("high");
+  const [dirKind, setDirKind] = useState<"" | "country" | "state">("");
   const [sector, setSector] = useState<Sector>("all");
   const [measure, setMeasure] = useState<Measure>("ohi");
   const [band, setBand] = useState<Band>("");
@@ -221,7 +223,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
   // ── names and groups ──────────────────────────────────────────────────────
   const cname = useCallback((iso: string) => world.countries.find((c) => c.id === iso)?.name || iso, [world]);
-  const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? STATE_NAME[region.slice(3)] || region : l.regionKind === "state" ? STATE_NAME[region] || region : cname(region)), [cname]);
+  // A US state names its country ("Alaska, US"), so states and countries can't be mistaken in one list.
+  const stateName = (code: string) => { const n = STATE_NAME[code] || code; return n.startsWith("US ") ? n : `${n}, US`; };
+  const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? stateName(region.slice(3)) : l.regionKind === "state" ? stateName(region) : cname(region)), [cname]);
   const groupOf = useCallback((s: NonNullable<Sel>): { def: LayerDef; l: AtlasLayer; g: AtlasGroup; title: string } | null => {
     const l = layers[s.layerId]; const def = defs.find((d) => d.id === s.layerId);
     if (!l || !def) return null;
@@ -509,7 +513,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Deteriorating</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
         <section className="xa-panel"><h2 className="xa-h2 is-hot">Hotspots</h2><p className="xa-sub">The largest share of Fragile organisations</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
       </div>
-      <p className="xa-note">Organisational Health over the last year. A reading of public figures, not a rating or advice.</p>
+      <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. These are Pulsus readings of public data, not official regulatory ratings or advice.</p>
     </div>
   );
 
@@ -521,16 +525,18 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const shown = useMemo(() => {
     const words = dirQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const out = rows.filter((r) => (sector === "all" || r.def.sector === sector)
+      && (!dirKind || (dirKind === "state") === (r.region !== null && r.l.regionKind === "state"))
       && (!band || bandOf(r.v, measure, r.l.bands) === band)
       && words.every((w) => r.label.toLowerCase().includes(w) || r.def.sector.includes(w) || r.def.title.toLowerCase().includes(w)));
     const by = { high: (a: typeof out[0], b: typeof out[0]) => (b.v ?? -1) - (a.v ?? -1), low: (a: typeof out[0], b: typeof out[0]) => (a.v ?? 999) - (b.v ?? 999), change: (a: typeof out[0], b: typeof out[0]) => Math.abs(b.ch ?? 0) - Math.abs(a.ch ?? 0), az: (a: typeof out[0], b: typeof out[0]) => a.label.localeCompare(b.label) }[dirSort];
     return out.sort(by);
-  }, [rows, dirQ, sector, band, measure, dirSort]);
+  }, [rows, dirQ, sector, band, measure, dirSort, dirKind]);
   const directory = (
     <div className="xa-dir">
       <div className="xa-dir-tools">
         <label className="xa-dir-q"><Ico d={I_SEARCH} size={18} /><input value={dirQ} onChange={(e) => setDirQ(e.target.value)} placeholder="Search a country, state or sector" aria-label="Search the directory" /></label>
         {chips}
+        <div className="xa-seg xa-kind">{([["", "Everywhere"], ["country", "Countries"], ["state", "US states"]] as ["" | "country" | "state", string][]).map(([k, w]) => <button key={k || "all"} className={dirKind === k ? "on" : ""} onClick={() => setDirKind(k)}>{w}</button>)}</div>
         <div className="xa-dir-row">
           <div className="xa-seg">{([["", "Every band"], ["good", "Stable"], ["watch", "Steady"], ["bad", "Fragile"]] as [Band, string][]).map(([k, w]) => <button key={k || "all"} className={band === k ? "on" : ""} onClick={() => setBand(k)}>{w}</button>)}</div>
           <label className="xa-sort"><span>Sort</span><select value={dirSort} onChange={(e) => setDirSort(e.target.value as typeof dirSort)}><option value="high">Highest first</option><option value="low">Lowest first</option><option value="change">Biggest change</option><option value="az">A to Z</option></select></label>
@@ -558,7 +564,18 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <section className="xa-panel">
         <h2 className="xa-h2">A free window on the world</h2>
         <p>Pulsus Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
-        <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data. Only totals are shown: medians and the Stable / Steady / Fragile split. No institution is named, and groups too small to keep anonymous are hidden. It is a reading of public figures, not a rating or advice.</p>
+        <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data. Only totals are shown: medians and the Stable / Steady / Fragile split. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings, credit ratings or advice.</p>
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">How the numbers are made</h2>
+        <p>Operational Health and Organisational Health are calculated using fixed rules on our servers. The same inputs always produce the same results, making every figure consistent, verifiable and reproducible.</p>
+        <ul className="xa-principles">
+          <li><b>Grounded, not generative.</b> Every figure, band and change is computed by those rules. No AI writes or alters a number.</li>
+          <li><b>A pointer, not a source of record.</b> Explore shows where to look. For any institution, the regulator&apos;s published data is authoritative.</li>
+          <li><b>Read-only.</b> Figures are read from regulators&apos; public releases; nothing is changed, and no institution is named.</li>
+          <li><b>Small groups held back.</b> Groups too small to keep anonymous are hidden, and a place needs at least {INSIGHT_MIN} organisations to appear among the movers and hotspots, so one institution can&apos;t swing the ranking.</li>
+          <li><b>Not an official rating.</b> These are Pulsus readings of public data, not regulatory ratings, credit ratings or advice.</li>
+        </ul>
       </section>
       <section className="xa-panel">
         <h2 className="xa-h2">How to read it</h2>
@@ -776,7 +793,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           )}
           {sheet === "about" && (
             <div className="xa-about">
-              <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data, then only totals are shown: medians and the Stable / Steady / Fragile split, by country, state and size. No institution is named, and groups too small to keep anonymous are hidden. A reading of public figures, not a rating or advice.</p>
+              <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data, then only totals are shown: medians and the Stable / Steady / Fragile split, by country, state and size. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings or advice.</p>
               {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
               <p className="xa-label">Sources</p>
               <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}</ul>

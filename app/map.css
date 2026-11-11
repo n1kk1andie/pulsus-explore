@@ -298,3 +298,6 @@
 .xa .xa-h2 .xa-delta svg{width:15px;height:15px}
 .xa.is-light .xa-h2{color:#d0284a}
 .xa.is-light .xa-h2.is-up{color:var(--good)}.xa.is-light .xa-h2.is-down{color:var(--bad)}.xa.is-light .xa-h2.is-hot{color:#b47a00}
+.xa-kind{margin:0}
+.xa-principles{margin:4px 0 0;padding-left:18px}
+.xa-principles li{font-size:14.5px;margin:0 0 8px}
