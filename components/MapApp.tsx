@@ -581,9 +581,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
       </section>
       <section className="xa-panel">
-        <h2 className="xa-h2">Pulsus Platform</h2>
-        <p>Explore is the free view of Pulsus Platform. The Platform reads your own organisation from its own systems, the same way.</p>
-        <p><a href={`${ABOUT}/#about`}>About Pulsus Platform →</a></p>
+        <h2 className="xa-h2 is-name">Pulsus <span className="xa-red">Platform</span></h2>
+        <p>Explore is the free view of Pulsus <span className="xa-red">Platform</span>. The Platform reads your own organisation from its own systems, the same way.</p>
+        <p><a href={`${ABOUT}/#about`}>About Pulsus <span className="xa-red">Platform</span> →</a></p>
         <dl className="xa-plans">
           <div><dt>Free</dt><dd>Explore, as you see it here. No account needed.</dd><dd className="xa-price">Free</dd></div>
           <div><dt>Operational Intelligence</dt><dd>What needs attention today: the daily brief and alerts from your own data.</dd><dd className="xa-price">US$3,000 a month</dd></div>
@@ -594,7 +594,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a>
           <a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a>
         </div>
-        <p className="xa-note">Take a peek opens Pulsus Platform with a fictional organisation, Meridian Society, so you can see every screen before you sign up. Or <a href={`${ABOUT}/walkthrough/`}>talk to us about a plan</a>.</p>
+        <p className="xa-note">Take a peek opens Pulsus <span className="xa-red">Platform</span> with a fictional organisation, Meridian Society, so you can see every screen before you sign up. Or <a href={`${ABOUT}/walkthrough/`}>talk to us about a plan</a>.</p>
       </section>
       <section className="xa-panel">
         <h2 className="xa-h2">Updates</h2>
@@ -605,7 +605,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <button className="xa-btn ghost" onClick={toggleTheme}><Ico d={theme === "dark" ? I_SUN : I_MOON} size={16} /> {theme === "dark" ? "Switch to day" : "Switch to night"}</button>
       </section>
       <footer className="xa-foot">
-        <p>Pulsus Platform · Explore</p>
+        <p>Pulsus <span className="xa-red">Platform</span> · Explore</p>
         <p><a href="/privacy">Privacy</a> · <a href={ABOUT}>about.pulsus.tech</a></p>
         <p>© 2026 Tumblehill Holdings LLC</p>
       </footer>
@@ -787,7 +787,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           )}
           {sheet === "about" && (
             <div className="xa-about">
-              <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data, then only totals are shown: medians and the Stable / Steady / Fragile split, by country, state and size. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings or advice.</p>
+              <p>Each institution is read from its public figures through the same engine Pulsus <span className="xa-red">Platform</span> uses for an organisation&apos;s own data, then only totals are shown: medians and the Stable / Steady / Fragile split, by country, state and size. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings or advice.</p>
               {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
               <p className="xa-label">Sources</p>
               <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}</ul>
@@ -797,9 +797,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           {sheet === "you" && (
             <div className="xa-you-in">
               <h3>Connect your organisation to see yours.</h3>
-              <p className="xa-muted">Explore is a free window on the world, read from public data. Pulsus Platform reads an organisation from its own systems the same way: Operational Intelligence shows what needs attention today; Executive Intelligence adds the diagnosis, treatments, recovery and where it stands among these peers; Oversight Intelligence watches over many organisations at once.</p>
+              <p className="xa-muted">Explore is a free window on the world, read from public data. Pulsus <span className="xa-red">Platform</span> reads an organisation from its own systems the same way: Operational Intelligence shows what needs attention today; Executive Intelligence adds the diagnosis, treatments, recovery and where it stands among these peers; Oversight Intelligence watches over many organisations at once.</p>
               <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a><a className="xa-btn ghost" href={`${ABOUT}/walkthrough/`}>Talk to us</a></div>
-              <p className="xa-note">Take a peek: Pulsus Platform with a fictional organisation, no sign-up needed.</p>
+              <p className="xa-note">Take a peek: Pulsus <span className="xa-red">Platform</span> with a fictional organisation, no sign-up needed.</p>
               <h3>Subscribe for updates</h3>
               <Subscribe />
             </div>
@@ -860,13 +860,13 @@ function Invite() {
       {!open ? (
         <div className="xa-inv-row">
           <span className="xa-inv-ic"><Ico d={I_MAIL} size={17} /></span>
-          <span className="xa-inv-t">Get Pulsus Platform updates</span>
+          <span className="xa-inv-t">Get Pulsus <span className="xa-red">Platform</span> updates</span>
           <button type="button" className="xa-inv-go" onClick={() => setOpen(true)}>Subscribe</button>
           {X}
         </div>
       ) : (
         <div className="xa-inv-open">
-          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus Platform updates</span>{X}</div>
+          <div className="xa-inv-row"><span className="xa-inv-t">Get Pulsus <span className="xa-red">Platform</span> updates</span>{X}</div>
           <Subscribe autoFocus compact onDone={() => { remember("subscribed"); setTimeout(() => setShow(false), 2500); }} />
         </div>
       )}
