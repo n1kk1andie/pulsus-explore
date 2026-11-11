@@ -171,6 +171,17 @@ function allSectors(ls: AtlasLayer[]): AtlasLayer {
   return { ...ls[0], layer: ALL, sector: "all", scope: "all", regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
 }
 
+/** A change, with a drawn arrow (text arrows become emoji on iPhones). */
+function Delta({ n, bare = false }: { n: number; bare?: boolean }) {
+  const up = n > 0;
+  return (
+    <span className="xa-delta">
+      <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path d={up ? "M2.5 9.5 9.5 2.5M4 2.5h5.5V8" : "M2.5 2.5 9.5 9.5M9.5 4v5.5H4"} fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      {!bare && <>{up ? "+" : "−"}{Math.abs(n)}</>}
+    </span>
+  );
+}
+
 // ── the camera: what part of the map is in view ─────────────────────────────
 interface Cam { cx: number; cy: number; zoom: number }
 
@@ -465,7 +476,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     return (
       <button key={`${m.layer}|${m.region}`} onClick={() => open(m.layer, m.region)}>
         <span><b>{place(l, m.region)}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · ${(m as Hotspot).fragile} of ${(m as Hotspot).n} Fragile`}</small></span>
-        <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? `${(m as Mover).change > 0 ? "↗ +" : "↘ "}${(m as Mover).change}` : `${(m as Hotspot).share}%`}</em>
+        <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? <Delta n={(m as Mover).change} /> : `${(m as Hotspot).share}%`}</em>
       </button>
     );
   };
@@ -494,9 +505,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
       </div>
       <div className="xa-cols">
-        <section className="xa-panel"><h2 className="xa-h2">Improving</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2">Deteriorating</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2">Hotspots</h2><p className="xa-sub">The largest share of Fragile organisations</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-up"><Delta n={1} bare /> Improving</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Deteriorating</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-hot">Hotspots</h2><p className="xa-sub">The largest share of Fragile organisations</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
       </div>
       <p className="xa-note">Organisational Health over the last year. A reading of public figures, not a rating or advice.</p>
     </div>
@@ -532,7 +543,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <button onClick={() => open(r.layerId, r.region)}>
               <span className="xa-dir-dot" style={{ background: tone(r.v, r.l) || COLOR.few }} />
               <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b><small>{n0(r.g.n)} {NOUN[r.def.sector]} · {bandWord(r.v, r.l)} · {when(r.l, r.l.asOf)}</small></span>
-              <span className="xa-dir-v"><strong style={{ color: tone(r.v, r.l) }}>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}>{r.ch > 0 ? `↗ +${r.ch}` : `↘ ${r.ch}`}</small>}</span>
+              <span className="xa-dir-v"><strong style={{ color: tone(r.v, r.l) }}>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}><Delta n={r.ch} /></small>}</span>
             </button>
           </li>
         ))}
@@ -749,7 +760,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                   return (
                     <button key={`${m.layer}|${m.region}`} onClick={() => choose(m.layer, m.region)}>
                       <span><b>{name}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · ${(m as Hotspot).fragile} of ${(m as Hotspot).n} Fragile`}</small></span>
-                      <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? `${(m as Mover).change > 0 ? "↗ +" : "↘ "}${(m as Mover).change}` : `${(m as Hotspot).share}%`}</em>
+                      <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? <Delta n={(m as Mover).change} /> : `${(m as Hotspot).share}%`}</em>
                     </button>
                   ); })}
               </div>

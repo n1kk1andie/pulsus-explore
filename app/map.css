@@ -288,3 +288,13 @@
 .xa:not(.is-wide) .xa-states ~ .xa-fabs{display:none}
 .xa.is-wide .xa-states .xa-tiles,.xa.is-wide .xa-states .xa-states-h,.xa.is-wide .xa-states .xa-crumb,.xa.is-wide .xa-states .xa-small{max-width:560px}
 .xa-states{padding-bottom:110px}
+/* changes with drawn arrows; coloured section headings */
+.xa-delta{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
+.xa-delta svg{flex:none}
+.xa .xa-h2{color:var(--accent)}
+.xa .xa-h2.is-up{color:var(--good)}
+.xa .xa-h2.is-down{color:var(--bad)}
+.xa .xa-h2.is-hot{color:var(--watch)}
+.xa .xa-h2 .xa-delta svg{width:15px;height:15px}
+.xa.is-light .xa-h2{color:#d0284a}
+.xa.is-light .xa-h2.is-up{color:var(--good)}.xa.is-light .xa-h2.is-down{color:var(--bad)}.xa.is-light .xa-h2.is-hot{color:#b47a00}
