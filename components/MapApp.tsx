@@ -106,6 +106,22 @@ function useTheme(): ["light" | "dark", () => void] {
 const I_SUN = "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4";
 const I_MOON = "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z";
 const I_MAIL = "M3 5h18v14H3zM3 7l9 6 9-6";
+const I_HOME = "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z";
+const I_LIST = "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01";
+const I_MAP = "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14";
+type View = "overview" | "directory" | "map" | "about";
+const VIEWS: View[] = ["overview", "directory", "map", "about"];
+
+/** A reading's change over the last year (or the last step, for yearly sources). */
+function yearChange(g: AtlasGroup, k: Measure): number | null {
+  const t = (g.trend || []).filter((p) => p[k] !== null);
+  if (t.length < 2) return null;
+  const last = t[t.length - 1];
+  const y = Number(last.period.slice(0, 4)) - 1;
+  const target = `${y}${last.period.slice(4)}`;
+  const prev = [...t].reverse().find((p) => p.period <= target) || t[0];
+  return prev === last ? null : (last[k] as number) - (prev[k] as number);
+}
 
 /** The middle and width of a country's largest piece of land (so France's
  *  number sits on France, not between it and French Guiana). */
@@ -162,6 +178,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const layers = useMemo((): Record<string, AtlasLayer> => ({ ...real, [ALL]: allSectors(realDefs.map((d) => real[d.id])) }), [real, realDefs]);
   const defs = useMemo(() => [...realDefs, ALL_DEF], [realDefs]);
   const [theme, toggleTheme] = useTheme();
+  // The tab: Overview, Directory, Map or About, kept in the address (#map) so a refresh or a shared link opens it.
+  const [view, setView] = useState<View>("overview");
+  useEffect(() => { const h = window.location.hash.slice(1) as View; if (VIEWS.includes(h)) setView(h); }, []);
+  useEffect(() => { try { window.history.replaceState(null, "", view === "overview" ? window.location.pathname + window.location.search : `#${view}`); } catch { /* ignore */ } }, [view]);
+  const [dirQ, setDirQ] = useState("");
+  const [dirSort, setDirSort] = useState<"high" | "low" | "change" | "az">("high");
   const [sector, setSector] = useState<Sector>("all");
   const [measure, setMeasure] = useState<Measure>("ohi");
   const [band, setBand] = useState<Band>("");
@@ -410,8 +432,155 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     </div>
   );
 
+  const brand = (
+    <div className="xa-brand">
+      <a href="/" aria-label="Pulsus Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
+      <span className="xa-tag">Explore</span>
+      <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Explore Your Organisation →</button>
+    </div>
+  );
+  /** Open a place on the map, with its card. */
+  const open = (layerId: string, region: string | null) => { setView("map"); choose(layerId, region); };
+  const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(null); setView("map"); flyTo(home); };
+  const tone = (v: number | undefined, l: AtlasLayer) => { const b = bandOf(v, measure, l.bands); return b ? COLOR[b] : undefined; };
+  const bandWord = (v: number | undefined, l: AtlasLayer) => { const b = bandOf(v, measure, l.bands); return b ? BAND_WORD[b] : "Not shown"; };
+
+  // ── Overview: the world at a glance ──────────────────────────────────────
+  const allL = layers[ALL];
+  const sectorCards = SECTORS.filter((x) => x.status === "live").map((x) => {
+    const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
+    return ls.length ? { x, l: ls.length === 1 ? ls[0] : allSectors(ls), n: ls.length } : null;
+  }).filter(Boolean) as { x: (typeof SECTORS)[number]; l: AtlasLayer; n: number }[];
+  const moverRow = (m: Mover | Hotspot) => {
+    const l = layers[m.layer]; const def = defs.find((d) => d.id === m.layer); if (!l || !def) return null;
+    const mv = "change" in m;
+    return (
+      <button key={`${m.layer}|${m.region}`} onClick={() => open(m.layer, m.region)}>
+        <span><b>{place(l, m.region)}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · ${(m as Hotspot).fragile} of ${(m as Hotspot).n} Fragile`}</small></span>
+        <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? `${(m as Mover).change > 0 ? "↗ +" : "↘ "}${(m as Mover).change}` : `${(m as Hotspot).share}%`}</em>
+      </button>
+    );
+  };
+  const overview = (
+    <div className="xa-ov">
+      <section className="xa-panel xa-hero">
+        <p className="xa-label">The world at a glance · {when(allL, allL.asOf)}</p>
+        <div className="xa-hero-row">
+          <div><strong style={{ color: tone(allL.national.ohi, allL) }}>{allL.national.ohi ?? "—"}</strong><small>Organisational Health · {bandWord(allL.national.ohi, allL)}</small></div>
+          <div><strong>{allL.national.oh ?? "—"}</strong><small>Operational Health</small></div>
+        </div>
+        <p className="xa-muted">{n0(allL.national.n)} organisations in {allL.countries.length} countries, across {sectorCards.length} sectors, read from public data. No institution is named.</p>
+        <Split g={allL.national} />
+        <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
+      </section>
+      <Invite />
+      <h2 className="xa-h2">Sectors</h2>
+      <div className="xa-sectors">
+        {sectorCards.map(({ x, l }) => (
+          <button key={x.id} className="xa-panel xa-sec" onClick={() => openSector(x.id)}>
+            <span className="xa-sec-h"><b>{x.label}</b><strong style={{ color: tone(l.national.ohi, l) }}>{l.national.ohi ?? "—"}</strong></span>
+            <small>{n0(l.national.n)} {NOUN[x.id]} · {x.where}</small>
+            <Spark values={(l.national.trend || []).map((t) => t[measure])} color={tone(l.national.ohi, l) || COLOR.good} h={34} />
+          </button>
+        ))}
+        {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
+      </div>
+      <div className="xa-cols">
+        <section className="xa-panel"><h2 className="xa-h2">Improving</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2">Deteriorating</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2">Hotspots</h2><p className="xa-sub">The largest share of Fragile organisations</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
+      </div>
+      <p className="xa-note">Organisational Health over the last year. A reading of public figures, not a rating or advice.</p>
+    </div>
+  );
+
+  // ── Directory: every place and sector, searchable ────────────────────────
+  const rows = useMemo(() => allGroups.map((r) => {
+    const l = layers[r.layerId]; const def = defs.find((d) => d.id === r.layerId)!;
+    return { ...r, l, def, v: valueAt(r.g, measure, null), ch: yearChange(r.g, measure) };
+  }), [allGroups, layers, defs, measure]);
+  const shown = useMemo(() => {
+    const words = dirQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const out = rows.filter((r) => (sector === "all" || r.def.sector === sector)
+      && (!band || bandOf(r.v, measure, r.l.bands) === band)
+      && words.every((w) => r.label.toLowerCase().includes(w) || r.def.sector.includes(w) || r.def.title.toLowerCase().includes(w)));
+    const by = { high: (a: typeof out[0], b: typeof out[0]) => (b.v ?? -1) - (a.v ?? -1), low: (a: typeof out[0], b: typeof out[0]) => (a.v ?? 999) - (b.v ?? 999), change: (a: typeof out[0], b: typeof out[0]) => Math.abs(b.ch ?? 0) - Math.abs(a.ch ?? 0), az: (a: typeof out[0], b: typeof out[0]) => a.label.localeCompare(b.label) }[dirSort];
+    return out.sort(by);
+  }, [rows, dirQ, sector, band, measure, dirSort]);
+  const directory = (
+    <div className="xa-dir">
+      <div className="xa-dir-tools">
+        <label className="xa-dir-q"><Ico d={I_SEARCH} size={18} /><input value={dirQ} onChange={(e) => setDirQ(e.target.value)} placeholder="Search a country, state or sector" aria-label="Search the directory" /></label>
+        {chips}
+        <div className="xa-dir-row">
+          <div className="xa-seg">{([["", "Every band"], ["good", "Stable"], ["watch", "Steady"], ["bad", "Fragile"]] as [Band, string][]).map(([k, w]) => <button key={k || "all"} className={band === k ? "on" : ""} onClick={() => setBand(k)}>{w}</button>)}</div>
+          <label className="xa-sort"><span>Sort</span><select value={dirSort} onChange={(e) => setDirSort(e.target.value as typeof dirSort)}><option value="high">Highest first</option><option value="low">Lowest first</option><option value="change">Biggest change</option><option value="az">A to Z</option></select></label>
+        </div>
+        <p className="xa-sub">{shown.length} {shown.length === 1 ? "place" : "places"} · {WORD[measure]} · places and sectors only; no institution is named</p>
+      </div>
+      <ul className="xa-dir-list">
+        {shown.map((r) => (
+          <li key={`${r.layerId}|${r.region}`}>
+            <button onClick={() => open(r.layerId, r.region)}>
+              <span className="xa-dir-dot" style={{ background: tone(r.v, r.l) || COLOR.few }} />
+              <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b><small>{n0(r.g.n)} {NOUN[r.def.sector]} · {bandWord(r.v, r.l)} · {when(r.l, r.l.asOf)}</small></span>
+              <span className="xa-dir-v"><strong style={{ color: tone(r.v, r.l) }}>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}>{r.ch > 0 ? `↗ +${r.ch}` : `↘ ${r.ch}`}</small>}</span>
+            </button>
+          </li>
+        ))}
+        {!shown.length && <li className="xa-muted xa-empty">Nothing matches. Try another word, or every band and all sectors.</li>}
+      </ul>
+    </div>
+  );
+
+  // ── About ────────────────────────────────────────────────────────────────
+  const about = (
+    <div className="xa-ab">
+      <section className="xa-panel">
+        <h2 className="xa-h2">A free window on the world</h2>
+        <p>Pulsus Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
+        <p>Each institution is read from its public figures through the same engine Pulsus Platform uses for an organisation&apos;s own data. Only totals are shown: medians and the Stable / Steady / Fragile split. No institution is named, and groups too small to keep anonymous are hidden. It is a reading of public figures, not a rating or advice.</p>
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">How to read it</h2>
+        <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole. <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
+        <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
+        {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">Sources</h2>
+        <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">Pulsus Platform plans</h2>
+        <p className="xa-muted">Explore reads the world from public data. Pulsus Platform reads your own organisation from its own systems.</p>
+        <dl className="xa-plans">
+          <div><dt>Free</dt><dd>Pulsus Explore, as you see it here.</dd><dd className="xa-price">Free</dd></div>
+          <div><dt>Operational Intelligence</dt><dd>What needs attention today: the daily brief and alerts from your own data.</dd><dd className="xa-price">US$3,000 a month</dd></div>
+          <div><dt>Executive Intelligence</dt><dd>Adds the diagnosis, treatments, recovery and where you stand among these peers, with the Board Pack.</dd><dd className="xa-price">US$4,000 a month</dd></div>
+          <div><dt>Oversight Intelligence</dt><dd>For those who watch over many organisations at once.</dd><dd className="xa-price">Contact us</dd></div>
+        </dl>
+        <p><a href={`${ABOUT}/walkthrough/`}>Talk to us about a plan →</a></p>
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">Updates</h2>
+        <Subscribe />
+      </section>
+      <section className="xa-panel xa-ab-row">
+        <span>Appearance</span>
+        <button className="xa-btn ghost" onClick={toggleTheme}><Ico d={theme === "dark" ? I_SUN : I_MOON} size={16} /> {theme === "dark" ? "Switch to day" : "Switch to night"}</button>
+      </section>
+      <footer className="xa-foot">
+        <p>Pulsus Explore is part of Pulsus Platform.</p>
+        <p><a href="/privacy">Privacy</a> · <a href={ABOUT}>about.pulsus.tech</a></p>
+        <p>© 2026 Tumblehill Holdings LLC</p>
+      </footer>
+    </div>
+  );
+
   return (
-    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel ? " has-card" : ""}`} ref={box}>
+    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel ? " has-card" : ""} on-${view}`}>
+    <div className="xa-stage" ref={box}>
       {/* the map */}
       <svg className="xa-map" viewBox={vb} role="img" aria-label={`World map: ${WORD[measure]} of ${NOUN[sector]} by country. Use search to choose a place.`}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
@@ -460,11 +629,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {/* the top: brand, search, sectors */}
       <header className="xa-top">
-        <div className="xa-brand">
-          <a href="/" aria-label="Pulsus Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
-          <span className="xa-tag">Explore</span>
-          <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Explore Your Organisation →</button>
-        </div>
+        {brand}
         <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
         {chips}
         {!sel && !sheet && !states && <Invite />}
@@ -474,7 +639,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <div className="xa-fabs">
         <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters"><Ico d={I_FILTER} /></button>
         <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Movers and hotspots"><Ico d={I_MOVERS} /></button>
-        <button className={sheet === "about" ? "on" : ""} onClick={() => setSheet(sheet === "about" ? "" : "about")} aria-label="About these figures"><Ico d={I_INFO} /></button>
+        <button onClick={() => { setSheet(""); setView("about"); }} aria-label="About these figures"><Ico d={I_INFO} /></button>
         <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
       </div>
 
@@ -514,6 +679,21 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
               ); })}
           </div>
         </section>
+      )}
+
+
+      {/* the other tabs: pages over the map, which stays ready underneath */}
+      {view !== "map" && (
+        <main className="xa-page">
+          <header className="xa-page-top">
+            {brand}
+            {view === "directory" && <h1 className="xa-h1">Directory</h1>}
+            {view === "about" && <h1 className="xa-h1">About Pulsus Explore</h1>}
+          </header>
+          {view === "overview" && overview}
+          {view === "directory" && directory}
+          {view === "about" && about}
+        </main>
       )}
 
       {/* sheets */}
@@ -581,6 +761,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           )}
         </aside>
       )}
+    </div>
+    <nav className="xa-tabs-bar" aria-label="Views">
+      {([["overview", "Overview", I_HOME], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["about", "About", I_INFO]] as [View, string, string][]).map(([k, w, d]) => (
+        <button key={k} className={view === k ? "on" : ""} aria-current={view === k ? "page" : undefined} onClick={() => { setSheet(""); setView(k); }}><Ico d={d} size={22} /><span>{w}</span></button>
+      ))}
+    </nav>
     </div>
   );
 }
