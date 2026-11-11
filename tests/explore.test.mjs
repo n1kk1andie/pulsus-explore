@@ -25,6 +25,13 @@ test("everyone gets the full depth: history, movers, hotspots", () => {
   assert.ok(i.up.length + i.down.length > 3 && i.hotspots.length > 0);
 });
 
+test("movers and hotspots are only places with enough organisations to rank on", () => {
+  const i = insightsOf(layers, "full");
+  const nOf = (m) => { const l = layers.find((x) => x.layer === m.layer); return l.regions[m.region].n; };
+  for (const m of [...i.up, ...i.down]) assert.ok(nOf(m) >= 20, `${m.layer} ${m.region}`);
+  for (const h of i.hotspots) assert.ok(h.n >= 20, `${h.layer} ${h.region}`);
+});
+
 test("no institution is named, and small groups stay hidden", () => {
   const json = JSON.stringify(exploreAt(layers, "full"));
   assert.ok(!/"(name|institution|cert|charter|rssd)"\s*:/i.test(json));

@@ -46,12 +46,16 @@ const yearBack = (l: AtlasLayer) => (l.cadence === "yearly" ? 1 : 4);
 
 /** Where Organisational Health moved most over the last year, and where
  *  Fragile institutions are concentrated — across every layer's regions. */
+/** The fewest organisations a place needs to appear among the movers and
+ *  hotspots: below it, one institution swings the share too far to rank on. */
+export const INSIGHT_MIN = 20;
+
 export function insightsOf(layers: AtlasLayer[], depth: Depth): Insights {
   const movers: Mover[] = [];
   const hotspots: Hotspot[] = [];
   for (const l of layers) {
     for (const [region, g] of Object.entries(l.regions)) {
-      if (g.hidden) continue;
+      if (g.hidden || g.n < INSIGHT_MIN) continue;
       const t = (g.trend || []).filter((p) => p.ohi !== null);
       const back = yearBack(l);
       if (t.length > back) {
