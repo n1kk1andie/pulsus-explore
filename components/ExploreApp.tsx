@@ -12,38 +12,34 @@ import { IGlobe, IMoon, ISun } from "./icons";
 const ABOUT = "https://about.pulsus.tech";
 /** Pulsus Platform: where subscriptions are kept and businesses start. */
 export const PLATFORM = (process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pulsus.tech").replace(/\/+$/, "");
-const ROLES: [string, string][] = [["executive", "Executive or board"], ["operations", "Operations"], ["compliance_risk", "Compliance or risk"], ["it", "Technology"], ["other", "Something else"]];
 
-/** Subscribe for updates: new sectors, new countries and the quarterly
- *  figures. Kept by Pulsus Platform's lead store; nothing is kept here. */
+/** Subscribe for updates: just an email address. Kept by Pulsus Platform's
+ *  lead store (operator console, Leads); nothing is kept here. */
 function Subscribe() {
   const started = React.useRef(Date.now());
-  const [f, setF] = useState({ name: "", email: "", company: "", role: "", country: "", consent: false, website: "" });
+  const [email, setEmail] = useState("");
+  const [website, setWebsite] = useState("");   // a field people never see: bots fill it
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setF({ ...f, [k]: e.target.type === "checkbox" ? (e.target as HTMLInputElement).checked : e.target.value });
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setState("sending"); setMsg("");
     try {
       const r = await fetch(`${PLATFORM}/api/leads`, { method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product: "platform", name: f.name, email: f.email, company: f.company, role: f.role, country: f.country, consent: f.consent, website: f.website, elapsedMs: Date.now() - started.current, letters: "Pulsus Explore: subscribe to updates" }) });
+        body: JSON.stringify({ kind: "subscribe", email, consent: true, website, elapsedMs: Date.now() - started.current }) });
       const j = await r.json().catch(() => ({}));
       if (r.ok && j.ok) { setState("done"); return; }
       setState("error");
-      setMsg(r.status === 429 ? "Too many tries just now. Please try again later." : j.error === "bad_email" ? "That email address doesn't look right." : "That didn't go through. Check each field and try again.");
+      setMsg(r.status === 429 ? "Too many tries just now. Please try again later." : "That email address doesn't look right.");
     } catch { setState("error"); setMsg("You seem to be offline. Try again when you have a connection."); }
   };
-  if (state === "done") return <p className="pz-xp-sub-done" role="status">Thank you. You&apos;re subscribed: we&apos;ll write when there are new sectors, countries or quarterly figures.</p>;
+  if (state === "done") return <p className="pz-xp-sub-done" role="status">Thank you, you&apos;re subscribed.</p>;
   return (
-    <form className="pz-form pz-xp-sub" onSubmit={submit}>
-      <label>Name<input required value={f.name} onChange={set("name")} autoComplete="name" maxLength={120} /></label>
-      <label>Email<input required type="email" value={f.email} onChange={set("email")} autoComplete="email" maxLength={254} /></label>
-      <label>Organisation<input required value={f.company} onChange={set("company")} autoComplete="organization" maxLength={160} placeholder="Where you work, or Independent" /></label>
-      <label>Role<select required value={f.role} onChange={set("role")}><option value="" disabled>Choose</option>{ROLES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-      <label>Country<input required value={f.country} onChange={set("country")} autoComplete="country-name" maxLength={80} /></label>
-      <label className="pz-xp-hp" aria-hidden="true">Website<input tabIndex={-1} autoComplete="off" value={f.website} onChange={set("website")} /></label>
-      <label className="pz-check"><input type="checkbox" required checked={f.consent} onChange={set("consent")} /><span>Email me updates about Pulsus Explore and Pulsus Platform. I can ask to stop at any time (see <a className="pz-link-btn" href="/privacy">Privacy</a>).</span></label>
-      <div className="pz-row"><button className="pz-btn" disabled={state === "sending"}>{state === "sending" ? "Subscribing" : "Subscribe"}</button>{msg && <span className="pz-small" role="alert">{msg}</span>}</div>
+    <form className="pz-xp-sub" onSubmit={submit}>
+      <label className="pz-sr" htmlFor="xp-sub-email">Email</label>
+      <input id="xp-sub-email" required type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={254} placeholder="Your email address" />
+      <input className="pz-xp-hp" aria-hidden="true" tabIndex={-1} autoComplete="off" value={website} onChange={(e) => setWebsite(e.target.value)} />
+      <button className="pz-btn" disabled={state === "sending"}>{state === "sending" ? "Subscribing" : "Subscribe"}</button>
+      <p className="pz-small pz-muted pz-xp-sub-note">{msg ? <span role="alert">{msg}</span> : <>Updates on new sectors and quarterly figures. Unsubscribe any time; see <a className="pz-link-btn" href="/privacy">Privacy</a>.</>}</p>
     </form>
   );
 }
@@ -89,7 +85,6 @@ export default function ExploreApp({ data, platformUrl }: { data: ExploreData; p
         <section className="pz-card pz-xp-cta" id="subscribe" aria-labelledby="xp-sub-h">
           <p className="pz-eyebrow">Stay in touch</p>
           <h2 id="xp-sub-h" className="pz-h3">Subscribe for updates</h2>
-          <p className="pz-muted">New sectors, new countries and each quarter&apos;s figures, by email. No account needed.</p>
           <Subscribe />
         </section>
         <section className="pz-card pz-xp-cta" id="connect" aria-labelledby="xp-connect-h">
