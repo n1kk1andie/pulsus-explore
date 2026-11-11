@@ -77,6 +77,15 @@ function Split({ g }: { g: AtlasGroup }) {
   );
 }
 
+
+const Ico = ({ d, size = 20 }: { d: string; size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
+);
+const I_FILTER = "M4 6h16M7 12h10M10 18h4";
+const I_MOVERS = "M7 20V5M3 9l4-4 4 4M17 4v15M13 15l4 4 4-4";
+const I_INFO = "M12 11v6M12 7.5v.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
+const I_SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
+
 // ── the camera: what part of the map is in view ─────────────────────────────
 interface Cam { cx: number; cy: number; zoom: number }
 
@@ -353,15 +362,15 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <span className="xa-tag">Explore</span>
           <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Your organisation →</button>
         </div>
-        <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors">⌕ <span>Search places and sectors</span></button>
+        <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
         {chips}
       </header>
 
       {/* the side buttons */}
       <div className="xa-fabs">
-        <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters">⚲</button>
-        <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Movers and hotspots">↕</button>
-        <button className={sheet === "about" ? "on" : ""} onClick={() => setSheet(sheet === "about" ? "" : "about")} aria-label="About these figures">i</button>
+        <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters"><Ico d={I_FILTER} /></button>
+        <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Movers and hotspots"><Ico d={I_MOVERS} /></button>
+        <button className={sheet === "about" ? "on" : ""} onClick={() => setSheet(sheet === "about" ? "" : "about")} aria-label="About these figures"><Ico d={I_INFO} /></button>
       </div>
 
       {!sel && !sheet && !pins.length && (
