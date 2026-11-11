@@ -721,7 +721,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <main className="xa-page">
           <header className="xa-page-top">
             {brand}
-            {view === "directory" && <h1 className="xa-h1">Directory</h1>}
             {view === "about" && <h1 className="xa-h1">About Pulsus Explore</h1>}
           </header>
           {view === "overview" && overview}
