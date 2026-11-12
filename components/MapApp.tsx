@@ -255,6 +255,19 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
   // ── names and groups ──────────────────────────────────────────────────────
   const cname = useCallback((iso: string) => world.countries.find((c) => c.id === iso)?.name || iso, [world]);
+  // Where Explore shows figures: a country on its own once a group there has at
+  // least 20 organisations; a multi-country layer with no such country is shown
+  // as one region ("Europe").
+  const shownWhere = useMemo(() => {
+    const out: string[] = [];
+    for (const d of realDefs) {
+      const l = real[d.id];
+      if (l.countries.length === 1) { const n = l.countries[0] === "840" ? "the United States" : cname(l.countries[0]); if (!out.includes(n)) out.push(n); continue; }
+      const shown = Object.entries(l.regions).filter(([, g]) => !g.hidden).map(([k]) => cname(k));
+      for (const n of shown.length ? shown : [l.scope.split(" (")[0]]) if (!out.includes(n)) out.push(n);
+    }
+    return out.length > 1 ? `${out.slice(0, -1).join(", ")} and ${out[out.length - 1]}` : out[0] || "";
+  }, [realDefs, real, cname]);
   // A US state names its country ("Alaska, US"), so states and countries can't be mistaken in one list.
   const stateName = (code: string) => { const n = STATE_NAME[code] || code; return n.startsWith("US ") ? n : `${n}, US`; };
   const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? stateName(region.slice(3)) : l.regionKind === "state" ? stateName(region) : cname(region)), [cname]);
@@ -527,7 +540,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-hero-row">
           <div><strong style={{ color: tone(allL.national.ohi, allL) }}>{allL.national.ohi ?? "—"}</strong><small>Organisational Health · {bandWord(allL.national.ohi, allL)}</small></div>
         </div>
-        <p className="xa-muted">{n0(allL.national.n)} organisations in {allL.countries.length} countries, across {sectorCards.length} sectors. No institution is named.</p>
+        <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors. No institution is named.</p>
         <Split g={allL.national} />
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
