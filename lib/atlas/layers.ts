@@ -2,13 +2,17 @@
 // The layers themselves are loaded on the server (lib/atlas/serve.ts) and sent
 // at each visitor's depth (lib/atlas/explore.ts).
 
-export interface AtlasGroup { n: number; hidden?: boolean; oh?: number; ohi?: number; split?: { stable: number; steady: number; fragile: number }; trend?: { period: string; oh: number | null; ohi: number | null }[] }
+/** `ind`: the median of each regulatory indicator across the group's organisations, at the layer's latest period. */
+export interface AtlasGroup { n: number; hidden?: boolean; oh?: number; ohi?: number; split?: { stable: number; steady: number; fragile: number }; trend?: { period: string; oh: number | null; ohi: number | null }[]; ind?: Record<string, number | null> }
+/** A regulatory indicator the score is built from: its name, unit, and which direction is stronger. */
+export interface AtlasIndicator { id: string; label: string; unit: string; better: "higher" | "lower"; context?: boolean }
 export interface AtlasLayer {
   layer: string; sector: string; scope: string; regionKind: "state" | "country"; countries: string[];
   source: string; asOf: string; cadence?: "quarterly" | "yearly"; measures: string[]; minGroup: number;
   bands: { ssiStable: number; ssiSteady: number; ohiHealthy: number; ohiWatch: number };
   national: AtlasGroup; regions: Record<string, AtlasGroup>;
   peers: Record<string, { label: string; n: number; oh: number[]; ohi: number[] }>;
+  indicators?: AtlasIndicator[];
 }
 
 /** A layer's reading for one country: the whole layer when it covers just that

@@ -95,11 +95,11 @@ export function InsightsPanel({ insights, full, register, name, onPick }: {
   const more = insights.more.up + insights.more.down + insights.more.hotspots;
   return (
     <section className="pz-card pz-xp-insights" aria-labelledby="xp-ins-h">
-      <div className="pz-card-head"><h2 id="xp-ins-h" className="pz-h3">Movers and hotspots</h2><span className="pz-muted pz-small">Organisational Health, over the last year</span></div>
+      <div className="pz-card-head"><h2 id="xp-ins-h" className="pz-h3">Movers and areas to watch</h2><span className="pz-muted pz-small">Organisational Health, over the last year</span></div>
       <div className="pz-xp-cols">
-        <div><h3 className="pz-eyebrow">Improving most</h3><ol className="pz-xp-list">{insights.up.map(row)}</ol>{!insights.up.length && <p className="pz-small pz-muted">None yet.</p>}</div>
-        <div><h3 className="pz-eyebrow">Deteriorating most</h3><ol className="pz-xp-list">{insights.down.map(row)}</ol>{!insights.down.length && <p className="pz-small pz-muted">None yet.</p>}</div>
-        <div><h3 className="pz-eyebrow">Fragile hotspots</h3><ol className="pz-xp-list">{insights.hotspots.map(hot)}</ol>{!insights.hotspots.length && <p className="pz-small pz-muted">None.</p>}</div>
+        <div><h3 className="pz-eyebrow">Improving Indicators</h3><ol className="pz-xp-list">{insights.up.map(row)}</ol>{!insights.up.length && <p className="pz-small pz-muted">None yet.</p>}</div>
+        <div><h3 className="pz-eyebrow">Declining Indicators</h3><ol className="pz-xp-list">{insights.down.map(row)}</ol>{!insights.down.length && <p className="pz-small pz-muted">None yet.</p>}</div>
+        <div><h3 className="pz-eyebrow">Areas to Watch</h3><ol className="pz-xp-list">{insights.hotspots.map(hot)}</ol>{!insights.hotspots.length && <p className="pz-small pz-muted">None.</p>}</div>
       </div>
       {!full && more > 0 && <Locked register={register}>The top three of each are shown. {more} more, and five years of history behind them, after free registration.</Locked>}
     </section>
