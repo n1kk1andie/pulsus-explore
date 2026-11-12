@@ -9,7 +9,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
-import { countryGroup } from "../lib/atlas/layers";
+import { countryGroup, regionKeyOf } from "../lib/atlas/layers";
 import { INSIGHT_MIN } from "../lib/atlas/explore";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 
@@ -192,6 +192,8 @@ function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
   return {
     n: vis.reduce((t, g) => t + g.n, 0), ohi: avg("ohi", null), oh: avg("oh", null),
     trend: periods.map((p) => ({ period: p, ohi: avg("ohi", p) ?? null, oh: avg("oh", p) ?? null })),
+    // A country read only as part of an area (Sweden, in the Nordic and Baltic countries) keeps the area's name.
+    ...(vis.length === 1 && vis[0].area ? { area: vis[0].area, members: vis[0].members } : {}),
   };
 }
 function allSectors(ls: AtlasLayer[]): AtlasLayer {
@@ -265,21 +267,21 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // ── names and groups ──────────────────────────────────────────────────────
   const cname = useCallback((iso: string) => world.countries.find((c) => c.id === iso)?.name || iso, [world]);
   // Where Explore shows figures: a country on its own once a group there has at
-  // least 20 organisations; a multi-country layer with no such country is shown
-  // as one region ("Europe").
+  // least the layer's minimum; a layer across many countries is named by its
+  // scope ("Europe").
   const shownWhere = useMemo(() => {
     const out: string[] = [];
     for (const d of realDefs) {
       const l = real[d.id];
       if (l.countries.length === 1) { const n = l.countries[0] === "840" ? "the United States" : cname(l.countries[0]); if (!out.includes(n)) out.push(n); continue; }
-      const shown = Object.entries(l.regions).filter(([, g]) => !g.hidden).map(([k]) => cname(k));
-      for (const n of shown.length ? shown : [l.scope.split(" (")[0]]) if (!out.includes(n)) out.push(n);
+      // A layer across many countries is named by its scope ("Europe"), however finely it is broken up.
+      const n = l.scope.split(" (")[0]; if (!out.includes(n)) out.push(n);
     }
     return out.length > 1 ? `${out.slice(0, -1).join(", ")} and ${out[out.length - 1]}` : out[0] || "";
   }, [realDefs, real, cname]);
   // A US state names its country ("Alaska, US"), so states and countries can't be mistaken in one list.
   const stateName = (code: string) => { const n = STATE_NAME[code] || code; return n.startsWith("US ") ? n : `${n}, US`; };
-  const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? stateName(region.slice(3)) : l.regionKind === "state" ? stateName(region) : cname(region)), [cname]);
+  const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? stateName(region.slice(3)) : l.regionKind === "state" ? stateName(region) : l.regions[region]?.area || cname(region)), [cname]);
   const groupOf = useCallback((s: NonNullable<Sel>): { def: LayerDef; l: AtlasLayer; g: AtlasGroup; title: string } | null => {
     const l = layers[s.layerId]; const def = defs.find((d) => d.id === s.layerId);
     if (!l || !def) return null;
@@ -369,7 +371,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     // The US opens state by state, where every quarter visibly moves the tiles.
     const byState = r.l.regionKind === "state" ? r.l.layer : r.def.id === ALL && iso === "840" && Object.keys(r.l.regions).some((k) => k.startsWith("US-")) ? ALL : null;
     if (byState) { setStates(null); setSel(byState === ALL ? { layerId: ALL, region: "840" } : { layerId: byState, region: null }); setSheet(""); return; }
-    setSel({ layerId: r.def.id, region: r.l.regionKind === "state" ? null : r.l.countries.length === 1 ? null : iso });
+    setSel({ layerId: r.def.id, region: r.l.regionKind === "state" ? null : r.l.countries.length === 1 ? null : r.def.id === ALL ? iso : regionKeyOf(r.l, iso) });
     setStates(null); setSheet(""); flyToCountry(iso);
   };
   const choose = (layerId: string, region: string | null) => {
@@ -435,6 +437,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     for (const c of world.countries) {
       if (gridId && c.id === "840") continue;
       const r = atCountry(c.id); if (!r || !centres[c.id]) continue;
+      if (r.g.members && r.g.members[0] !== c.id) continue;   // an area's number sits once, on its largest country
       const v = valueAt(r.g, measure, at);
       if (v !== undefined) out.push({ iso: c.id, v });
     }
@@ -701,7 +704,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {world.countries.map((c) => {
           const r = atCountry(c.id);
           const col = gridId && c.id === "840" ? COLOR.none : r && r.g.hidden && regionTint[c.id] ? regionTint[c.id] : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
-          const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)));
+          const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)) || (cur?.g.members?.includes(c.id) ?? false));
           return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
         {gridId && (() => {
