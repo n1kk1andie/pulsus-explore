@@ -42,7 +42,7 @@
 .xa-key b,.xa-legend b{width:9px;height:9px;border-radius:50%;display:inline-block}
 
 /* time */
-.xa-time{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px 8px 8px;box-shadow:0 8px 24px #0008;max-width:620px}
+.xa-time{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:8px 14px 8px 8px;box-shadow:0 8px 24px #0008}
 .xa-play{width:36px;height:36px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:13px;flex:none}
 .xa-time input{flex:1;accent-color:var(--accent);min-width:0}
 .xa-when{font:600 13px Sora,sans-serif;min-width:62px;text-align:right}
@@ -121,13 +121,15 @@
 .xa.is-wide .xa-card::before,.xa.is-wide .xa-sheet::before{display:none}
 .xa.is-wide .xa-tray{left:16px;right:auto;bottom:84px;width:min(620px,calc(100% - 420px));border:1px solid var(--line);border-radius:18px}
 .xa.is-wide .xa-cmp{grid-template-columns:repeat(4,1fr)}
-.xa.is-wide .xa-time{left:16px;bottom:16px;width:min(620px,calc(100% - 420px))}
+/* the time slider runs across the page; it stops short of the right-hand card when one is open */
+.xa.is-wide .xa-time{left:16px;right:16px;bottom:16px}
+.xa.is-wide.has-card .xa-time,.xa.is-wide:has(.xa-sheet) .xa-time{right:392px}
 .xa.is-wide .xa-key{left:16px;bottom:84px}
 .xa.is-wide .xa-top{padding:16px 16px 0}
 .xa.is-wide.has-card .xa-top{max-width:calc(100% - 400px)}
 /* side buttons hug the right edge; they step left only when the right-hand card is open */
 .xa.is-wide .xa-fabs{right:16px}
-.xa.is-wide.has-card .xa-fabs{right:392px}
+.xa.is-wide.has-card .xa-fabs,.xa.is-wide:has(.xa-sheet) .xa-fabs{right:392px}
 /* search and sector chips keep a readable width; the chips may use the whole row */
 .xa.is-wide .xa-chips{max-width:min(100%,900px)}
 .xa.is-wide .xa-states{padding:150px 400px 90px 16px}
