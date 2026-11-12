@@ -440,6 +440,26 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     }
     return out;
   }, [world, atCountry, centres, measure, at, gridId]);
+  // A multi-country layer where no country has enough organisations on its own
+  // (Europe's largest banks: 105 banks, none of the 25 countries with 20) is
+  // read as one region: a single badge with the region's score, and its
+  // countries lightly tinted with that colour. No country is given a score of its own.
+  const regionBadges = useMemo(() => {
+    const out: { layerId: string; name: string; x: number; y: number; v: number; isos: string[] }[] = [];
+    for (const def of realDefs) {
+      if (sector !== "all" && def.sector !== sector) continue;
+      const l = real[def.id];
+      if (l.countries.length < 2 || Object.values(l.regions).some((g) => !g.hidden)) continue;
+      const v = valueAt(l.national, measure, at); if (v === undefined) continue;
+      const pts = l.countries.map((c) => centres[c]).filter(Boolean);
+      if (!pts.length || out.some((b) => b.isos.join() === l.countries.join())) continue;
+      // The middle of the region's larger countries, so small far-off members don't pull it into the sea.
+      const big = [...pts].sort((a, b) => b[2] - a[2]).slice(0, Math.max(3, Math.ceil(pts.length / 3)));
+      out.push({ layerId: def.id, name: l.scope.split(" (")[0].replace(/'s largest.*$/, ""), x: big.reduce((a, p) => a + p[0], 0) / big.length, y: big.reduce((a, p) => a + p[1], 0) / big.length, v, isos: l.countries });
+    }
+    return out;
+  }, [realDefs, real, sector, measure, at, centres]);
+  const regionTint = useMemo(() => { const t: Record<string, string> = {}; for (const b of regionBadges) for (const i of b.isos) t[i] = `color-mix(in srgb, ${shade(b.v)} 45%, ${COLOR.few})`; return t; }, [regionBadges]);
   const unpinned = (k: string) => { const [layerId, region] = k.split("|"); return { layerId, region: region || null }; };
 
   // ── the card ─────────────────────────────────────────────────────────────
@@ -680,7 +700,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <rect x={-2000} y={-2000} width={5000} height={5000} fill="transparent" onClick={() => { if (moved.current <= 8 && sel) close(); }} />
         {world.countries.map((c) => {
           const r = atCountry(c.id);
-          const col = gridId && c.id === "840" ? COLOR.none : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
+          const col = gridId && c.id === "840" ? COLOR.none : r && r.g.hidden && regionTint[c.id] ? regionTint[c.id] : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)));
           return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
@@ -719,6 +739,13 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             </g>
           );
         })}
+        {regionBadges.map((b) => (
+          <g key={b.layerId} className="xa-val xa-region" transform={`translate(${b.x} ${b.y}) scale(${u})`} role="button" aria-label={`${b.name}: ${b.v}`}
+            onClick={() => { if (moved.current > 8) return; setStates(null); setSel({ layerId: b.layerId, region: null }); setSheet(""); }}>
+            <title>{`${b.name}, as one region: ${b.v}`}</title>
+            <rect x={-34} y={-12} width={68} height={24} rx={12} style={{ stroke: shade(b.v), strokeWidth: 2 }} /><text x={0} y={4.5} textAnchor="middle">{b.name} {b.v}</text>
+          </g>
+        ))}
         {markers.map((m) => centres[m.iso] && (
           <g key={m.iso} className="xa-mark" transform={`translate(${centres[m.iso][0]} ${centres[m.iso][1]}) scale(${1 / cam.zoom})`}>
             <circle r="13" style={{ fill: m.color }} opacity="0.25" className="xa-pulse" /><circle r="5" className="xa-dot" style={{ fill: m.color }} strokeWidth="1.5" />
