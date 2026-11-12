@@ -11,7 +11,7 @@ import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
 import { countryGroup } from "../lib/atlas/layers";
 import { INSIGHT_MIN } from "../lib/atlas/explore";
-import { ELSEWHERE, EVIDENCE, LAYERS, NEXT, SECTORS, evidenceOf, type LayerDef, type SectorId } from "../lib/atlas/catalog";
+import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
 type Measure = "ohi" | "oh";
@@ -449,7 +449,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-btns">
           {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
         </div>
-        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has; the split counts every one. No institution is named.</> : <><span className={`xa-ev is-${def.evidence}`}>{evidenceOf(def.evidence).label}</span> {def.publisher}. No institution is named.</>}</p>
+        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has; the split counts every one. No institution is named.</> : <>{def.publisher}. No institution is named.</>}</p>
       </div>
     );
   })();
@@ -523,7 +523,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Deteriorating</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
         <section className="xa-panel"><h2 className="xa-h2 is-hot">Hotspots</h2><p className="xa-sub">The largest share of Fragile organisations</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
       </div>
-      <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. These are Pulsus readings of public data, not official regulatory ratings or advice.</p>
+      <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. Pulsus assessments are independent and are not official regulatory ratings.</p>
     </div>
   );
 
@@ -617,12 +617,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         </div>
         <div className="xa-sub-sec">
           <h3>How the Numbers Are Made</h3>
-          <p>Operational Health and Organisational Health are calculated using fixed rules on our servers. The same inputs always produce the same results, making every figure consistent, verifiable and reproducible.</p>
           <ul className="xa-principles">
-            <li><b>Totals only.</b> Each institution is read from its public figures, then only medians and the Stable / Steady / Fragile split are shown. No institution is named; groups too small to keep anonymous are hidden, and a place needs at least {INSIGHT_MIN} organisations to appear among the movers and hotspots.</li>
-            <li><b>Not an official rating.</b> These are Pulsus readings of public data, not regulatory ratings, credit ratings or advice. For any institution, the regulator&apos;s published data is authoritative.</li>
+            <li><b>Calculated, not invented.</b> Scores are produced by defined mathematical rules.</li>
+            <li><b>Consistent and reproducible.</b> Identical inputs and calculation settings produce identical results.</li>
+            <li><b>Traceable.</b> Every score can be traced to its underlying indicators.</li>
           </ul>
-          {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
+          <p className="xa-muted">Pulsus assessments are independent and are not official regulatory ratings. No institution is named.</p>
         </div>
         <div className="xa-sub-sec">
           <h3>Sources</h3>
@@ -636,6 +636,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <footer className="xa-foot">
         <p>Pulsus <span className="xa-red">Platform</span> · Explore</p>
         <p>© 2026 Tumblehill Holdings LLC</p>
+        <p className="xa-patent">Patent pending · TAO: U.S. 19/362,373 · EMM: U.S. 19/362,400 · PCT/US26/22409</p>
       </footer>
     </div>
   );
@@ -841,8 +842,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           )}
           {sheet === "about" && (
             <div className="xa-about">
-              <p>Each institution is read from its public figures through the same engine Pulsus <span className="xa-red">Platform</span> uses for an organisation&apos;s own data, then only totals are shown: medians and the Stable / Steady / Fragile split, by country, state and size. No institution is named, and groups too small to keep anonymous are hidden. These are Pulsus readings of public data, not official regulatory ratings or advice.</p>
-              {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
+              <ul className="xa-principles">
+                <li><b>Calculated, not invented.</b> Scores are produced by defined mathematical rules.</li>
+                <li><b>Consistent and reproducible.</b> Identical inputs and calculation settings produce identical results.</li>
+                <li><b>Traceable.</b> Every score can be traced to its underlying indicators.</li>
+              </ul>
+              <p>Pulsus assessments are independent and are not official regulatory ratings. No institution is named.</p>
               <p className="xa-label">Sources</p>
               <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}</ul>
               <p><a href="/privacy">Privacy</a> · © 2026 Tumblehill Holdings LLC</p>
