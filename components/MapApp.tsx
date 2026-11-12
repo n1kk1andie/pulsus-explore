@@ -210,7 +210,7 @@ function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
     ...(vis.length === 1 && vis[0].area ? { area: vis[0].area, members: vis[0].members } : {}),
   };
 }
-function allSectors(ls: AtlasLayer[]): AtlasLayer {
+function allSectors(ls: AtlasLayer[], id: string = ALL, sector: string = "all"): AtlasLayer {
   // The timeline follows the quarterly sources; yearly ones carry their latest year.
   const periods = [...new Set(ls.filter((l) => l.cadence !== "yearly").flatMap((l) => (l.national.trend || []).map((t) => t.period)))].sort();
   const countries = [...new Set(ls.flatMap((l) => l.countries))];
@@ -220,7 +220,7 @@ function allSectors(ls: AtlasLayer[]): AtlasLayer {
   const byState = ls.filter((l) => l.regionKind === "state" && l.countries.includes("840"));
   for (const code of new Set(byState.flatMap((l) => Object.keys(l.regions)))) regions[`US-${code}`] = combine(byState.map((l) => l.regions[code]).filter((g): g is AtlasGroup => !!g), periods);
   const latest = ls.map((l) => l.asOf).sort().pop() || "";
-  return { ...ls[0], layer: ALL, sector: "all", scope: "all", regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
+  return { ...ls[0], layer: id, sector, scope: sector, regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
 }
 
 /** A change, with a drawn arrow (text arrows become emoji on iPhones). */
@@ -241,8 +241,17 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const real = useMemo(() => Object.fromEntries(data.layers.map((l) => [l.layer, l])) as Record<string, AtlasLayer>, [data]);
   const realDefs = useMemo(() => LAYERS.filter((d) => real[d.id]), [real]);
   // "All sectors": every country's sectors read together (lib below), as one more layer.
-  const layers = useMemo((): Record<string, AtlasLayer> => ({ ...real, [ALL]: allSectors(realDefs.map((d) => real[d.id])) }), [real, realDefs]);
-  const defs = useMemo(() => [...realDefs, ALL_DEF], [realDefs]);
+  // A sector read from several sources (banks: US, Europe, Colombia) also has a
+  // combined reading, so tapping the sector opens one card for all of it.
+  const sectorDefs = useMemo(() => SECTORS.flatMap((x) => {
+    const own = realDefs.filter((d) => d.sector === x.id);
+    return own.length > 1 ? [{ id: `sector-${x.id}`, sector: x.id, title: x.label, publisher: own.map((d) => d.publisher).join("; "), asOf: "", evidence: "financial" } as LayerDef] : [];
+  }), [realDefs]);
+  const layers = useMemo((): Record<string, AtlasLayer> => ({
+    ...real, [ALL]: allSectors(realDefs.map((d) => real[d.id])),
+    ...Object.fromEntries(sectorDefs.map((sd) => [sd.id, allSectors(realDefs.filter((d) => d.sector === sd.sector).map((d) => real[d.id]), sd.id, sd.sector)])),
+  }), [real, realDefs, sectorDefs]);
+  const defs = useMemo(() => [...realDefs, ...sectorDefs, ALL_DEF], [realDefs, sectorDefs]);
   const [theme, toggleTheme] = useTheme();
   // The tab: Overview, Directory, Map or About, kept in the address (#map) so a refresh or a shared link opens it.
   const [view, setView] = useState<View>("overview");
@@ -267,7 +276,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const [sheet, setSheet] = useState<"" | "movers" | "about" | "you" | "search">("");
   const [moverTab, setMoverTab] = useState<"up" | "down" | "hot">("down");
   const [q, setQ] = useState("");
-  const inSector = useMemo(() => defs.filter((d) => d.sector === sector).map((def) => ({ def, l: layers[def.id] })), [defs, layers, sector]);
+  const inSector = useMemo(() => realDefs.filter((d) => d.sector === sector).map((def) => ({ def, l: layers[def.id] })), [defs, layers, sector]);
   const periods = useMemo(() => [...new Set(inSector.flatMap(({ l }) => (l.national.trend || []).map((t) => t.period)))].sort(), [inSector]);
   const [pi, setPi] = useState<number | null>(null);   // null: the latest
   const at = pi === null || pi >= periods.length - 1 ? null : periods[pi];
@@ -557,6 +566,14 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   /** Open a place on the map, with its card. */
   const open = (layerId: string, region: string | null) => { setView("map"); choose(layerId, region); };
   const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(null); setView("map"); flyTo(home); };
+  /** A sector card on the Overview: the map, on that sector, with its card open. */
+  const openSectorCard = (id: Sector) => {
+    const own = realDefs.filter((d) => d.sector === id);
+    const layerId = own.length > 1 ? `sector-${id}` : own[0]?.id;
+    if (!layerId) { openSector(id); return; }
+    setSector(id); setStates(null); setView("map"); setSheet(""); setSel({ layerId, region: null });
+    setTimeout(() => { if (own.length === 1 && layers[layerId].countries.length === 1) flyToCountry(layers[layerId].countries[0]); else flyTo(home); }, 30);
+  };
 
   // ── Overview: the world at a glance ──────────────────────────────────────
   const allL = layers[ALL];
@@ -592,9 +609,10 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       </section>
       <Invite />
       <h2 className="xa-h2">Sectors</h2>
+      <p className="xa-sub xa-hint">Tap a sector to see it on the map.</p>
       <div className="xa-sectors">
         {sectorCards.map(({ x, l }) => (
-          <button key={x.id} className="xa-panel xa-sec" onClick={() => openSector(x.id)}>
+          <button key={x.id} className="xa-panel xa-sec" onClick={() => openSectorCard(x.id)} aria-label={`${x.label}: open on the map`}>
             <span className="xa-sec-h"><b>{x.label}</b><strong>{l.national.ohi ?? "—"}</strong></span>
             <small>{n0(l.national.n)} {NOUN[x.id]} · {x.where}</small>
             <Spark values={(l.national.trend || []).map((t) => t[measure])} color={lineShade((l.national.trend || []).map((t) => t[measure]))} h={34} />
@@ -603,6 +621,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
       </div>
       <h2 className="xa-h2">What&apos;s moving · {ovLabel}</h2>
+      <p className="xa-sub xa-hint">Choose a sector for the lists below. Tap a place to see it on the map.</p>
       <div className="xa-chips xa-ov-chips" role="group" aria-label="Sector for the lists below">
         {[{ id: "all" as Sector, label: "All sectors" }, ...sectorCards.map(({ x }) => ({ id: x.id as Sector, label: x.label }))].map((s) => (
           <button key={s.id} className={`xa-chip${ovSector === s.id ? " on" : ""}`} aria-pressed={ovSector === s.id} onClick={() => setOvSector(s.id)}>{s.label}</button>
