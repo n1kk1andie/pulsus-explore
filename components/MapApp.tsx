@@ -205,7 +205,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const [measure, setMeasure] = useState<Measure>("ohi");
   const [band, setBand] = useState<Band>("");
   const [sel, setSel] = useState<Sel>(null);
-  const [states, setStates] = useState<string | null>(null);   // a state layer open as its states
+  /** The US grid of states for a sector, when it is read by state: the map opens on it. */
+  const usGridFor = (sec: Sector): string | null => {
+    if (sec === "all") return Object.keys(layers[ALL]?.regions || {}).some((k) => k.startsWith("US-")) ? ALL : null;
+    return realDefs.find((d) => d.sector === sec && real[d.id]?.regionKind === "state" && real[d.id].countries.includes("840"))?.id ?? null;
+  };
+  const [states, setStates] = useState<string | null>(() => usGridFor("all"));   // a state layer open as its states (the US grid by default)
   const [pins, setPins] = useState<string[]>([]);
   const [sheet, setSheet] = useState<"" | "movers" | "filters" | "about" | "you" | "search">("");
   const [moverTab, setMoverTab] = useState<"up" | "down" | "hot">("down");
@@ -449,7 +454,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     <div className="xa-chips" role="group" aria-label="Sector">
       {[{ id: "all" as Sector, label: "All sectors", status: "live", where: "Every sector, together" }, ...SECTORS].map((s) => (
         <button key={s.id} className={`xa-chip${sector === s.id ? " on" : ""}`} disabled={s.status !== "live"} aria-pressed={sector === s.id}
-          onClick={() => { setSector(s.id); setSel(null); setStates(null); flyTo(home); }} title={s.status === "live" ? s.where : "Coming next"}>
+          onClick={() => { setSector(s.id); setSel(null); setStates(usGridFor(s.id)); flyTo(home); }} title={s.status === "live" ? s.where : "Coming next"}>
           {s.label}{s.status !== "live" && <small> · next</small>}
         </button>
       ))}
@@ -465,7 +470,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   );
   /** Open a place on the map, with its card. */
   const open = (layerId: string, region: string | null) => { setView("map"); choose(layerId, region); };
-  const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(null); setView("map"); flyTo(home); };
+  const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(usGridFor(id)); setView("map"); flyTo(home); };
   const tone = (v: number | undefined, l: AtlasLayer) => { const b = bandOf(v, measure, l.bands); return b ? COLOR[b] : undefined; };
   const bandWord = (v: number | undefined, l: AtlasLayer) => { const b = bandOf(v, measure, l.bands); return b ? BAND_WORD[b] : "Not shown"; };
 
