@@ -331,3 +331,4 @@
 .xa-how summary{cursor:pointer;color:var(--ink,inherit);font-weight:600;font-size:13px}
 .xa-how p{margin:6px 0}
 @media (max-width:420px){.xa-ind dl{grid-template-columns:1fr}}
+.xa-ind .xa-ctx-h{margin-top:12px}

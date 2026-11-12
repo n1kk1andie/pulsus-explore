@@ -61,19 +61,28 @@ function bandOf(v: number | undefined, k: Measure, b: AtlasLayer["bands"]): Excl
  *  score is formed (without the proprietary weighting). Medians only: no
  *  institution's figures are ever shown. */
 function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publisher: string }) {
-  const ind = l.indicators || [];
+  const all = l.indicators || [];
+  const ind = all.filter((i) => !i.context), ctx = all.filter((i) => i.context);
   const fmt = (v: number | null | undefined, unit: string) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : `${v.toFixed(Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2)}${unit}`);
   const higher = ind.filter((i) => i.better === "higher").map((i) => i.label.toLowerCase());
   const lower = ind.filter((i) => i.better === "lower").map((i) => i.label.toLowerCase());
+  const list = (xs: typeof all) => <dl>{xs.map((i) => <div key={i.id}><dt>{i.label}</dt><dd>{fmt(g.ind?.[i.id], i.unit)}</dd></div>)}</dl>;
   return (
     <div className="xa-ind">
       <p className="xa-label">Regulatory indicators · median of {g.n.toLocaleString("en-US")}</p>
-      <dl>{ind.map((i) => <div key={i.id}><dt>{i.label}</dt><dd>{fmt(g.ind?.[i.id], i.unit)}</dd></div>)}</dl>
-      <p className="xa-src-line">Source: {publisher}, {when(l, l.asOf)} · Pulsus independent analysis</p>
+      {list(ind)}
+      {ctx.length > 0 && (
+        <>
+          <p className="xa-label xa-ctx-h">Funding, rate and liquidity risk · shown for context, not part of the score</p>
+          {list(ctx)}
+        </>
+      )}
+      <p className="xa-src-line">Source: {publisher}, {when(l, l.asOf)}{ctx.length ? " · risk measures calculated by Pulsus from the same filings" : ""} · Pulsus independent analysis</p>
       <details className="xa-how">
         <summary>How this score was calculated</summary>
-        <p>The Pulsus Organisational Health Score is an assessment of financial condition, out of 100. It is calculated from the indicators above, as published by the regulator, for every organisation in the place; the score shown is the median.</p>
+        <p>The Pulsus Organisational Health Score is an assessment of financial condition, out of 100. It is calculated from the regulatory indicators above, as published by the regulator, for every organisation in the place; the score shown is the median.</p>
         <p>Each indicator is compared with a range from weak to strong{higher.length ? `: higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; " : ": "}lower is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines them into one score and classifies it Stable, Steady or Fragile, on the same scale for every place.</p>
+        {ctx.length > 0 && <p>{ctx.map((i) => i.label).join(", ")} are shown beside the score because they describe funding, interest-rate and liquidity risk, which the score itself does not measure. They do not change the score.</p>}
         <p>The same inputs always give the same score. The weighting is proprietary (patent pending).</p>
       </details>
     </div>
