@@ -8,13 +8,14 @@ import coBanks from "./data/co-banks.json";
 import usCreditUnions from "./data/us-credit-unions.json";
 import coInsurers from "./data/co-insurers.json";
 import usGovernment from "./data/us-government.json";
+import usHospitals from "./data/us-hospitals.json";
 import type { AtlasLayer } from "./layers";
 import { LAYERS } from "./catalog";
 import { exploreAt, type ExploreData } from "./explore";
 
 const BY_ID: Record<string, unknown> = {
   "us-banks": usBanks, "eu-banks": euBanks, "co-banks": coBanks,
-  "us-credit-unions": usCreditUnions, "co-insurers": coInsurers, "us-government": usGovernment,
+  "us-credit-unions": usCreditUnions, "co-insurers": coInsurers, "us-government": usGovernment, "us-hospitals": usHospitals,
 };
 
 export const ALL_LAYERS: AtlasLayer[] = LAYERS.map((d) => BY_ID[d.id] as AtlasLayer).filter(Boolean);
