@@ -310,3 +310,11 @@
 .xa-sub-sec{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
 .xa-sub-sec h3{font-family:Sora,system-ui,sans-serif;font-size:15px;margin:0 0 6px}
 .xa-ab-row .xa-h2{margin:0}
+/* the band cut-offs */
+.xa-bands{width:100%;border-collapse:collapse;font-size:13.5px;margin:6px 0 4px}
+.xa-bands caption{text-align:left;color:var(--mute);font-size:12.5px;padding-bottom:4px}
+.xa-bands th,.xa-bands td{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left;font-weight:500}
+.xa-bands thead th{font-size:12px;color:var(--mute);white-space:nowrap}
+.xa-bands thead b{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px}
+.xa-bands tbody th{font-weight:600}
+.xa-bands td{font-variant-numeric:tabular-nums;white-space:nowrap}
