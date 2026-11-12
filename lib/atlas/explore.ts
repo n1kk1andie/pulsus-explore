@@ -3,8 +3,8 @@
 // so nothing beyond a visitor's depth ever reaches a browser.
 //
 //   preview   anyone: the latest reading of each sector, country and state —
-//             medians, counts and the Stable / Steady / Fragile split — plus a
-//             teaser of the biggest movers and hotspots. No history.
+//             medians and counts — plus a teaser of the biggest movers and
+//             areas to watch. No history.
 //   showcase  the public showcase: the preview, plus the peer distributions its
 //             Calibrate screen places the fictional organisation among.
 //   full      registered users (free Explore and every paying organisation):
@@ -19,7 +19,8 @@ import type { AtlasGroup, AtlasLayer } from "./layers";
 export type Depth = "preview" | "showcase" | "full";
 
 export interface Mover { layer: string; region: string; regionKind: "state" | "country"; from: number; to: number; change: number; since: string; until: string }
-export interface Hotspot { layer: string; region: string; regionKind: "state" | "country"; fragile: number; n: number; share: number }
+/** An area to watch: a place among the lowest median Organisational Health. No band or cut-off is applied. */
+export interface Hotspot { layer: string; region: string; regionKind: "state" | "country"; score: number; n: number }
 export interface Insights { up: Mover[]; down: Mover[]; hotspots: Hotspot[]; more: { up: number; down: number; hotspots: number } }
 export interface ExploreData { depth: Depth; layers: AtlasLayer[]; insights: Insights }
 
@@ -44,8 +45,8 @@ export function trimLayer(l: AtlasLayer, depth: Depth): AtlasLayer {
 /** How far back "a year ago" is, in points of the layer's own cadence. */
 const yearBack = (l: AtlasLayer) => (l.cadence === "yearly" ? 1 : 4);
 
-/** Where Organisational Health moved most over the last year, and where
- *  Fragile institutions are concentrated — across every layer's regions. */
+/** Where Organisational Health moved most over the last year, and where it is
+ *  lowest — across every layer's regions. */
 /** The fewest organisations a place needs to appear among the movers and
  *  hotspots: below it, one institution swings the share too far to rank on. */
 export const INSIGHT_MIN = 20;
@@ -62,12 +63,12 @@ export function insightsOf(layers: AtlasLayer[], depth: Depth): Insights {
         const a = t[t.length - 1 - back], b = t[t.length - 1];
         movers.push({ layer: l.layer, region, regionKind: l.regionKind, from: a.ohi!, to: b.ohi!, change: b.ohi! - a.ohi!, since: a.period, until: b.period });
       }
-      if (g.split && g.n) hotspots.push({ layer: l.layer, region, regionKind: l.regionKind, fragile: g.split.fragile, n: g.n, share: Math.round((g.split.fragile / g.n) * 100) });
+      if (Number.isFinite(g.ohi)) hotspots.push({ layer: l.layer, region, regionKind: l.regionKind, score: g.ohi!, n: g.n });
     }
   }
   const up = movers.filter((m) => m.change > 0).sort((a, b) => b.change - a.change);
   const down = movers.filter((m) => m.change < 0).sort((a, b) => a.change - b.change);
-  const hot = hotspots.filter((h) => h.fragile > 0).sort((a, b) => b.share - a.share || b.fragile - a.fragile);
+  const hot = hotspots.sort((a, b) => a.score - b.score || b.n - a.n);
   const cap = depth === "full" ? 10 : 3;
   return { up: up.slice(0, cap), down: down.slice(0, cap), hotspots: hot.slice(0, cap), more: { up: Math.max(0, up.length - cap), down: Math.max(0, down.length - cap), hotspots: Math.max(0, hot.length - cap) } };
 }

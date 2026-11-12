@@ -11,7 +11,6 @@
 .xa-c{stroke:#0a0f2c;stroke-width:.4;vector-effect:non-scaling-stroke;transition:fill .4s,opacity .3s}
 .xa-c:hover{filter:brightness(1.18)}
 .xa-c.on{stroke:#fff;stroke-width:1.6}
-.xa-c.dim{opacity:.22}
 .xa-mark{pointer-events:none}
 .xa-pulse{animation:xa-pulse 2s ease-out infinite;transform-origin:center;transform-box:fill-box}
 @keyframes xa-pulse{0%{transform:scale(.4);opacity:.6}100%{transform:scale(1.6);opacity:0}}
@@ -116,7 +115,6 @@
 .xa-tile{aspect-ratio:1;border:1.5px solid;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;min-width:0;line-height:1.1}
 .xa-tile b{font-size:clamp(8px,2.4vw,13px)}.xa-tile span{font:700 clamp(8px,2.4vw,13px) Sora,sans-serif}
 .xa-tile.on{outline:2px solid #fff;outline-offset:1px}
-.xa-tile.dim{opacity:.25}
 
 /* wide screens: the card and sheets sit in a right-hand panel */
 .xa.is-wide .xa-card,.xa.is-wide .xa-sheet{left:auto;top:16px;right:16px;bottom:16px;width:360px;max-height:none;border:1px solid var(--line);border-radius:18px;padding:18px}
@@ -146,9 +144,9 @@
 @media (max-width:339px){.xa-brand img{height:30px}}
 
 /* colours: night (the default look) and day */
-.xa{--good:#3ddc97;--watch:#f5b947;--bad:#ff4f6d;--few:#3a4a7d;--next:#25306a;--none:#141c45;--fade:#0a0f2c}
+.xa{--lo:#1f4650;--hi:#5ce1e6;--good:#3ddc97;--watch:#f5b947;--bad:#ff4f6d;--few:#3a4a7d;--next:#25306a;--none:#141c45;--fade:#0a0f2c}
 .xa.is-light{--bg:#eef1f8;--panel:#ffffff;--panel2:#eef1f8;--line:#d6dcec;--ink:#121a42;--mute:#5b6490;
-  --good:#17a86b;--watch:#d99a12;--bad:#e23a5a;--few:#b4bdd8;--next:#cfd6ea;--none:#e2e6f1;--fade:#eef1f8;background:#dfe5f2}
+  --lo:#d4ece9;--hi:#0e6b74;--good:#17a86b;--watch:#d99a12;--bad:#e23a5a;--few:#b4bdd8;--next:#cfd6ea;--none:#e2e6f1;--fade:#eef1f8;background:#dfe5f2}
 .xa.is-light .xa-map{background:#dfe5f2}
 .xa.is-light .xa-c{stroke:#ffffff}
 .xa .xa-dot{stroke:var(--bg)}
@@ -184,8 +182,6 @@
 .xa-val{pointer-events:none}
 .xa-val rect{fill:var(--panel);stroke:var(--line);stroke-width:1}
 .xa-val text{font:700 12px Sora,sans-serif;fill:var(--ink)}
-.xa-val.is-good rect{stroke:var(--good)}.xa-val.is-watch rect{stroke:var(--watch)}.xa-val.is-bad rect{stroke:var(--bad)}
-.xa-val.dim{opacity:.25}
 /* the quarter being shown, while looking back */
 .xa-period{position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));margin:0;display:flex;flex-direction:column;gap:0;pointer-events:none;text-shadow:0 1px 8px var(--bg)}
 .xa-period b{font:800 30px Sora,sans-serif;line-height:1.1}
@@ -316,7 +312,6 @@
 .xa-ut{cursor:pointer}
 .xa-ut rect{stroke:var(--bg);stroke-width:.5;transition:fill .4s}
 .xa-ut.on rect{stroke:var(--ink);stroke-width:1.2}
-.xa-ut.dim{opacity:.25}
 .xa-ut text{fill:#0a0f2c;pointer-events:none;font-family:Sora,system-ui,sans-serif}
 .xa-ut-c{font-size:3.6px;font-weight:600}
 .xa-ut-v{font-size:4.4px;font-weight:800}
@@ -342,3 +337,7 @@
 .xa-measures p{margin:3px 0 0;font-size:12px;color:var(--mute);line-height:1.35}
 .xa-dash{color:var(--mute)}
 .xa-measure-note{margin-top:2px}
+
+/* the score scale: one continuous shade, no bands */
+.xa-scale{display:flex;align-items:center;gap:6px}
+.xa-scale i{width:54px;height:9px;border-radius:5px;background:linear-gradient(90deg,var(--lo),var(--hi));display:inline-block}
