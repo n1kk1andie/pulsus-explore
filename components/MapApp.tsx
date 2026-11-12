@@ -460,7 +460,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     <div className="xa-brand">
       <a href="/" aria-label="Pulsus Platform · Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
       <span className="xa-tag">Explore</span>
-      <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Explore Your Organisation →</button>
+      <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>See How You Stack Up →</button>
     </div>
   );
   /** Open a place on the map, with its card. */
@@ -765,7 +765,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {(sheet === "movers" || sheet === "filters" || sheet === "about" || sheet === "you") && (
         <aside className="xa-sheet" role="dialog" aria-label={sheet}>
-          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and hotspots" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "Explore Your Organisation"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
+          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and hotspots" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "See How You Stack Up"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
           {sheet === "movers" && (
             <>
               <div className="xa-tabs" role="tablist">
