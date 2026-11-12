@@ -332,3 +332,13 @@
 .xa-how p{margin:6px 0}
 @media (max-width:420px){.xa-ind dl{grid-template-columns:1fr}}
 .xa-ind .xa-ctx-h{margin-top:12px}
+/* Both measures on a card: Organisational Health, and Operational Health (—) */
+.xa-measures{margin:0 0 12px;display:grid;gap:8px}
+.xa-measures>div{background:var(--panel2);border-radius:12px;padding:9px 12px}
+.xa-measures dt{color:var(--mute);font-size:11.5px}
+.xa-measures dd{margin:2px 0 0}
+.xa-measures dd b{font:700 24px Sora,sans-serif}
+.xa-measures dd span{color:var(--mute);font-size:13px;margin-left:2px}
+.xa-measures p{margin:3px 0 0;font-size:12px;color:var(--mute);line-height:1.35}
+.xa-dash{color:var(--mute)}
+.xa-measure-note{margin-top:2px}
