@@ -30,7 +30,7 @@
 .xa-chips::-webkit-scrollbar{display:none}
 .xa-chip{flex:none;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;white-space:nowrap}
 .xa-chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink);font-weight:600}
-.xa-chip:disabled{opacity:.5;cursor:default}
+.xa-chip:disabled{cursor:default;color:var(--mute);border-style:dashed}
 .xa-chip small{font-size:11px;color:var(--mute)}
 
 /* side buttons */
@@ -123,11 +123,19 @@
 .xa.is-wide .xa-cmp{grid-template-columns:repeat(4,1fr)}
 .xa.is-wide .xa-time{left:16px;bottom:16px;width:min(620px,calc(100% - 420px))}
 .xa.is-wide .xa-key{left:16px;bottom:84px}
-.xa.is-wide .xa-top{padding:16px 16px 0;max-width:calc(100% - 400px)}
-.xa.is-wide.has-card .xa-fabs,.xa.is-wide .xa-fabs{right:392px}
+.xa.is-wide .xa-top{padding:16px 16px 0}
+.xa.is-wide.has-card .xa-top{max-width:calc(100% - 400px)}
+/* side buttons hug the right edge; they step left only when the right-hand card is open */
+.xa.is-wide .xa-fabs{right:16px}
+.xa.is-wide.has-card .xa-fabs{right:392px}
+/* search and sector chips keep a readable width; the chips may use the whole row */
+.xa.is-wide .xa-chips{max-width:min(100%,900px)}
 .xa.is-wide .xa-states{padding:150px 400px 90px 16px}
 .xa.is-wide .xa-tiles,.xa.is-wide .xa-crumb{max-width:600px}
-.xa.is-wide .xa-brand{max-width:520px}
+/* the brand row spans the screen: logo on the left, "See How You Stack Up" in the top-right corner */
+.xa.is-wide .xa-brand{max-width:none}
+/* phones and tablets in portrait: the updates invite lives on the Overview, not over the map */
+.xa:not(.is-wide) .xa-top .xa-invite{display:none}
 .xa .xa-you{white-space:nowrap}
 @media (max-width:379px){.xa-brand img{height:34px}.xa .xa-you{font-size:12px;padding:6px 10px}.xa-tag{font-size:10px}}
 @media (max-width:339px){.xa-tag{display:none}}
@@ -182,6 +190,8 @@
 .xa-val{pointer-events:none}
 .xa-val rect{fill:var(--panel);stroke:var(--line);stroke-width:1}
 .xa-val text{font:700 12px Sora,sans-serif;fill:var(--ink)}
+.xa-region{pointer-events:auto;cursor:pointer}
+.xa-region text{font-size:11px}
 /* the quarter being shown, while looking back */
 .xa-period{position:absolute;left:12px;right:12px;bottom:calc(76px + env(safe-area-inset-bottom));margin:0;display:flex;flex-direction:column;gap:0;pointer-events:none;text-shadow:0 1px 8px var(--bg)}
 .xa-period b{font:800 30px Sora,sans-serif;line-height:1.1}
