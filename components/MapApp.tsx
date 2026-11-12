@@ -603,17 +603,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole; <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
           <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
-          {(() => { const bd = data.layers[0]?.bands; if (!bd) return null;
-            return (
-              <table className="xa-bands">
-                <caption>Where each band begins (out of 100)</caption>
-                <thead><tr><th scope="col"></th><th scope="col"><b style={{ background: COLOR.good }} />Stable</th><th scope="col"><b style={{ background: COLOR.watch }} />Steady</th><th scope="col"><b style={{ background: COLOR.bad }} />Fragile</th></tr></thead>
-                <tbody>
-                  <tr><th scope="row">Organisational Health</th><td>{bd.ssiStable}+</td><td>{bd.ssiSteady}–{bd.ssiStable - 1}</td><td>below {bd.ssiSteady}</td></tr>
-                  <tr><th scope="row">Operational Health</th><td>{bd.ohiHealthy}+</td><td>{bd.ohiWatch}–{bd.ohiHealthy - 1}</td><td>below {bd.ohiWatch}</td></tr>
-                </tbody>
-              </table>
-            ); })()}
+          <p className="xa-muted">Every country and state is classified on the same scale, so places can be compared fairly.</p>
         </div>
         <div className="xa-sub-sec">
           <h3>How the Numbers Are Made</h3>
