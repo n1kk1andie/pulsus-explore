@@ -10,7 +10,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
 import { countryGroup, regionKeyOf } from "../lib/atlas/layers";
-import { INSIGHT_MIN } from "../lib/atlas/explore";
+import { INSIGHT_MIN, insightsOf } from "../lib/atlas/explore";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
@@ -162,6 +162,20 @@ function yearChange(g: AtlasGroup, k: Measure): number | null {
 
 /** The middle and width of a country's largest piece of land (so France's
  *  number sits on France, not between it and French Guiana). */
+/** The US outline's Alaska and Hawaii, apart from the lower 48 (by where each
+ *  piece sits on the map), so the state view can colour them as their states. */
+function usOuterStates(d: string): { AK: string; HI: string } {
+  const out = { AK: "", HI: "" };
+  for (const part of d.split(/(?=M)/)) {
+    const ys: number[] = [];
+    for (const m of part.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)) ys.push(+m[2]);
+    if (!ys.length) continue;
+    if (Math.max(...ys) < 110) out.AK += part;        // north-west of the lower 48
+    else if (Math.min(...ys) > 195) out.HI += part;   // the Pacific, south-west
+  }
+  return out;
+}
+
 function mainland(d: string): [number, number, number] {
   let best: [number, number, number] = [0, 0, 0]; let area = -1;
   for (const part of d.split(/(?=M)/)) {
@@ -238,6 +252,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const [dirSort, setDirSort] = useState<"high" | "low" | "change" | "az">("high");
   const [dirKind, setDirKind] = useState<"" | "country" | "state">("");
   const [sector, setSector] = useState<Sector>("all");
+  const [ovSector, setOvSector] = useState<Sector>("all");   // the Overview's lists: which sector they're for
   // Explore measures financial condition only: Organisational Health. Operational
   // Health needs an organisation's own operational data, which only Pulsus Platform reads.
   const measure: Measure = "ohi";
@@ -549,6 +564,10 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
     return ls.length ? { x, l: ls.length === 1 ? ls[0] : allSectors(ls), n: ls.length } : null;
   }).filter(Boolean) as { x: (typeof SECTORS)[number]; l: AtlasLayer; n: number }[];
+  // The movers and areas to watch, for the sector chosen on the Overview ("all": every sector).
+  const ovInsight = ovSector === "all" ? insight
+    : insightsOf(realDefs.filter((d) => d.sector === ovSector).map((d) => real[d.id]), data.depth);
+  const ovLabel = ovSector === "all" ? "All sectors" : SECTORS.find((x) => x.id === ovSector)?.label ?? "";
   const moverRow = (m: Mover | Hotspot) => {
     const l = layers[m.layer]; const def = defs.find((d) => d.id === m.layer); if (!l || !def) return null;
     const mv = "change" in m;
@@ -583,10 +602,16 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         ))}
         {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
       </div>
+      <h2 className="xa-h2">What&apos;s moving · {ovLabel}</h2>
+      <div className="xa-chips xa-ov-chips" role="group" aria-label="Sector for the lists below">
+        {[{ id: "all" as Sector, label: "All sectors" }, ...sectorCards.map(({ x }) => ({ id: x.id as Sector, label: x.label }))].map((s) => (
+          <button key={s.id} className={`xa-chip${ovSector === s.id ? " on" : ""}`} aria-pressed={ovSector === s.id} onClick={() => setOvSector(s.id)}>{s.label}</button>
+        ))}
+      </div>
       <div className="xa-cols">
-        <section className="xa-panel"><h2 className="xa-h2 is-up"><Delta n={1} bare /> Improving Indicators</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Declining Indicators</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2 is-hot">Areas to Watch</h2><p className="xa-sub">Places with the lowest median Organisational Health</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-up"><Delta n={1} bare /> Improving Indicators</h2><p className="xa-sub">{ovLabel}</p><div className="xa-list">{ovInsight.up.length ? ovInsight.up.slice(0, 4).map(moverRow) : <p className="xa-sub">None over the last year.</p>}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Declining Indicators</h2><p className="xa-sub">{ovLabel}</p><div className="xa-list">{ovInsight.down.length ? ovInsight.down.slice(0, 4).map(moverRow) : <p className="xa-sub">None over the last year.</p>}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-hot">Areas to Watch</h2><p className="xa-sub">{ovLabel}: places with the lowest median Organisational Health</p><div className="xa-list">{ovInsight.hotspots.length ? ovInsight.hotspots.slice(0, 4).map(moverRow) : <p className="xa-sub">Not enough places to rank yet.</p>}</div></section>
       </div>
       <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. Pulsus assessments are independent and are not official regulatory ratings.</p>
     </div>
@@ -707,6 +732,20 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)) || (cur?.g.members?.includes(c.id) ?? false));
           return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
+        {gridId && (() => {
+          // Alaska and Hawaii on the world map take their state's colour too (the tiles cover only the lower 48's place).
+          const us = world.countries.find((c) => c.id === "840"); if (!us) return null;
+          const gl = layers[gridId]; const parts = usOuterStates(us.d);
+          return (["AK", "HI"] as const).map((code) => {
+            if (!parts[code]) return null;
+            const key = gridId === ALL ? `US-${code}` : code; const g = gl.regions[key];
+            const v = valueAt(g, measure, at);
+            const col = v !== undefined ? shade(v) : g?.hidden ? COLOR.few : COLOR.next;
+            const on = sel?.layerId === gridId && sel?.region === key;
+            return <path key={code} d={parts[code]} style={{ fill: col }} className={`xa-c${on ? " on" : ""}`}
+              onClick={() => { if (moved.current > 8 || !g) return; setSel({ layerId: gridId, region: key }); setSheet(""); }}><title>{`${STATE_NAME[code]}: ${v ?? (g?.hidden ? "too few to show" : "not shown")}`}</title></path>;
+          });
+        })()}
         {gridId && (() => {
           // The US as its states, laid out where the US sits on the map: each tile's colour and number follow the slider.
           const gl = layers[gridId]; const C = 14, X0 = 160, Y0 = 88;
