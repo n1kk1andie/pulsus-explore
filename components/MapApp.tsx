@@ -25,9 +25,14 @@ type Sector = SectorId | "all";
 const NOUN: Record<Sector, string> = { all: "organisations", banks: "banks", "credit-unions": "credit unions", insurance: "insurers", government: "agencies", hospitals: "hospitals", universities: "universities" };
 // The colours follow day or night through CSS variables (app/map.css).
 const COLOR = { good: "var(--good)", watch: "var(--watch)", bad: "var(--bad)", few: "var(--few)", next: "var(--next)", none: "var(--none)" } as const;
-/** A score's colour: one hue, lighter to darker along the 0–100 scale. A
- *  continuous shade, not a classification: Explore applies no bands. */
-const shade = (v: number) => `color-mix(in oklab, var(--hi) ${Math.max(0, Math.min(100, v))}%, var(--lo))`;
+/** A score's colour: a smooth gradient along 0–100, red through amber to green.
+ *  Continuous, with no cut-off: Explore applies no bands or classifications. */
+const shade = (v: number) => {
+  const x = Math.max(0, Math.min(100, v));
+  return x <= 50 ? `color-mix(in oklab, var(--watch) ${x * 2}%, var(--bad))` : `color-mix(in oklab, var(--good) ${(x - 50) * 2}%, var(--watch))`;
+};
+/** A history line's colour: the shade of its latest reading. */
+const lineShade = (vs: (number | null)[]) => { const v = vs.filter((x): x is number => x !== null); return v.length ? shade(v[v.length - 1]) : "var(--mute)"; };
 
 const TILES: [string, number, number][] = [
   ["AK", 0, 0], ["ME", 11, 0], ["VT", 10, 1], ["NH", 11, 1],
@@ -464,7 +469,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <Measures v={valueAt(g, "ohi", at)} />
             {(g.trend || []).length > 1 && (
               <>
-                <Spark values={(g.trend || []).map((t) => t[measure])} color="var(--hi)" />
+                <Spark values={(g.trend || []).map((t) => t[measure])} color={lineShade((g.trend || []).map((t) => t[measure]))} />
                 <p className="xa-axis"><span>{when(l, g.trend![0].period)}</span><span>{WORD[measure]}</span><span>{when(l, g.trend![g.trend!.length - 1].period)}</span></p>
               </>
             )}
@@ -550,7 +555,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <button key={x.id} className="xa-panel xa-sec" onClick={() => openSector(x.id)}>
             <span className="xa-sec-h"><b>{x.label}</b><strong>{l.national.ohi ?? "—"}</strong></span>
             <small>{n0(l.national.n)} {NOUN[x.id]} · {x.where}</small>
-            <Spark values={(l.national.trend || []).map((t) => t[measure])} color="var(--hi)" h={34} />
+            <Spark values={(l.national.trend || []).map((t) => t[measure])} color={lineShade((l.national.trend || []).map((t) => t[measure]))} h={34} />
           </button>
         ))}
         {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
@@ -638,7 +643,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
           <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
-          <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: darker shading means a higher score.</p>
+          <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
         </div>
         <div className="xa-sub-sec">
           <h3>How the Numbers Are Made</h3>
@@ -797,7 +802,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                   <b>{s.region === null && r.l.regionKind === "state" ? `${cname(r.l.countries[0])}: ${NOUN[r.def.sector]}` : r.title}</b>
                   <strong>{v ?? "—"}</strong>
                   <small>{n0(r.g.n)} {NOUN[r.def.sector]}</small>
-                  <Spark values={(r.g.trend || []).map((t) => t[measure])} color="var(--hi)" h={30} />
+                  <Spark values={(r.g.trend || []).map((t) => t[measure])} color={lineShade((r.g.trend || []).map((t) => t[measure]))} h={30} />
                 </div>
               ); })}
           </div>

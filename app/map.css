@@ -144,9 +144,9 @@
 @media (max-width:339px){.xa-brand img{height:30px}}
 
 /* colours: night (the default look) and day */
-.xa{--lo:#1f4650;--hi:#5ce1e6;--good:#3ddc97;--watch:#f5b947;--bad:#ff4f6d;--few:#3a4a7d;--next:#25306a;--none:#141c45;--fade:#0a0f2c}
+.xa{--good:#3ddc97;--watch:#f5b947;--bad:#ff4f6d;--few:#3a4a7d;--next:#25306a;--none:#141c45;--fade:#0a0f2c}
 .xa.is-light{--bg:#eef1f8;--panel:#ffffff;--panel2:#eef1f8;--line:#d6dcec;--ink:#121a42;--mute:#5b6490;
-  --lo:#d4ece9;--hi:#0e6b74;--good:#17a86b;--watch:#d99a12;--bad:#e23a5a;--few:#b4bdd8;--next:#cfd6ea;--none:#e2e6f1;--fade:#eef1f8;background:#dfe5f2}
+  --good:#17a86b;--watch:#d99a12;--bad:#e23a5a;--few:#b4bdd8;--next:#cfd6ea;--none:#e2e6f1;--fade:#eef1f8;background:#dfe5f2}
 .xa.is-light .xa-map{background:#dfe5f2}
 .xa.is-light .xa-c{stroke:#ffffff}
 .xa .xa-dot{stroke:var(--bg)}
@@ -340,4 +340,4 @@
 
 /* the score scale: one continuous shade, no bands */
 .xa-scale{display:flex;align-items:center;gap:6px}
-.xa-scale i{width:54px;height:9px;border-radius:5px;background:linear-gradient(90deg,var(--lo),var(--hi));display:inline-block}
+.xa-scale i{width:54px;height:9px;border-radius:5px;background:linear-gradient(90deg,var(--bad),var(--watch),var(--good));display:inline-block}
