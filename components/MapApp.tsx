@@ -205,7 +205,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const [measure, setMeasure] = useState<Measure>("ohi");
   const [band, setBand] = useState<Band>("");
   const [sel, setSel] = useState<Sel>(null);
-  const [states, setStates] = useState<string | null>(null);   // a state layer open as its states
+  /** The US grid of states for a sector, when it is read by state: the map opens on it. */
+  const usGridFor = (sec: Sector): string | null => {
+    if (sec === "all") return Object.keys(layers[ALL]?.regions || {}).some((k) => k.startsWith("US-")) ? ALL : null;
+    return realDefs.find((d) => d.sector === sec && real[d.id]?.regionKind === "state" && real[d.id].countries.includes("840"))?.id ?? null;
+  };
+  const [states, setStates] = useState<string | null>(null);   // the full-screen states view (no longer opened: the grid sits on the map)
   const [pins, setPins] = useState<string[]>([]);
   const [sheet, setSheet] = useState<"" | "movers" | "filters" | "about" | "you" | "search">("");
   const [moverTab, setMoverTab] = useState<"up" | "down" | "hot">("down");
@@ -252,7 +257,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const portrait = size.h > size.w;
   // Units per pixel at zoom 1: the whole world's height on a phone, its width on a wide screen.
   const base = portrait ? world.h / size.h : Math.max(world.w / size.w, world.h / size.h);
-  const home: Cam = useMemo(() => ({ cx: portrait ? 300 : 470, cy: portrait ? 230 : 250, zoom: portrait ? 1.15 : 1 }), [portrait]);
+  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the header.
+  const home: Cam = useMemo(() => ({ cx: portrait ? 246 : 480, cy: portrait ? 212 : 214, zoom: portrait ? 1.15 : 1.12 }), [portrait]);
   const [cam, setCam] = useState<Cam>(home);
   useEffect(() => { setCam(home); }, [home]);
   const u = base / cam.zoom;
@@ -285,9 +291,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // Drag to pan, pinch or wheel to zoom; a short press is a tap.
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
   const moved = useRef(0);
-  const onDown = (e: React.PointerEvent) => { (e.currentTarget as Element).setPointerCapture(e.pointerId); ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved.current = 0; if (anim.current) cancelAnimationFrame(anim.current); };
+  // The pointer is captured only once it drags, so a tap still reaches the tile or country under it.
+  const onDown = (e: React.PointerEvent) => { ptrs.current.set(e.pointerId, { x: e.clientX, y: e.clientY }); moved.current = 0; if (anim.current) cancelAnimationFrame(anim.current); };
   const onMove = (e: React.PointerEvent) => {
     const prev = ptrs.current.get(e.pointerId); if (!prev) return;
+    const el = e.currentTarget as Element;
+    if (moved.current > 4 && !el.hasPointerCapture(e.pointerId)) { try { el.setPointerCapture(e.pointerId); } catch { /* the pointer has gone */ } }
     const all = [...ptrs.current.entries()];
     if (all.length === 2) {
       const other = all.find(([id]) => id !== e.pointerId)![1];
@@ -311,14 +320,14 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     if (!r) { setSel({ layerId: "", region: iso }); flyToCountry(iso); setSheet(""); return; }
     // The US opens state by state, where every quarter visibly moves the tiles.
     const byState = r.l.regionKind === "state" ? r.l.layer : r.def.id === ALL && iso === "840" && Object.keys(r.l.regions).some((k) => k.startsWith("US-")) ? ALL : null;
-    if (byState) { setStates(byState); setSel(null); setSheet(""); flyToCountry(iso); return; }
+    if (byState) { setStates(null); setSel(byState === ALL ? { layerId: ALL, region: "840" } : { layerId: byState, region: null }); setSheet(""); return; }
     setSel({ layerId: r.def.id, region: r.l.regionKind === "state" ? null : r.l.countries.length === 1 ? null : iso });
     setStates(null); setSheet(""); flyToCountry(iso);
   };
   const choose = (layerId: string, region: string | null) => {
     const def = defs.find((d) => d.id === layerId); const l = layers[layerId]; if (!def || !l) return;
     setSector(def.sector); setSheet(""); setQ("");
-    if (l.regionKind === "state" && region) { setStates(layerId); setSel({ layerId, region }); return; }
+    if (l.regionKind === "state" && region) { setStates(null); setSel({ layerId, region }); setTimeout(() => flyToCountry("840"), 30); return; }
     setStates(null); setSel({ layerId, region });
     const iso = region ?? l.countries[0];
     setTimeout(() => flyToCountry(iso), 30);
@@ -360,7 +369,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     const m: { iso: string; color: string }[] = [];
     const add = (layer: string, region: string, kind: string, color: string) => {
       const l = layers[layer]; const def = defs.find((d) => d.id === layer); if (!l || !def || (sector !== "all" && def.sector !== sector)) return;
-      const iso = kind === "state" ? l.countries[0] : region; if (!m.some((x) => x.iso === iso)) m.push({ iso, color });
+      const iso = kind === "state" ? l.countries[0] : region; if (iso === "840" && usGridFor(sector)) return; if (!m.some((x) => x.iso === iso)) m.push({ iso, color });
     };
     for (const x of insight.up.slice(0, 3)) add(x.layer, x.region, x.regionKind, COLOR.good);
     for (const x of insight.down.slice(0, 3)) add(x.layer, x.region, x.regionKind, COLOR.bad);
@@ -374,15 +383,17 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     setCentres(c);
   }, [world]);
   // Each covered country's reading at the chosen period: shown on the map, so the slider visibly moves it.
+  const gridId = usGridFor(sector);   // the US is drawn as its states, on the world map
   const labels = useMemo(() => {
     const out: { iso: string; v: number; b: Exclude<Band, ""> }[] = [];
     for (const c of world.countries) {
+      if (gridId && c.id === "840") continue;
       const r = atCountry(c.id); if (!r || !centres[c.id]) continue;
       const v = valueAt(r.g, measure, at); const b = bandOf(v, measure, r.l.bands);
       if (v !== undefined && b) out.push({ iso: c.id, v, b });
     }
     return out;
-  }, [world, atCountry, centres, measure, at]);
+  }, [world, atCountry, centres, measure, at, gridId]);
   const unpinned = (k: string) => { const [layerId, region] = k.split("|"); return { layerId, region: region || null }; };
 
   // ── the card ─────────────────────────────────────────────────────────────
@@ -436,8 +447,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           </div>
         )}
         <div className="xa-btns">
-          {def.id === ALL && sel.region === "840" && !states && Object.keys(l.regions).some((k) => k.startsWith("US-")) && <button className="xa-btn" onClick={() => { setStates(ALL); setSel(null); }}>See the states ›</button>}
-          {l.regionKind === "state" && sel.region === null && !states && <button className="xa-btn" onClick={() => { setStates(l.layer); }}>See the states ›</button>}
           {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
         </div>
         <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has; the split counts every one. No institution is named.</> : <><span className={`xa-ev is-${def.evidence}`}>{evidenceOf(def.evidence).label}</span> {def.publisher}. No institution is named.</>}</p>
@@ -640,11 +649,37 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <rect x={-2000} y={-2000} width={5000} height={5000} fill="transparent" onClick={() => { if (moved.current <= 8 && sel) close(); }} />
         {world.countries.map((c) => {
           const r = atCountry(c.id);
-          const col = r ? fill(r.g, r.l) : NEXT[c.id] ? COLOR.next : COLOR.none;
+          const col = gridId && c.id === "840" ? COLOR.none : r ? fill(r.g, r.l) : NEXT[c.id] ? COLOR.next : COLOR.none;
           const dim = r ? dimmed(r.g, r.l) : !!band;
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)));
           return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${dim ? " dim" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
+        {gridId && (() => {
+          // The US as its states, laid out where the US sits on the map: each tile's colour and number follow the slider.
+          const gl = layers[gridId]; const C = 14, X0 = 160, Y0 = 88;
+          const showNum = C / u >= 18;   // numbers once a tile is big enough on screen; colours always
+          return (
+            <g className="xa-usgrid" aria-label={`United States by state: ${WORD[measure]}`}>
+              {TILES.map(([code, tx, ty]) => {
+                const key = gridId === ALL ? `US-${code}` : code; const g = gl.regions[key];
+                const v = valueAt(g, measure, at); const b = bandOf(v, measure, gl.bands);
+                const col = b ? COLOR[b] : g?.hidden ? COLOR.few : COLOR.next;
+                const on = sel?.layerId === gridId && sel?.region === key;
+                return (
+                  <g key={code} transform={`translate(${X0 + tx * C} ${Y0 + ty * C})`} className={`xa-ut${on ? " on" : ""}${g && dimmed(g, gl) ? " dim" : ""}`}
+                    onClick={() => { if (moved.current > 8 || !g) return; setSel({ layerId: gridId, region: key }); setSheet(""); }}>
+                    <title>{`${STATE_NAME[code]}: ${v ?? "not shown"}`}</title>
+                    <rect width={C - 1.4} height={C - 1.4} rx={2} style={{ fill: col }} />
+                    {showNum ? <>
+                      <text x={(C - 1.4) / 2} y={C * 0.38} textAnchor="middle" className="xa-ut-c">{code}</text>
+                      <text x={(C - 1.4) / 2} y={C * 0.78} textAnchor="middle" className="xa-ut-v">{v ?? "·"}</text>
+                    </> : <text x={(C - 1.4) / 2} y={C * 0.62} textAnchor="middle" className="xa-ut-c">{code}</text>}
+                  </g>
+                );
+              })}
+            </g>
+          );
+        })()}
         {labels.map(({ iso, v, b }) => {
           const [x, y, w] = centres[iso];
           if (w / u < 26 && sel?.region !== iso) return null;   // too small on screen at this zoom: tap or zoom in
