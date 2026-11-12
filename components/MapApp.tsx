@@ -60,6 +60,17 @@ function bandOf(v: number | undefined, k: Measure, b: AtlasLayer["bands"]): Excl
  *  across the place's organisations, with its source and date, and how the
  *  score is formed (without the proprietary weighting). Medians only: no
  *  institution's figures are ever shown. */
+/** Both Pulsus measures, side by side: Organisational Health from the regulatory
+ *  indicators, and Operational Health, which public data cannot supply. */
+function Measures({ v, color }: { v: number | undefined; color: string }) {
+  return (
+    <dl className="xa-measures">
+      <div><dt>Organisational Health</dt><dd><b style={{ color }}>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>Financial-condition assessment based on available regulatory indicators.</p></div>
+      <div><dt>Operational Health</dt><dd><b className="xa-dash">—</b></dd><p>Insufficient operational data to calculate.</p></div>
+    </dl>
+  );
+}
+
 function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publisher: string }) {
   const all = l.indicators || [];
   const ind = all.filter((i) => !i.context), ctx = all.filter((i) => i.context);
@@ -468,8 +479,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <>
             <div className="xa-stats">
               <div><small>{NOUN[def.sector]}</small><b>{n0(g.n)}</b></div>
-              <div><small>{SHORT.ohi}</small><b style={{ color: COLOR[bandOf(valueAt(g, "ohi", at), "ohi", l.bands) || "good"] }}>{valueAt(g, "ohi", at) ?? "—"}</b></div>
             </div>
+            <Measures v={valueAt(g, "ohi", at)} color={COLOR[bandOf(valueAt(g, "ohi", at), "ohi", l.bands) || "good"]} />
             <Split g={g} />
             {(g.trend || []).length > 1 && (
               <>
@@ -548,7 +559,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <p className="xa-label">The world at a glance · {when(allL, allL.asOf)}</p>
         <div className="xa-hero-row">
           <div><strong style={{ color: tone(allL.national.ohi, allL) }}>{allL.national.ohi ?? "—"}</strong><small>Organisational Health · {bandWord(allL.national.ohi, allL)}</small></div>
+          <div><strong className="xa-dash">—</strong><small>Operational Health</small></div>
         </div>
+        <p className="xa-note xa-measure-note">Organisational Health: financial-condition assessment based on available regulatory indicators. Operational Health: insufficient operational data to calculate.</p>
         <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors. No institution is named.</p>
         <Split g={allL.national} />
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
