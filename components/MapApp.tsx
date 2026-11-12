@@ -615,8 +615,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <h2 className="xa-h2">Plans &amp; Billing</h2>
         <dl className="xa-plans">
           <div><dt>Free</dt><dd>Explore, as you see it here. No account needed.</dd><dd className="xa-price">Free</dd></div>
-          <div><dt>Operational Intelligence</dt><dd>What needs attention today: the daily brief and alerts from your own data.</dd><dd className="xa-price">Contact us</dd></div>
-          <div><dt>Executive Intelligence</dt><dd>Adds the diagnosis, treatments, recovery and where you stand among these peers, with the Board Pack.</dd><dd className="xa-price">Contact us</dd></div>
+          <div><dt>Pulse</dt><dd>Your organisation&apos;s health from its own data, and what needs attention today: the daily brief and alerts. One Pulse for everyone you share it with.</dd><dd className="xa-price">Contact us</dd></div>
+          <div><dt>Executive Intelligence</dt><dd>Pulse plus the deeper tools: the diagnosis, treatments, recovery and where you stand among these peers, with the Board Pack.</dd><dd className="xa-price">Contact us</dd></div>
           <div><dt>Oversight Intelligence</dt><dd>For those who watch over many organisations at once.</dd><dd className="xa-price">Contact us</dd></div>
         </dl>
         <div className="xa-btns"><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a></div>
@@ -875,7 +875,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           {sheet === "you" && (
             <div className="xa-you-in">
               <h3>Connect your organisation to see yours.</h3>
-              <p className="xa-muted">Explore is a free window on the world, read from public data. Pulsus <span className="xa-red">Platform</span> reads an organisation from its own systems the same way: Operational Intelligence shows what needs attention today; Executive Intelligence adds the diagnosis, treatments, recovery and where it stands among these peers; Oversight Intelligence watches over many organisations at once.</p>
+              <p className="xa-muted">Explore is a free window on the world, read from public data. Pulsus <span className="xa-red">Platform</span> reads an organisation from its own systems the same way: Pulse shows its health and what needs attention today; Executive Intelligence adds the deeper tools: the diagnosis, treatments, recovery and where it stands among these peers; Oversight Intelligence watches over many organisations at once.</p>
               <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a><a className="xa-btn ghost" href={`${ABOUT}/walkthrough/`}>Talk to us</a></div>
               <p className="xa-note">Take a peek: Pulsus <span className="xa-red">Platform</span> with a fictional organisation, no sign-up needed.</p>
               <h3>Subscribe for updates</h3>
