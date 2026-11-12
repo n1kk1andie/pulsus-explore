@@ -544,9 +544,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
       </div>
       <div className="xa-cols">
-        <section className="xa-panel"><h2 className="xa-h2 is-up"><Delta n={1} bare /> Improving</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Deteriorating</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2 is-hot">Hotspots</h2><p className="xa-sub">The largest share of Fragile organisations</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-up"><Delta n={1} bare /> Improving Indicators</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Declining Indicators</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-hot">Areas to Watch</h2><p className="xa-sub">Places with the largest share of organisations in the Fragile band</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
       </div>
       <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. Pulsus assessments are independent and are not official regulatory ratings.</p>
     </div>
@@ -753,7 +753,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       {/* the side buttons */}
       <div className="xa-fabs">
         <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters"><Ico d={I_FILTER} /></button>
-        <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Movers and hotspots"><Ico d={I_MOVERS} /></button>
+        <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Improving and declining indicators, and areas to watch"><Ico d={I_MOVERS} /></button>
         <button onClick={() => { setSheet(""); setView("settings"); }} aria-label="About these figures"><Ico d={I_INFO} /></button>
         <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
       </div>
@@ -827,11 +827,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {(sheet === "movers" || sheet === "filters" || sheet === "about" || sheet === "you") && (
         <aside className="xa-sheet" role="dialog" aria-label={sheet}>
-          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and hotspots" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "See How You Stack Up"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
+          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and areas to watch" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "See How You Stack Up"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
           {sheet === "movers" && (
             <>
               <div className="xa-tabs" role="tablist">
-                {([["up", "Improving"], ["down", "Deteriorating"], ["hot", "Hotspots"]] as const).map(([k, w]) => <button key={k} role="tab" aria-selected={moverTab === k} className={moverTab === k ? "on" : ""} onClick={() => setMoverTab(k)}>{w}</button>)}
+                {([["up", "Improving Indicators"], ["down", "Declining Indicators"], ["hot", "Areas to Watch"]] as const).map(([k, w]) => <button key={k} role="tab" aria-selected={moverTab === k} className={moverTab === k ? "on" : ""} onClick={() => setMoverTab(k)}>{w}</button>)}
               </div>
               <p className="xa-sub">Organisational Health, over the last year · tap to go there</p>
               <div className="xa-list">
