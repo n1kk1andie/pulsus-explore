@@ -15,7 +15,6 @@ import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
 type Measure = "ohi" | "oh";
-type Band = "" | "good" | "watch" | "bad";
 type Sel = { layerId: string; region: string | null } | null;   // region null: the layer as a whole
 
 const ABOUT = "https://about.pulsus.tech";
@@ -26,7 +25,14 @@ type Sector = SectorId | "all";
 const NOUN: Record<Sector, string> = { all: "organisations", banks: "banks", "credit-unions": "credit unions", insurance: "insurers", government: "agencies", hospitals: "hospitals", universities: "universities" };
 // The colours follow day or night through CSS variables (app/map.css).
 const COLOR = { good: "var(--good)", watch: "var(--watch)", bad: "var(--bad)", few: "var(--few)", next: "var(--next)", none: "var(--none)" } as const;
-const BAND_WORD = { good: "Stable", watch: "Steady", bad: "Fragile" } as const;
+/** A score's colour: a smooth gradient along 0–100, red through amber to green.
+ *  Continuous, with no cut-off: Explore applies no bands or classifications. */
+const shade = (v: number) => {
+  const x = Math.max(0, Math.min(100, v));
+  return x <= 50 ? `color-mix(in oklab, var(--watch) ${x * 2}%, var(--bad))` : `color-mix(in oklab, var(--good) ${(x - 50) * 2}%, var(--watch))`;
+};
+/** A history line's colour: the shade of its latest reading. */
+const lineShade = (vs: (number | null)[]) => { const v = vs.filter((x): x is number => x !== null); return v.length ? shade(v[v.length - 1]) : "var(--mute)"; };
 
 const TILES: [string, number, number][] = [
   ["AK", 0, 0], ["ME", 11, 0], ["VT", 10, 1], ["NH", 11, 1],
@@ -51,10 +57,6 @@ function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null): numb
   const t = (g.trend || []).filter((p) => p.period <= at && p[k] !== null);
   return t.length ? (t[t.length - 1][k] as number) : undefined;
 }
-function bandOf(v: number | undefined, k: Measure, b: AtlasLayer["bands"]): Exclude<Band, ""> | null {
-  if (v === undefined) return null;
-  return k === "ohi" ? (v >= b.ssiStable ? "good" : v >= b.ssiSteady ? "watch" : "bad") : (v >= b.ohiHealthy ? "good" : v >= b.ohiWatch ? "watch" : "bad");
-}
 
 /** The regulator's own figures beside the Pulsus score: each indicator's median
  *  across the place's organisations, with its source and date, and how the
@@ -62,10 +64,10 @@ function bandOf(v: number | undefined, k: Measure, b: AtlasLayer["bands"]): Excl
  *  institution's figures are ever shown. */
 /** Both Pulsus measures, side by side: Organisational Health from the regulatory
  *  indicators, and Operational Health, which public data cannot supply. */
-function Measures({ v, color }: { v: number | undefined; color: string }) {
+function Measures({ v }: { v: number | undefined }) {
   return (
     <dl className="xa-measures">
-      <div><dt>Organisational Health</dt><dd><b style={{ color }}>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>Financial-condition assessment based on available regulatory indicators.</p></div>
+      <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>Financial-condition assessment based on available regulatory indicators.</p></div>
       <div><dt>Operational Health</dt><dd><b className="xa-dash">—</b></dd><p>Insufficient operational data to calculate.</p></div>
     </dl>
   );
@@ -92,7 +94,7 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
       <details className="xa-how">
         <summary>How this score was calculated</summary>
         <p>The Pulsus Organisational Health Score is an assessment of financial condition, out of 100. It is calculated from the regulatory indicators above, as published by the regulator, for every organisation in the place; the score shown is the median.</p>
-        <p>Each indicator is compared with a range from weak to strong{higher.length ? `: higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; " : ": "}lower is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines them into one score and classifies it Stable, Steady or Fragile, on the same scale for every place.</p>
+        <p>Each indicator is compared with a range from weak to strong{higher.length ? `: higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; " : ": "}lower is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines them into one score out of 100, calculated the same way for every place. The score is not placed into bands or categories.</p>
         {ctx.length > 0 && <p>{ctx.map((i) => i.label).join(", ")} are shown beside the score because they describe funding, interest-rate and liquidity risk, which the score itself does not measure. They do not change the score.</p>}
         <p>The same inputs always give the same score. The weighting is proprietary (patent pending).</p>
       </details>
@@ -113,22 +115,11 @@ function Spark({ values, color, h = 56 }: { values: (number | null)[]; color: st
   );
 }
 
-function Split({ g }: { g: AtlasGroup }) {
-  if (!g.split || !g.n) return null;
-  const p = (x: number) => Math.round((100 * x) / g.n);
-  return (
-    <>
-      <div className="xa-bar" aria-hidden="true"><i style={{ width: `${p(g.split.stable)}%`, background: COLOR.good }} /><i style={{ width: `${p(g.split.steady)}%`, background: COLOR.watch }} /><i style={{ width: `${p(g.split.fragile)}%`, background: COLOR.bad }} /></div>
-      <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable {p(g.split.stable)}%</span><span><b style={{ background: COLOR.watch }} />Steady {p(g.split.steady)}%</span><span><b style={{ background: COLOR.bad }} />Fragile {p(g.split.fragile)}%</span></p>
-    </>
-  );
-}
 
 
 const Ico = ({ d, size = 20 }: { d: string; size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>
 );
-const I_FILTER = "M4 6h16M7 12h10M10 18h4";
 const I_MOVERS = "M7 20V5M3 9l4-4 4 4M17 4v15M13 15l4 4 4-4";
 const I_GEAR = "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z";
 const I_INFO = "M12 11v6M12 7.5v.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
@@ -185,7 +176,7 @@ function mainland(d: string): [number, number, number] {
 }
 
 /** All sectors together: for each country, its sectors' groups combined.
- *  Counts and the Stable/Steady/Fragile split add up exactly; the readings
+ *  Counts add up exactly; the readings
  *  are each sector's median weighted by its size (labelled as such). */
 const ALL = "all-sectors";
 const ALL_DEF: LayerDef = { id: ALL, sector: "all" as SectorId, title: "All sectors", publisher: "Every source in Explore", asOf: "", evidence: "financial" };
@@ -198,9 +189,8 @@ function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
     for (const g of vis) { const v = valueAt(g, k, at); if (v !== undefined) { w += g.n; t += v * g.n; } }
     return w ? Math.round(t / w) : undefined;
   };
-  const split = vis.every((g) => g.split) ? vis.reduce((t, g) => ({ stable: t.stable + g.split!.stable, steady: t.steady + g.split!.steady, fragile: t.fragile + g.split!.fragile }), { stable: 0, steady: 0, fragile: 0 }) : undefined;
   return {
-    n: vis.reduce((t, g) => t + g.n, 0), ohi: avg("ohi", null), oh: avg("oh", null), split,
+    n: vis.reduce((t, g) => t + g.n, 0), ohi: avg("ohi", null), oh: avg("oh", null),
     trend: periods.map((p) => ({ period: p, ohi: avg("ohi", p) ?? null, oh: avg("oh", p) ?? null })),
   };
 }
@@ -249,7 +239,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // Explore measures financial condition only: Organisational Health. Operational
   // Health needs an organisation's own operational data, which only Pulsus Platform reads.
   const measure: Measure = "ohi";
-  const [band, setBand] = useState<Band>("");
   const [sel, setSel] = useState<Sel>(null);
   /** The US grid of states for a sector, when it is read by state: the map opens on it. */
   const usGridFor = (sec: Sector): string | null => {
@@ -258,7 +247,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   };
   const [states, setStates] = useState<string | null>(null);   // the full-screen states view (no longer opened: the grid sits on the map)
   const [pins, setPins] = useState<string[]>([]);
-  const [sheet, setSheet] = useState<"" | "movers" | "filters" | "about" | "you" | "search">("");
+  const [sheet, setSheet] = useState<"" | "movers" | "about" | "you" | "search">("");
   const [moverTab, setMoverTab] = useState<"up" | "down" | "hot">("down");
   const [q, setQ] = useState("");
   const inSector = useMemo(() => defs.filter((d) => d.sector === sector).map((def) => ({ def, l: layers[def.id] })), [defs, layers, sector]);
@@ -414,13 +403,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // ── what is shown ────────────────────────────────────────────────────────
   const cur = sel && sel.layerId ? groupOf(sel) : null;
   const statesLayer = states ? layers[states] : null;
-  const bandsOf = (l: AtlasLayer) => l.bands;
-  const fill = (g: AtlasGroup | undefined, l: AtlasLayer) => {
-    const v = valueAt(g, measure, at); const b = bandOf(v, measure, bandsOf(l));
-    if (!b) return g && g.hidden ? COLOR.few : COLOR.none;
-    return COLOR[b];
+  const fill = (g: AtlasGroup | undefined) => {
+    const v = valueAt(g, measure, at);
+    if (v === undefined) return g && g.hidden ? COLOR.few : COLOR.none;
+    return shade(v);
   };
-  const dimmed = (g: AtlasGroup | undefined, l: AtlasLayer) => { if (!band) return false; const b = bandOf(valueAt(g, measure, at), measure, bandsOf(l)); return b !== band; };
   const insight = data.insights;
   const movers: (Mover | Hotspot)[] = moverTab === "up" ? insight.up : moverTab === "down" ? insight.down : insight.hotspots;
   // Markers: countries in this sector among the movers and hotspots.
@@ -444,12 +431,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // Each covered country's reading at the chosen period: shown on the map, so the slider visibly moves it.
   const gridId = usGridFor(sector);   // the US is drawn as its states, on the world map
   const labels = useMemo(() => {
-    const out: { iso: string; v: number; b: Exclude<Band, ""> }[] = [];
+    const out: { iso: string; v: number }[] = [];
     for (const c of world.countries) {
       if (gridId && c.id === "840") continue;
       const r = atCountry(c.id); if (!r || !centres[c.id]) continue;
-      const v = valueAt(r.g, measure, at); const b = bandOf(v, measure, r.l.bands);
-      if (v !== undefined && b) out.push({ iso: c.id, v, b });
+      const v = valueAt(r.g, measure, at);
+      if (v !== undefined) out.push({ iso: c.id, v });
     }
     return out;
   }, [world, atCountry, centres, measure, at, gridId]);
@@ -469,7 +456,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     }
     if (!cur) return null;
     const { def, l, g, title } = cur;
-    const v = valueAt(g, measure, at); const b = bandOf(v, measure, l.bands);
     const pinned = pins.includes(pinKey(sel));
     return (
       <div className="xa-card-in">
@@ -480,11 +466,10 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <div className="xa-stats">
               <div><small>{NOUN[def.sector]}</small><b>{n0(g.n)}</b></div>
             </div>
-            <Measures v={valueAt(g, "ohi", at)} color={COLOR[bandOf(valueAt(g, "ohi", at), "ohi", l.bands) || "good"]} />
-            <Split g={g} />
+            <Measures v={valueAt(g, "ohi", at)} />
             {(g.trend || []).length > 1 && (
               <>
-                <Spark values={(g.trend || []).map((t) => t[measure])} color={b ? COLOR[b] : COLOR.good} />
+                <Spark values={(g.trend || []).map((t) => t[measure])} color={lineShade((g.trend || []).map((t) => t[measure]))} />
                 <p className="xa-axis"><span>{when(l, g.trend![0].period)}</span><span>{WORD[measure]}</span><span>{when(l, g.trend![g.trend!.length - 1].period)}</span></p>
               </>
             )}
@@ -496,11 +481,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <p className="xa-label">By sector · tap to open</p>
             {realDefs.map((d) => { const rl = real[d.id]; const st = sel.region!.startsWith("US-") ? sel.region!.slice(3) : null;
               const rg = st ? (rl.regionKind === "state" && rl.countries.includes("840") ? rl.regions[st] : null) : countryGroup(rl, sel.region!); if (!rg) return null;
-              const rv = valueAt(rg, measure, at); const rb = bandOf(rv, measure, rl.bands);
+              const rv = valueAt(rg, measure, at);
               return (
                 <button key={d.id} onClick={() => choose(d.id, st ? st : rl.regionKind === "state" ? null : rl.countries.length === 1 ? null : sel.region)}>
                   <span><b>{SECTORS.find((x) => x.id === d.sector)?.label}</b><small>{n0(rg.n)} {NOUN[d.sector]} · {d.publisher}</small></span>
-                  <em style={{ color: rb ? COLOR[rb] : undefined }}>{rg.hidden ? "few" : rv ?? "—"}</em>
+                  <em>{rg.hidden ? "few" : rv ?? "—"}</em>
                 </button>
               ); })}
           </div>
@@ -508,7 +493,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-btns">
           {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
         </div>
-        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has; the split counts every one. No institution is named.</> : <>{def.publisher}. No institution is named.</>}</p>
+        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has. No institution is named.</> : <>{def.publisher}. No institution is named.</>}</p>
       </div>
     );
   })();
@@ -534,8 +519,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   /** Open a place on the map, with its card. */
   const open = (layerId: string, region: string | null) => { setView("map"); choose(layerId, region); };
   const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(null); setView("map"); flyTo(home); };
-  const tone = (v: number | undefined, l: AtlasLayer) => { const b = bandOf(v, measure, l.bands); return b ? COLOR[b] : undefined; };
-  const bandWord = (v: number | undefined, l: AtlasLayer) => { const b = bandOf(v, measure, l.bands); return b ? BAND_WORD[b] : "Not shown"; };
 
   // ── Overview: the world at a glance ──────────────────────────────────────
   const allL = layers[ALL];
@@ -548,8 +531,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     const mv = "change" in m;
     return (
       <button key={`${m.layer}|${m.region}`} onClick={() => open(m.layer, m.region)}>
-        <span><b>{place(l, m.region)}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · ${(m as Hotspot).fragile} of ${(m as Hotspot).n} Fragile`}</small></span>
-        <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? <Delta n={(m as Mover).change} /> : `${(m as Hotspot).share}%`}</em>
+        <span><b>{place(l, m.region)}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · median of ${n0((m as Hotspot).n)}`}</small></span>
+        <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : undefined }}>{mv ? <Delta n={(m as Mover).change} /> : (m as Hotspot).score}</em>
       </button>
     );
   };
@@ -558,12 +541,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <section className="xa-panel xa-hero">
         <p className="xa-label">The world at a glance · {when(allL, allL.asOf)}</p>
         <div className="xa-hero-row">
-          <div><strong style={{ color: tone(allL.national.ohi, allL) }}>{allL.national.ohi ?? "—"}</strong><small>Organisational Health · {bandWord(allL.national.ohi, allL)}</small></div>
+          <div><strong>{allL.national.ohi ?? "—"}</strong><small>Organisational Health</small></div>
           <div><strong className="xa-dash">—</strong><small>Operational Health</small></div>
         </div>
         <p className="xa-note xa-measure-note">Organisational Health: financial-condition assessment based on available regulatory indicators. Operational Health: insufficient operational data to calculate.</p>
         <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors. No institution is named.</p>
-        <Split g={allL.national} />
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
       <Invite />
@@ -571,9 +553,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <div className="xa-sectors">
         {sectorCards.map(({ x, l }) => (
           <button key={x.id} className="xa-panel xa-sec" onClick={() => openSector(x.id)}>
-            <span className="xa-sec-h"><b>{x.label}</b><strong style={{ color: tone(l.national.ohi, l) }}>{l.national.ohi ?? "—"}</strong></span>
+            <span className="xa-sec-h"><b>{x.label}</b><strong>{l.national.ohi ?? "—"}</strong></span>
             <small>{n0(l.national.n)} {NOUN[x.id]} · {x.where}</small>
-            <Spark values={(l.national.trend || []).map((t) => t[measure])} color={tone(l.national.ohi, l) || COLOR.good} h={34} />
+            <Spark values={(l.national.trend || []).map((t) => t[measure])} color={lineShade((l.national.trend || []).map((t) => t[measure]))} h={34} />
           </button>
         ))}
         {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
@@ -581,7 +563,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <div className="xa-cols">
         <section className="xa-panel"><h2 className="xa-h2 is-up"><Delta n={1} bare /> Improving Indicators</h2><div className="xa-list">{insight.up.slice(0, 4).map(moverRow)}</div></section>
         <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Declining Indicators</h2><div className="xa-list">{insight.down.slice(0, 4).map(moverRow)}</div></section>
-        <section className="xa-panel"><h2 className="xa-h2 is-hot">Areas to Watch</h2><p className="xa-sub">Places with the largest share of organisations in the Fragile band</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
+        <section className="xa-panel"><h2 className="xa-h2 is-hot">Areas to Watch</h2><p className="xa-sub">Places with the lowest median Organisational Health</p><div className="xa-list">{insight.hotspots.slice(0, 4).map(moverRow)}</div></section>
       </div>
       <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. Pulsus assessments are independent and are not official regulatory ratings.</p>
     </div>
@@ -596,11 +578,10 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     const words = dirQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const out = rows.filter((r) => (sector === "all" || r.def.sector === sector)
       && (!dirKind || (dirKind === "state") === (r.region !== null && r.l.regionKind === "state"))
-      && (!band || bandOf(r.v, measure, r.l.bands) === band)
       && words.every((w) => r.label.toLowerCase().includes(w) || r.def.sector.includes(w) || r.def.title.toLowerCase().includes(w)));
     const by = { high: (a: typeof out[0], b: typeof out[0]) => (b.v ?? -1) - (a.v ?? -1), low: (a: typeof out[0], b: typeof out[0]) => (a.v ?? 999) - (b.v ?? 999), change: (a: typeof out[0], b: typeof out[0]) => Math.abs(b.ch ?? 0) - Math.abs(a.ch ?? 0), az: (a: typeof out[0], b: typeof out[0]) => a.label.localeCompare(b.label) }[dirSort];
     return out.sort(by);
-  }, [rows, dirQ, sector, band, measure, dirSort, dirKind]);
+  }, [rows, dirQ, sector, measure, dirSort, dirKind]);
   const directory = (
     <div className="xa-dir">
       <div className="xa-dir-tools">
@@ -608,7 +589,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {chips}
         <div className="xa-seg xa-kind">{([["", "Everywhere"], ["country", "Countries"], ["state", "US states"]] as ["" | "country" | "state", string][]).map(([k, w]) => <button key={k || "all"} className={dirKind === k ? "on" : ""} onClick={() => setDirKind(k)}>{w}</button>)}</div>
         <div className="xa-dir-row">
-          <div className="xa-seg">{([["", "Every band"], ["good", "Stable"], ["watch", "Steady"], ["bad", "Fragile"]] as [Band, string][]).map(([k, w]) => <button key={k || "all"} className={band === k ? "on" : ""} onClick={() => setBand(k)}>{w}</button>)}</div>
           <label className="xa-sort"><span>Sort</span><select value={dirSort} onChange={(e) => setDirSort(e.target.value as typeof dirSort)}><option value="high">Highest first</option><option value="low">Lowest first</option><option value="change">Biggest change</option><option value="az">A to Z</option></select></label>
         </div>
         <p className="xa-sub">{shown.length} {shown.length === 1 ? "place" : "places"} · {WORD[measure]} · places and sectors only; no institution is named</p>
@@ -617,13 +597,13 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         {shown.map((r) => (
           <li key={`${r.layerId}|${r.region}`}>
             <button onClick={() => open(r.layerId, r.region)}>
-              <span className="xa-dir-dot" style={{ background: tone(r.v, r.l) || COLOR.few }} />
-              <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b><small>{n0(r.g.n)} {NOUN[r.def.sector]} · {bandWord(r.v, r.l)} · {when(r.l, r.l.asOf)}</small></span>
-              <span className="xa-dir-v"><strong style={{ color: tone(r.v, r.l) }}>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}><Delta n={r.ch} /></small>}</span>
+              <span className="xa-dir-dot" style={{ background: r.v !== undefined ? shade(r.v) : COLOR.few }} />
+              <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b><small>{n0(r.g.n)} {NOUN[r.def.sector]} · {when(r.l, r.l.asOf)}</small></span>
+              <span className="xa-dir-v"><strong>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}><Delta n={r.ch} /></small>}</span>
             </button>
           </li>
         ))}
-        {!shown.length && <li className="xa-muted xa-empty">Nothing matches. Try another word, or every band and all sectors.</li>}
+        {!shown.length && <li className="xa-muted xa-empty">Nothing matches. Try another word, or all sectors.</li>}
       </ul>
     </div>
   );
@@ -662,8 +642,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <h3>About Explore</h3>
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
-          <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
-          <p className="xa-muted">Every country and state is classified on the same scale, so places can be compared fairly.</p>
+          <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
+          <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
         </div>
         <div className="xa-sub-sec">
           <h3>How the Numbers Are Made</h3>
@@ -700,10 +680,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <rect x={-2000} y={-2000} width={5000} height={5000} fill="transparent" onClick={() => { if (moved.current <= 8 && sel) close(); }} />
         {world.countries.map((c) => {
           const r = atCountry(c.id);
-          const col = gridId && c.id === "840" ? COLOR.none : r ? fill(r.g, r.l) : NEXT[c.id] ? COLOR.next : COLOR.none;
-          const dim = r ? dimmed(r.g, r.l) : !!band;
+          const col = gridId && c.id === "840" ? COLOR.none : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)));
-          return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${dim ? " dim" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
+          return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
         {gridId && (() => {
           // The US as its states, laid out where the US sits on the map: each tile's colour and number follow the slider.
@@ -713,11 +692,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <g className="xa-usgrid" aria-label={`United States by state: ${WORD[measure]}`}>
               {TILES.map(([code, tx, ty]) => {
                 const key = gridId === ALL ? `US-${code}` : code; const g = gl.regions[key];
-                const v = valueAt(g, measure, at); const b = bandOf(v, measure, gl.bands);
-                const col = b ? COLOR[b] : g?.hidden ? COLOR.few : COLOR.next;
+                const v = valueAt(g, measure, at);
+                const col = v !== undefined ? shade(v) : g?.hidden ? COLOR.few : COLOR.next;
                 const on = sel?.layerId === gridId && sel?.region === key;
                 return (
-                  <g key={code} transform={`translate(${X0 + tx * C} ${Y0 + ty * C})`} className={`xa-ut${on ? " on" : ""}${g && dimmed(g, gl) ? " dim" : ""}`}
+                  <g key={code} transform={`translate(${X0 + tx * C} ${Y0 + ty * C})`} className={`xa-ut${on ? " on" : ""}`}
                     onClick={() => { if (moved.current > 8 || !g) return; setSel({ layerId: gridId, region: key }); setSheet(""); }}>
                     <title>{`${STATE_NAME[code]}: ${v ?? "not shown"}`}</title>
                     <rect width={C - 1.4} height={C - 1.4} rx={2} style={{ fill: col }} />
@@ -731,12 +710,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             </g>
           );
         })()}
-        {labels.map(({ iso, v, b }) => {
+        {labels.map(({ iso, v }) => {
           const [x, y, w] = centres[iso];
           if (w / u < 26 && sel?.region !== iso) return null;   // too small on screen at this zoom: tap or zoom in
           return (
-            <g key={iso} className={`xa-val is-${b}${band && band !== b ? " dim" : ""}`} transform={`translate(${x} ${y}) scale(${u})`}>
-              <rect x={-16} y={8} width={32} height={19} rx={9.5} /><text x={0} y={22} textAnchor="middle">{v}</text>
+            <g key={iso} className="xa-val" transform={`translate(${x} ${y}) scale(${u})`}>
+              <rect x={-16} y={8} width={32} height={19} rx={9.5} style={{ stroke: shade(v), strokeWidth: 2 }} /><text x={0} y={22} textAnchor="middle">{v}</text>
             </g>
           );
         })}
@@ -752,23 +731,23 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         const isAll = statesLayer.layer === ALL;
         const key = (st: string) => (isAll ? `US-${st}` : st);
         const whole = isAll ? statesLayer.regions["840"] : statesLayer.national;
-        const wv = valueAt(whole, measure, at); const wb = bandOf(wv, measure, statesLayer.bands);
+        const wv = valueAt(whole, measure, at);
         const noun = isAll ? "organisations" : NOUN[defs.find((d) => d.id === statesLayer.layer)!.sector];
         return (
         <div className="xa-states">
           <nav className="xa-crumb" aria-label="Where you are"><button onClick={() => { setStates(null); setSel(null); flyTo(home); }}>‹ World</button><span>›</span>{cname("840")}<span>·</span>{isAll ? "all sectors" : noun}</nav>
           <div className="xa-states-h">
             <div><h2>{isAll ? "United States by state" : `US ${noun} by state`}</h2><p className="xa-sub">{WORD[measure]} · {at ? when(statesLayer, at) : `latest, ${when(statesLayer, statesLayer.asOf)}`} · tap a state for its detail</p></div>
-            <button className="xa-states-all" onClick={() => setSel(isAll ? { layerId: ALL, region: "840" } : { layerId: statesLayer.layer, region: null })}><small>Whole US</small><strong style={{ color: wb ? COLOR[wb] : undefined }}>{wv ?? "—"}</strong></button>
+            <button className="xa-states-all" onClick={() => setSel(isAll ? { layerId: ALL, region: "840" } : { layerId: statesLayer.layer, region: null })}><small>Whole US</small><strong>{wv ?? "—"}</strong></button>
           </div>
           <div className="xa-tiles" role="group" aria-label="States">
             {TILES.map(([s, x, y]) => {
-              const g = statesLayer.regions[key(s)]; const v = valueAt(g, measure, at); const b = bandOf(v, measure, statesLayer.bands);
-              const col = b ? COLOR[b] : g?.hidden ? COLOR.few : COLOR.next;
+              const g = statesLayer.regions[key(s)]; const v = valueAt(g, measure, at);
+              const col = v !== undefined ? shade(v) : g?.hidden ? COLOR.few : COLOR.next;
               return (
-                <button key={s} className={`xa-tile${sel?.region === key(s) ? " on" : ""}${dimmed(g, statesLayer) ? " dim" : ""}`} style={{ gridColumn: x + 1, gridRow: y + 1, color: col, background: `color-mix(in srgb, ${col} 16%, transparent)`, transition: "background .3s" }}
+                <button key={s} className={`xa-tile${sel?.region === key(s) ? " on" : ""}`} style={{ gridColumn: x + 1, gridRow: y + 1, background: `color-mix(in srgb, ${col} 55%, transparent)`, transition: "background .3s" }}
                   aria-label={`${STATE_NAME[s]}: ${v ?? "not shown"}`} onClick={() => setSel({ layerId: statesLayer.layer, region: key(s) })}>
-                  <b>{s}</b><span style={{ color: col }}>{v ?? "·"}</span>
+                  <b>{s}</b><span>{v ?? "·"}</span>
                 </button>
               );
             })}
@@ -787,7 +766,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {/* the side buttons */}
       <div className="xa-fabs">
-        <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters"><Ico d={I_FILTER} /></button>
         <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Improving and declining indicators, and areas to watch"><Ico d={I_MOVERS} /></button>
         <button onClick={() => { setSheet(""); setView("settings"); }} aria-label="About these figures"><Ico d={I_INFO} /></button>
         <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
@@ -797,7 +775,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <p className="xa-period" aria-live="polite"><b>{when(inSector[0]?.l || {}, at)}</b><span>{WORD[measure]} then · the numbers and colours show that quarter</span></p>
       )}
       {!at && !sel && !sheet && !pins.length && (
-        <p className="xa-key" aria-hidden="true"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
+        <p className="xa-key" aria-hidden="true"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
       )}
 
       {/* the time slider */}
@@ -817,14 +795,14 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <section className="xa-tray" aria-label="Comparing">
           <div className="xa-card-h"><h2>Comparing {pins.length}</h2><button className="xa-x" onClick={() => setPins([])} aria-label="Clear">×</button></div>
           <div className="xa-cmp">
-            {pins.map((k) => { const s = unpinned(k); const r = groupOf(s); if (!r) return null; const v = valueAt(r.g, measure, at); const b = bandOf(v, measure, r.l.bands);
+            {pins.map((k) => { const s = unpinned(k); const r = groupOf(s); if (!r) return null; const v = valueAt(r.g, measure, at);
               return (
                 <div key={k} className="xa-cmpc">
                   <button className="xa-x small" onClick={() => togglePin(s)} aria-label={`Remove ${r.title}`}>×</button>
                   <b>{s.region === null && r.l.regionKind === "state" ? `${cname(r.l.countries[0])}: ${NOUN[r.def.sector]}` : r.title}</b>
-                  <strong style={{ color: b ? COLOR[b] : undefined }}>{v ?? "—"}</strong>
-                  <small>{n0(r.g.n)} · {r.g.split ? `${Math.round((100 * r.g.split.fragile) / r.g.n)}% Fragile` : ""}</small>
-                  <Spark values={(r.g.trend || []).map((t) => t[measure])} color={b ? COLOR[b] : COLOR.good} h={30} />
+                  <strong>{v ?? "—"}</strong>
+                  <small>{n0(r.g.n)} {NOUN[r.def.sector]}</small>
+                  <Spark values={(r.g.trend || []).map((t) => t[measure])} color={lineShade((r.g.trend || []).map((t) => t[measure]))} h={30} />
                 </div>
               ); })}
           </div>
@@ -860,9 +838,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         </div>
       )}
 
-      {(sheet === "movers" || sheet === "filters" || sheet === "about" || sheet === "you") && (
+      {(sheet === "movers" || sheet === "about" || sheet === "you") && (
         <aside className="xa-sheet" role="dialog" aria-label={sheet}>
-          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and areas to watch" : sheet === "filters" ? "Filters" : sheet === "about" ? "About these figures" : "See How You Stack Up"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
+          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and areas to watch" : sheet === "about" ? "About these figures" : "See How You Stack Up"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
           {sheet === "movers" && (
             <>
               <div className="xa-tabs" role="tablist">
@@ -874,19 +852,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                   const name = `${place(l, m.region)}`; const mv = "change" in m;
                   return (
                     <button key={`${m.layer}|${m.region}`} onClick={() => choose(m.layer, m.region)}>
-                      <span><b>{name}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · ${(m as Hotspot).fragile} of ${(m as Hotspot).n} Fragile`}</small></span>
-                      <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : COLOR.bad }}>{mv ? <Delta n={(m as Mover).change} /> : `${(m as Hotspot).share}%`}</em>
+                      <span><b>{name}</b><small>{NOUN[def.sector]}{mv ? ` · ${(m as Mover).from} → ${(m as Mover).to}` : ` · median of ${n0((m as Hotspot).n)}`}</small></span>
+                      <em style={{ color: mv ? ((m as Mover).change > 0 ? COLOR.good : COLOR.bad) : undefined }}>{mv ? <Delta n={(m as Mover).change} /> : (m as Hotspot).score}</em>
                     </button>
                   ); })}
               </div>
             </>
-          )}
-          {sheet === "filters" && (
-            <div className="xa-filters">
-              <p className="xa-label">Show</p>
-              <div className="xa-seg">{([["", "Every band"], ["good", "Stable"], ["watch", "Steady"], ["bad", "Fragile"]] as [Band, string][]).map(([k, w]) => <button key={k || "all"} className={band === k ? "on" : ""} onClick={() => setBand(k)}>{w}</button>)}</div>
-              <p className="xa-muted">Places outside the chosen band fade, on the map and in the states.</p>
-            </div>
           )}
           {sheet === "about" && (
             <div className="xa-about">
