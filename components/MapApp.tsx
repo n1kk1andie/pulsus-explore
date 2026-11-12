@@ -56,6 +56,30 @@ function bandOf(v: number | undefined, k: Measure, b: AtlasLayer["bands"]): Excl
   return k === "ohi" ? (v >= b.ssiStable ? "good" : v >= b.ssiSteady ? "watch" : "bad") : (v >= b.ohiHealthy ? "good" : v >= b.ohiWatch ? "watch" : "bad");
 }
 
+/** The regulator's own figures beside the Pulsus score: each indicator's median
+ *  across the place's organisations, with its source and date, and how the
+ *  score is formed (without the proprietary weighting). Medians only: no
+ *  institution's figures are ever shown. */
+function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publisher: string }) {
+  const ind = l.indicators || [];
+  const fmt = (v: number | null | undefined, unit: string) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : `${v.toFixed(Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2)}${unit}`);
+  const higher = ind.filter((i) => i.better === "higher").map((i) => i.label.toLowerCase());
+  const lower = ind.filter((i) => i.better === "lower").map((i) => i.label.toLowerCase());
+  return (
+    <div className="xa-ind">
+      <p className="xa-label">Regulatory indicators · median of {g.n.toLocaleString("en-US")}</p>
+      <dl>{ind.map((i) => <div key={i.id}><dt>{i.label}</dt><dd>{fmt(g.ind?.[i.id], i.unit)}</dd></div>)}</dl>
+      <p className="xa-src-line">Source: {publisher}, {when(l, l.asOf)} · Pulsus independent analysis</p>
+      <details className="xa-how">
+        <summary>How this score was calculated</summary>
+        <p>The Pulsus Organisational Health Score is an assessment of financial condition, out of 100. It is calculated from the indicators above, as published by the regulator, for every organisation in the place; the score shown is the median.</p>
+        <p>Each indicator is compared with a range from weak to strong{higher.length ? `: higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; " : ": "}lower is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines them into one score and classifies it Stable, Steady or Fragile, on the same scale for every place.</p>
+        <p>The same inputs always give the same score. The weighting is proprietary (patent pending).</p>
+      </details>
+    </div>
+  );
+}
+
 function Spark({ values, color, h = 56 }: { values: (number | null)[]; color: string; h?: number }) {
   const v = values.filter((x): x is number => x !== null);
   if (v.length < 2) return null;
@@ -202,7 +226,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const [dirSort, setDirSort] = useState<"high" | "low" | "change" | "az">("high");
   const [dirKind, setDirKind] = useState<"" | "country" | "state">("");
   const [sector, setSector] = useState<Sector>("all");
-  const [measure, setMeasure] = useState<Measure>("ohi");
+  // Explore measures financial condition only: Organisational Health. Operational
+  // Health needs an organisation's own operational data, which only Pulsus Platform reads.
+  const measure: Measure = "ohi";
   const [band, setBand] = useState<Band>("");
   const [sel, setSel] = useState<Sel>(null);
   /** The US grid of states for a sector, when it is read by state: the map opens on it. */
@@ -421,7 +447,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <div className="xa-stats">
               <div><small>{NOUN[def.sector]}</small><b>{n0(g.n)}</b></div>
               <div><small>{SHORT.ohi}</small><b style={{ color: COLOR[bandOf(valueAt(g, "ohi", at), "ohi", l.bands) || "good"] }}>{valueAt(g, "ohi", at) ?? "—"}</b></div>
-              <div><small>{SHORT.oh}</small><b>{valueAt(g, "oh", at) ?? "—"}</b></div>
             </div>
             <Split g={g} />
             {(g.trend || []).length > 1 && (
@@ -430,6 +455,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                 <p className="xa-axis"><span>{when(l, g.trend![0].period)}</span><span>{WORD[measure]}</span><span>{when(l, g.trend![g.trend!.length - 1].period)}</span></p>
               </>
             )}
+            {l.indicators && g.ind && <Indicators l={l} g={g} publisher={def.publisher} />}
           </>
         )}
         {def.id === ALL && sel.region && (
@@ -500,9 +526,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <p className="xa-label">The world at a glance · {when(allL, allL.asOf)}</p>
         <div className="xa-hero-row">
           <div><strong style={{ color: tone(allL.national.ohi, allL) }}>{allL.national.ohi ?? "—"}</strong><small>Organisational Health · {bandWord(allL.national.ohi, allL)}</small></div>
-          <div><strong>{allL.national.oh ?? "—"}</strong><small>Operational Health</small></div>
         </div>
-        <p className="xa-muted">{n0(allL.national.n)} organisations in {allL.countries.length} countries, across {sectorCards.length} sectors, read from public data. No institution is named.</p>
+        <p className="xa-muted">{n0(allL.national.n)} organisations in {allL.countries.length} countries, across {sectorCards.length} sectors. No institution is named.</p>
         <Split g={allL.national} />
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
@@ -601,7 +626,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-sub-sec">
           <h3>About Explore</h3>
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
-          <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole; <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
+          <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
           <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
           <p className="xa-muted">Every country and state is classified on the same scale, so places can be compared fairly.</p>
         </div>
@@ -823,8 +848,6 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           )}
           {sheet === "filters" && (
             <div className="xa-filters">
-              <p className="xa-label">Measure</p>
-              <div className="xa-seg">{(["ohi", "oh"] as Measure[]).map((k) => <button key={k} className={measure === k ? "on" : ""} onClick={() => setMeasure(k)}>{WORD[k]}</button>)}</div>
               <p className="xa-label">Show</p>
               <div className="xa-seg">{([["", "Every band"], ["good", "Stable"], ["watch", "Steady"], ["bad", "Fragile"]] as [Band, string][]).map(([k, w]) => <button key={k || "all"} className={band === k ? "on" : ""} onClick={() => setBand(k)}>{w}</button>)}</div>
               <p className="xa-muted">Places outside the chosen band fade, on the map and in the states.</p>
