@@ -266,6 +266,7 @@
 .xa-ab-row .xa-btn{display:inline-flex;align-items:center;gap:6px}
 .xa-foot{text-align:center;color:var(--mute);font-size:12.5px;padding:8px 0}
 .xa-foot p{margin:2px 0}
+.xa-foot .xa-patent{margin-top:8px;font-size:10.5px;letter-spacing:.02em;opacity:.7}
 .xa.is-light .xa-tabs-bar{box-shadow:0 -4px 16px #121a4214}
 .xa-page .xa-brand{max-width:none}
 .xa .xa-seg button{white-space:nowrap}
