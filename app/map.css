@@ -306,3 +306,7 @@
 .xa.is-light .xa-red{color:#d0284a}
 .xa a .xa-red{color:inherit}
 .xa .xa-h2.is-name{color:var(--ink)}
+/* Settings: sub-sections under About Pulsus Platform */
+.xa-sub-sec{border-top:1px solid var(--line);margin-top:12px;padding-top:12px}
+.xa-sub-sec h3{font-family:Sora,system-ui,sans-serif;font-size:15px;margin:0 0 6px}
+.xa-ab-row .xa-h2{margin:0}

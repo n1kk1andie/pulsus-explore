@@ -86,6 +86,7 @@ const Ico = ({ d, size = 20 }: { d: string; size?: number }) => (
 );
 const I_FILTER = "M4 6h16M7 12h10M10 18h4";
 const I_MOVERS = "M7 20V5M3 9l4-4 4 4M17 4v15M13 15l4 4 4-4";
+const I_GEAR = "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z";
 const I_INFO = "M12 11v6M12 7.5v.01M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
 const I_SEARCH = "M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14zM20 20l-4-4";
 
@@ -110,8 +111,8 @@ const I_MAIL = "M3 5h18v14H3zM3 7l9 6 9-6";
 const I_HOME = "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z";
 const I_LIST = "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01";
 const I_MAP = "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14";
-type View = "overview" | "directory" | "map" | "about";
-const VIEWS: View[] = ["overview", "directory", "map", "about"];
+type View = "overview" | "directory" | "map" | "settings";
+const VIEWS: View[] = ["overview", "directory", "map", "settings"];
 
 /** A reading's change over the last year (or the last step, for yearly sources). */
 function yearChange(g: AtlasGroup, k: Measure): number | null {
@@ -195,7 +196,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const [theme, toggleTheme] = useTheme();
   // The tab: Overview, Directory, Map or About, kept in the address (#map) so a refresh or a shared link opens it.
   const [view, setView] = useState<View>("overview");
-  useEffect(() => { const h = window.location.hash.slice(1) as View; if (VIEWS.includes(h)) setView(h); }, []);
+  useEffect(() => { const raw = window.location.hash.slice(1); const h = (raw === "about" ? "settings" : raw) as View; if (VIEWS.includes(h)) setView(h); }, []);
   useEffect(() => { try { window.history.replaceState(null, "", view === "overview" ? window.location.pathname + window.location.search : `#${view}`); } catch { /* ignore */ } }, [view]);
   const [dirQ, setDirQ] = useState("");
   const [dirSort, setDirSort] = useState<"high" | "low" | "change" | "az">("high");
@@ -562,51 +563,58 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const about = (
     <div className="xa-ab">
       <section className="xa-panel">
-        <h2 className="xa-h2">A free window on the world</h2>
-        <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
-        <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole; <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
-        <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
-      </section>
-      <section className="xa-panel">
-        <h2 className="xa-h2">How the numbers are made</h2>
-        <p>Operational Health and Organisational Health are calculated using fixed rules on our servers. The same inputs always produce the same results, making every figure consistent, verifiable and reproducible.</p>
-        <ul className="xa-principles">
-          <li><b>Totals only.</b> Each institution is read from its public figures, then only medians and the Stable / Steady / Fragile split are shown. No institution is named; groups too small to keep anonymous are hidden, and a place needs at least {INSIGHT_MIN} organisations to appear among the movers and hotspots.</li>
-          <li><b>Not an official rating.</b> These are Pulsus readings of public data, not regulatory ratings, credit ratings or advice. For any institution, the regulator&apos;s published data is authoritative.</li>
-        </ul>
-        {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
-      </section>
-      <section className="xa-panel">
-        <h2 className="xa-h2">Sources</h2>
-        <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
-      </section>
-      <section className="xa-panel">
-        <h2 className="xa-h2 is-name">Pulsus <span className="xa-red">Platform</span></h2>
-        <p>Explore is the free view of Pulsus <span className="xa-red">Platform</span>. The Platform reads your own organisation from its own systems, the same way.</p>
-        <p><a href={`${ABOUT}/#about`}>About Pulsus <span className="xa-red">Platform</span> →</a></p>
+        <h2 className="xa-h2">Plans &amp; Billing</h2>
         <dl className="xa-plans">
           <div><dt>Free</dt><dd>Explore, as you see it here. No account needed.</dd><dd className="xa-price">Free</dd></div>
           <div><dt>Operational Intelligence</dt><dd>What needs attention today: the daily brief and alerts from your own data.</dd><dd className="xa-price">US$3,000 a month</dd></div>
           <div><dt>Executive Intelligence</dt><dd>Adds the diagnosis, treatments, recovery and where you stand among these peers, with the Board Pack.</dd><dd className="xa-price">US$4,000 a month</dd></div>
           <div><dt>Oversight Intelligence</dt><dd>For those who watch over many organisations at once.</dd><dd className="xa-price">Contact us</dd></div>
         </dl>
-        <div className="xa-btns">
-          <a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a>
-          <a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a>
-        </div>
-        <p className="xa-note">Take a peek opens Pulsus <span className="xa-red">Platform</span> with a fictional organisation, Meridian Society, so you can see every screen before you sign up. Or <a href={`${ABOUT}/walkthrough/`}>talk to us about a plan</a>.</p>
+        <div className="xa-btns"><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a></div>
+        <p className="xa-note">Or <a href={`${ABOUT}/walkthrough/`}>talk to us about a plan</a>.</p>
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">Take a Peek</h2>
+        <p>See Pulsus <span className="xa-red">Platform</span> with a fictional organisation, Meridian Society: every screen, before you sign up.</p>
+        <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a></div>
+      </section>
+      <section className="xa-panel xa-ab-row">
+        <h2 className="xa-h2">Appearance</h2>
+        <button className="xa-btn ghost" onClick={toggleTheme}><Ico d={theme === "dark" ? I_SUN : I_MOON} size={16} /> {theme === "dark" ? "Switch to day" : "Switch to night"}</button>
       </section>
       <section className="xa-panel">
         <h2 className="xa-h2">Updates</h2>
         <Subscribe />
       </section>
-      <section className="xa-panel xa-ab-row">
-        <span>Appearance</span>
-        <button className="xa-btn ghost" onClick={toggleTheme}><Ico d={theme === "dark" ? I_SUN : I_MOON} size={16} /> {theme === "dark" ? "Switch to day" : "Switch to night"}</button>
+      <section className="xa-panel">
+        <h2 className="xa-h2 is-name">About Pulsus <span className="xa-red">Platform</span></h2>
+        <p>Explore is the free view of Pulsus <span className="xa-red">Platform</span>. The Platform reads your own organisation from its own systems, the same way. <a href={`${ABOUT}/#about`}>More about Pulsus <span className="xa-red">Platform</span> →</a></p>
+        <div className="xa-sub-sec">
+          <h3>About Explore</h3>
+          <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
+          <p><b>Organisational Health</b> is how stable the organisations in a place are as a whole; <b>Operational Health</b> is how well they run day to day. Both are out of 100.</p>
+          <p className="xa-legend"><span><b style={{ background: COLOR.good }} />Stable</span><span><b style={{ background: COLOR.watch }} />Steady</span><span><b style={{ background: COLOR.bad }} />Fragile</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
+        </div>
+        <div className="xa-sub-sec">
+          <h3>How the Numbers Are Made</h3>
+          <p>Operational Health and Organisational Health are calculated using fixed rules on our servers. The same inputs always produce the same results, making every figure consistent, verifiable and reproducible.</p>
+          <ul className="xa-principles">
+            <li><b>Totals only.</b> Each institution is read from its public figures, then only medians and the Stable / Steady / Fragile split are shown. No institution is named; groups too small to keep anonymous are hidden, and a place needs at least {INSIGHT_MIN} organisations to appear among the movers and hotspots.</li>
+            <li><b>Not an official rating.</b> These are Pulsus readings of public data, not regulatory ratings, credit ratings or advice. For any institution, the regulator&apos;s published data is authoritative.</li>
+          </ul>
+          {EVIDENCE.map((e) => <p key={e.id}><span className={`xa-ev is-${e.id}`}>{e.label}</span> {e.text}</p>)}
+        </div>
+        <div className="xa-sub-sec">
+          <h3>Sources</h3>
+          <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
+        </div>
+      </section>
+      <section className="xa-panel">
+        <h2 className="xa-h2">Terms of Use &amp; Privacy Policy</h2>
+        <p><a href={`${PLATFORM}/legal/terms`}>Terms of Use</a> · <a href="/privacy">Privacy Policy</a></p>
       </section>
       <footer className="xa-foot">
         <p>Pulsus <span className="xa-red">Platform</span> · Explore</p>
-        <p><a href="/privacy">Privacy</a> · <a href={ABOUT}>about.pulsus.tech</a></p>
         <p>© 2026 Tumblehill Holdings LLC</p>
       </footer>
     </div>
@@ -684,7 +692,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       <div className="xa-fabs">
         <button className={sheet === "filters" ? "on" : ""} onClick={() => setSheet(sheet === "filters" ? "" : "filters")} aria-label="Filters"><Ico d={I_FILTER} /></button>
         <button className={sheet === "movers" ? "on" : ""} onClick={() => setSheet(sheet === "movers" ? "" : "movers")} aria-label="Movers and hotspots"><Ico d={I_MOVERS} /></button>
-        <button onClick={() => { setSheet(""); setView("about"); }} aria-label="About these figures"><Ico d={I_INFO} /></button>
+        <button onClick={() => { setSheet(""); setView("settings"); }} aria-label="About these figures"><Ico d={I_INFO} /></button>
         <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
       </div>
 
@@ -732,11 +740,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <main className="xa-page">
           <header className="xa-page-top">
             {brand}
-            {view === "about" && <h1 className="xa-h1">About Explore</h1>}
+            {view === "settings" && <h1 className="xa-h1">Settings</h1>}
           </header>
           {view === "overview" && overview}
           {view === "directory" && directory}
-          {view === "about" && about}
+          {view === "settings" && about}
         </main>
       )}
 
@@ -808,7 +816,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       )}
     </div>
     <nav className="xa-tabs-bar" aria-label="Views">
-      {([["overview", "Overview", I_HOME], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["about", "About", I_INFO]] as [View, string, string][]).map(([k, w, d]) => (
+      {([["overview", "Overview", I_HOME], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["settings", "Settings", I_GEAR]] as [View, string, string][]).map(([k, w, d]) => (
         <button key={k} className={view === k ? "on" : ""} aria-current={view === k ? "page" : undefined} onClick={() => { setSheet(""); setView(k); }}><Ico d={d} size={22} /><span>{w}</span></button>
       ))}
     </nav>
