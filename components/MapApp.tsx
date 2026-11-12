@@ -663,7 +663,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <p>Explore is the free view of Pulsus <span className="xa-red">Platform</span>. The Platform reads your own organisation from its own systems, the same way. <a href={`${ABOUT}/#about`}>More about Pulsus <span className="xa-red">Platform</span> →</a></p>
         <div className="xa-sub-sec">
           <h3>About Explore</h3>
-          <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers and government agencies today, with hospitals and universities next. Anyone can use it, with no account.</p>
+          <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers, hospitals and government agencies today, with universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
           <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
           <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
@@ -782,7 +782,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
               );
             })}
           </div>
-          <p className="xa-muted xa-small">{isAll ? "Banks and credit unions, state by state; US federal agencies are read for the country as a whole." : `Groups of fewer than ${statesLayer.minGroup} ${noun} are not shown.`} Press ▶ to watch the quarters change.</p>
+          <p className="xa-muted xa-small">{isAll ? "Banks, credit unions and hospitals, state by state; US federal agencies are read for the country as a whole." : `Groups of fewer than ${statesLayer.minGroup} ${noun} are not shown.`} Press ▶ to watch the quarters change.</p>
         </div>
         ); })()}
 

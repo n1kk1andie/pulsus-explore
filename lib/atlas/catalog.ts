@@ -15,7 +15,7 @@ export const SECTORS: SectorDef[] = [
   { id: "credit-unions", label: "Credit unions", status: "live", where: "United States" },
   { id: "insurance", label: "Insurance", status: "live", where: "Colombia" },
   { id: "government", label: "Government", status: "live", where: "US federal agencies" },
-  { id: "hospitals", label: "Hospitals", status: "next", where: "United States" },
+  { id: "hospitals", label: "Hospitals", status: "live", where: "United States" },
   { id: "universities", label: "Universities", status: "next", where: "US and UK" },
 ];
 
@@ -38,6 +38,7 @@ export const LAYERS: LayerDef[] = [
   { id: "co-banks", sector: "banks", title: "Colombian banks", publisher: "Superintendencia Financiera de Colombia", asOf: "2026-06", evidence: "financial" },
   { id: "us-credit-unions", sector: "credit-unions", title: "US credit unions", publisher: "NCUA (US credit union regulator)", asOf: "2026-06", evidence: "financial" },
   { id: "co-insurers", sector: "insurance", title: "Colombian insurers", publisher: "Superintendencia Financiera de Colombia", asOf: "2026-06", evidence: "financial" },
+  { id: "us-hospitals", sector: "hospitals", title: "US hospitals", publisher: "CMS (Medicare cost reports)", asOf: "2024-12", evidence: "financial" },
   { id: "us-government", sector: "government", title: "US federal agencies", publisher: "USAspending.gov (US Treasury) and FOIA.gov (US Justice Department)", asOf: "2025-09", evidence: "operational-limited" },
 ];
 
