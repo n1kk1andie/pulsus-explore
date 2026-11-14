@@ -21,9 +21,8 @@
   background:linear-gradient(#0a0f2ccc,#0a0f2c00)}
 .xa-top>*{pointer-events:auto}
 .xa-brand{display:flex;align-items:center;gap:8px}
-.xa-brand img{height:40px;display:block}
+.xa-brand img{height:40px;width:auto;display:block}
 .xa.is-wide .xa-brand img{height:48px}
-.xa-tag{font:600 11px Sora,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
 .xa .xa-you{margin-left:auto;background:var(--accent);border:0;border-radius:999px;padding:7px 13px;font-weight:600;font-size:13px;color:#fff}
 .xa-search{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:10px 16px;text-align:left;color:var(--mute);box-shadow:0 6px 20px #0006}
 .xa-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
@@ -139,19 +138,16 @@
 /* phones and tablets in portrait: the updates invite lives on the Overview, not over the map */
 .xa:not(.is-wide) .xa-top .xa-invite{display:none}
 .xa .xa-you{white-space:nowrap}
-@media (max-width:379px){.xa-brand img{height:34px}.xa .xa-you{font-size:12px;padding:6px 10px}.xa-tag{font-size:10px}}
-@media (max-width:339px){.xa-tag{display:none}}
-/* the longer button: the small "Explore" word steps aside on phones */
-@media (max-width:519px){.xa-tag{display:none}}
+@media (max-width:379px){.xa-brand img{height:34px}.xa .xa-you{font-size:12px;padding:6px 10px}}
 @media (max-width:339px){.xa-brand img{height:26px}.xa-brand{gap:6px}.xa .xa-you{font-size:11px;padding:6px 8px}}
 /* phones: the logo leads; the button is a quiet outlined pill beside it */
 .xa{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @media (max-width:519px){
-  .xa-brand img{height:44px}
+  .xa-brand img{height:50px}
   .xa .xa-you{font-size:12px;font-weight:500;padding:5px 11px;background:#ff4f6d26;border:1px solid #ff4f6d;color:#ffd5dc}
 }
-@media (max-width:379px){.xa-brand img{height:38px}.xa .xa-you{font-size:11px;padding:5px 9px}}
-@media (max-width:339px){.xa-brand img{height:30px}}
+@media (max-width:379px){.xa-brand img{height:44px}.xa .xa-you{font-size:11px;padding:5px 9px}}
+@media (max-width:339px){.xa-brand img{height:34px}}
 
 /* colours: night (the default look) and day */
 .xa{--good:#3ddc97;--watch:#f5b947;--bad:#ff4f6d;--few:#3a4a7d;--next:#25306a;--none:#141c45;--fade:#0a0f2c}

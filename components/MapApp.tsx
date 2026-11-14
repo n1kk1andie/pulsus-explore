@@ -558,8 +558,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
   const brand = (
     <div className="xa-brand">
-      <a href="/" aria-label="Pulsus Platform · Explore"><img src={theme === "light" ? "/pulsus-platform-logo.png" : "/pulsus-platform-logo-light.png"} alt="Pulsus" /></a>
-      <span className="xa-tag">Explore</span>
+      <a href="/"><img src={theme === "light" ? "/pulsus-explore-logo.png" : "/pulsus-explore-logo-night.png"} alt="Pulsus Explore" width={588} height={160} /></a>
       <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>See How You Stack Up →</button>
     </div>
   );
