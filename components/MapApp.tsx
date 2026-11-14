@@ -99,6 +99,7 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
         <p>Each indicator is compared with a range from weak to strong{higher.length ? `: higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; " : ": "}lower is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines them into one score out of 100, calculated the same way for every place. The score is not placed into bands or categories.</p>
         {ctx.length > 0 && <p>{ctx.map((i) => i.label).join(", ")} are shown beside the score because they describe funding, interest-rate and liquidity risk, which the score itself does not measure. They do not change the score.</p>}
         <p>The same inputs always give the same score. The weighting is proprietary (patent pending).</p>
+        <p><a href="/technology#score">Learn more about the method →</a></p>
       </details>
     </div>
   );
@@ -771,6 +772,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
           <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
           <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
+          <p><a href="/technology">How Pulsus Explore works →</a></p>
         </div>
         <div className="xa-sub-sec">
           <h3>How the Numbers Are Made</h3>
@@ -792,6 +794,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       </section>
       <footer className="xa-foot">
         <p>Pulsus <span className="xa-red">Platform</span> · Explore</p>
+        <p><a href="/technology">How Pulsus Explore works</a></p>
         <p>© 2026 Tumblehill Holdings LLC</p>
         <p className="xa-patent">Patent pending · TAO: U.S. 19/362,373 · EMM: U.S. 19/362,400 · PCT/US26/22409</p>
       </footer>

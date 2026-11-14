@@ -18,7 +18,7 @@ export default function Privacy() {
       <h2 className="pz-h3">What our servers see</h2>
       <p>Like any website, our hosting provider receives standard technical request information (such as IP address and browser type) to deliver the pages and protect the service. We do not use it to identify or profile you.</p>
       <h2 className="pz-h3">The figures</h2>
-      <p>Explore shows aggregated readings of institutions&apos; public financial and operational data, published by regulators and governments. No institution is named and groups too small to keep anonymous are hidden.</p>
+      <p>Explore shows aggregated readings of institutions&apos; public financial and operational data, published by regulators and governments. No institution is named and groups too small to keep anonymous are hidden. <a className="pz-link-btn" href="/technology">How Pulsus Explore works</a>.</p>
       <h2 className="pz-h3">Contact</h2>
       <p>Tumblehill Holdings LLC · <a className="pz-link-btn" href="https://about.pulsus.tech">about.pulsus.tech</a></p>
     </div></main>
