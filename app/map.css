@@ -349,3 +349,24 @@
 /* the score scale: one continuous shade, no bands */
 .xa-scale{display:flex;align-items:center;gap:6px}
 .xa-scale i{width:54px;height:9px;border-radius:5px;background:linear-gradient(90deg,var(--bad),var(--watch),var(--good));display:inline-block}
+
+/* ── compare: say what happened, and how to see it ── */
+.xa-vh{position:absolute!important;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.xa-btns .xa-btn.view{background:var(--ink);border-color:var(--ink);color:var(--bg)!important}
+.xa-cmp-full{margin:6px 0 0;font-size:12.5px;color:var(--mute)}
+.xa-cmp-note{margin-top:10px;display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:13.5px;line-height:1.4;background:var(--panel2);border-left:3px solid #3ddc97;border-radius:10px;padding:9px 12px;animation:xa-up .2s ease-out}
+.xa-cmp-note:empty{display:block;margin:0;padding:0;border:0;background:none;animation:none}
+.xa-linkbtn{background:none;border:0;padding:2px 0;color:var(--ink);font:inherit;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.xa-cmp-hint{justify-content:center;background:transparent;border:1.5px dashed var(--line);color:var(--ink)}
+.xa-cmp-hint b{padding-right:0;font-size:13px}
+.xa.is-light .xa-btn.ghost.on{border-color:#13804f;color:#0b6a3f!important}
+.xa-tray h2:focus{outline:none}
+.xa-tray h2:focus-visible{outline:2px solid var(--ink);outline-offset:2px;border-radius:4px}
+.xa-tray.flash{animation:xa-up .25s ease-out,xa-flash 1.4s ease-out}
+@keyframes xa-flash{0%,30%{box-shadow:0 0 0 3px #3ddc97,0 -10px 30px #0009}}
+@media (prefers-reduced-motion:reduce){.xa-tray.flash,.xa-cmp-note{animation:none}}
+
+/* ── phone: the top controls sit on a solid navy (or day) panel, so the map never shows through them ── */
+.xa:not(.is-wide) .xa-top{background:linear-gradient(color-mix(in srgb,var(--bg) 96%,transparent),color-mix(in srgb,var(--panel) 93%,transparent));
+  -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);padding-bottom:6px;border-bottom:1px solid var(--line);box-shadow:0 8px 24px #0006}
+.xa.is-light:not(.is-wide) .xa-top{box-shadow:0 6px 18px #121a4218}

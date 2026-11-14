@@ -49,6 +49,8 @@ const STATE_NAME: Record<string, string> = {
 const quarter = (p: string) => `Q${Math.ceil(Number(p.slice(5, 7)) / 3)} ${p.slice(0, 4)}`;
 const when = (l: { cadence?: string }, p: string) => (l.cadence === "yearly" ? `FY${p.slice(0, 4)}` : quarter(p));
 const n0 = (x: number) => x.toLocaleString("en-US");
+/** The most places the comparison holds at once. */
+const MAX_PINS = 4;
 
 /** A group's reading at a period: its latest point at or before it, or now. */
 function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null): number | undefined {
@@ -331,10 +333,31 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const portrait = size.h > size.w;
   // Units per pixel at zoom 1: the whole world's height on a phone, its width on a wide screen.
   const base = portrait ? world.h / size.h : Math.max(world.w / size.w, world.h / size.h);
-  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the header.
-  const home: Cam = useMemo(() => ({ cx: portrait ? 246 : 480, cy: portrait ? 212 : 214, zoom: portrait ? 1.15 : 1.12 }), [portrait]);
+  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the
+  // header (measured: it is solid on a phone) and above the colour key and time slider.
+  const topRef = useRef<HTMLElement>(null);
+  const [topH, setTopH] = useState(0);
+  useEffect(() => {
+    const el = topRef.current; if (!el) return;
+    // The header is hidden on the other tabs (height 0): keep the last real height so the map doesn't jump.
+    const read = () => { const h = Math.round(el.getBoundingClientRect().bottom - (box.current?.getBoundingClientRect().top ?? 0)); if (h > 0) setTopH(h); };
+    const ro = new ResizeObserver(read); ro.observe(el); read();
+    return () => ro.disconnect();
+  }, []);
+  const home: Cam = useMemo(() => {
+    if (!portrait) return { cx: 480, cy: 214, zoom: 1.12 };
+    if (!topH) return { cx: 246, cy: 212, zoom: 1.15 };
+    // the tile grid, in map units (see the US grid below): 12 columns by 8 rows of 14, from (160, 88)
+    const gx = 160, gy = 88, gw = 12 * 14, gh = 8 * 14;
+    const top = topH + 10, bottom = size.h - 112, freeH = Math.max(80, bottom - top), freeW = size.w - 24;
+    const zoom = Math.min(1.15, Math.max(0.6, Math.min(freeW / (gw / base), freeH / (gh / base))));
+    const uu = base / zoom;
+    // the grid's top sits just under the header; any room left over goes below it
+    return { cx: gx + gw / 2, cy: gy + (size.h / 2 - top) * uu, zoom };
+  }, [portrait, topH, size.w, size.h, base]);
   const [cam, setCam] = useState<Cam>(home);
-  useEffect(() => { setCam(home); }, [home]);
+  // re-frame only when the framing itself changes (on a wide screen it never does)
+  useEffect(() => { setCam(home); }, [home.cx, home.cy, home.zoom]);
   const u = base / cam.zoom;
   const vb = `${cam.cx - (size.w * u) / 2} ${cam.cy - (size.h * u) / 2} ${size.w * u} ${size.h * u}`;
   const anim = useRef<number | null>(null);
@@ -408,7 +431,38 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   };
   const close = () => { setSel(null); if (!states) flyTo(home); };
   const pinKey = (s: NonNullable<Sel>) => `${s.layerId}|${s.region ?? ""}`;
-  const togglePin = (s: NonNullable<Sel>) => { const k = pinKey(s); setPins((p) => (p.includes(k) ? p.filter((x) => x !== k) : p.length >= 4 ? p : [...p, k])); };
+  const togglePin = (s: NonNullable<Sel>) => { const k = pinKey(s); setPins((p) => (p.includes(k) ? p.filter((x) => x !== k) : p.length >= MAX_PINS ? p : [...p, k])); };
+  // Compare tells you what happened: a short note under the button, read out politely.
+  const [pinNote, setPinNote] = useState<{ text: string; view: boolean } | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const say = (text: string, view = false) => {
+    setPinNote({ text, view });
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setPinNote(null), 7000);
+  };
+  useEffect(() => () => { if (noteTimer.current) clearTimeout(noteTimer.current); }, []);
+  useEffect(() => { setPinNote(null); }, [sel?.layerId, sel?.region]);
+  const pinFromCard = (s: NonNullable<Sel>) => {
+    const k = pinKey(s);
+    if (pins.includes(k)) { togglePin(s); say(pins.length - 1 ? `Removed — ${pins.length - 1} ${pins.length - 1 === 1 ? "place" : "places"} in comparison.` : "Removed from comparison."); return; }
+    if (pins.length >= MAX_PINS) return;
+    togglePin(s);
+    const n = pins.length + 1;
+    say(n === 1 ? `Added to comparison. Choose another place to compare (up to ${MAX_PINS}).` : `Added — ${n} places in comparison.`, n >= 2);
+  };
+  // "View comparison": on a phone the card closes so the tray shows; on a wide screen the tray is beside the card, so it takes focus.
+  const trayHead = useRef<HTMLHeadingElement>(null);
+  const [trayFlash, setTrayFlash] = useState(0);
+  const viewComparison = () => {
+    setPinNote(null); setSheet("");
+    if (!wide) setSel(null);
+    setTrayFlash((x) => x + 1);
+  };
+  useEffect(() => {
+    if (!trayFlash) return;
+    const t = setTimeout(() => trayHead.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [trayFlash]);
 
   // ── search ───────────────────────────────────────────────────────────────
   const allGroups = useMemo(() => {
@@ -538,7 +592,14 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           </div>
         )}
         <div className="xa-btns">
-          {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
+          {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => pinFromCard(sel)} aria-pressed={pinned}
+            disabled={!pinned && pins.length >= MAX_PINS} aria-describedby={!pinned && pins.length >= MAX_PINS ? "xa-cmp-full" : undefined}
+            title={pinned ? "In comparison: tap to remove" : undefined}>{pinned ? <>✓ In comparison<span className="xa-vh"> (tap to remove)</span></> : "+ Compare"}</button>}
+          {pins.length > 0 && <button className="xa-btn view" onClick={viewComparison}>View comparison ({pins.length})</button>}
+        </div>
+        {!g.hidden && !pinned && pins.length >= MAX_PINS && <p id="xa-cmp-full" className="xa-cmp-full">Comparison full — remove one to add another.</p>}
+        <div className="xa-cmp-note" role="status" aria-live="polite">
+          {pinNote && <><span>{pinNote.text}</span>{pinNote.view && <button className="xa-linkbtn" onClick={viewComparison}>View comparison</button>}</>}
         </div>
         <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has. No institution is named.</> : <>{def.publisher}. No institution is named.</>}</p>
       </div>
@@ -766,7 +827,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         })()}
         {gridId && (() => {
           // The US as its states, laid out where the US sits on the map: each tile's colour and number follow the slider.
-          const gl = layers[gridId]; const C = 14, X0 = 160, Y0 = 88;
+          const gl = layers[gridId]; const C = 14, X0 = 160, Y0 = 88;   // keep in step with the phone framing of `home`
           const showNum = C / u >= 18;   // numbers once a tile is big enough on screen; colours always
           return (
             <g className="xa-usgrid" aria-label={`United States by state: ${WORD[measure]}`}>
@@ -844,7 +905,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         ); })()}
 
       {/* the top: brand, search, sectors */}
-      <header className="xa-top">
+      <header className="xa-top" ref={topRef}>
         {brand}
         <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
         {chips}
@@ -879,8 +940,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {/* compare */}
       {pins.length > 0 && !sheet && !(sel && !wide) && (
-        <section className="xa-tray" aria-label="Comparing">
-          <div className="xa-card-h"><h2>Comparing {pins.length}</h2><button className="xa-x" onClick={() => setPins([])} aria-label="Clear">×</button></div>
+        <section key={trayFlash} className={`xa-tray${trayFlash ? " flash" : ""}`} aria-labelledby="xa-tray-h">
+          <div className="xa-card-h"><h2 id="xa-tray-h" ref={trayHead} tabIndex={-1}>Comparing {pins.length} of {MAX_PINS}</h2><button className="xa-x" onClick={() => setPins([])} aria-label="Clear all from comparison" title="Clear all">×</button></div>
           <div className="xa-cmp">
             {pins.map((k) => { const s = unpinned(k); const r = groupOf(s); if (!r) return null; const v = valueAt(r.g, measure, at);
               return (
@@ -892,6 +953,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                   <Spark values={(r.g.trend || []).map((t) => t[measure])} color={lineShade((r.g.trend || []).map((t) => t[measure]))} h={30} />
                 </div>
               ); })}
+            {pins.length === 1 && (
+              <div className="xa-cmpc xa-cmp-hint">
+                <b>Add another place to compare</b>
+                <small>{wide ? "Choose a place on the map" : "Tap a place on the map"}, then + Compare (up to {MAX_PINS}).</small>
+              </div>
+            )}
           </div>
         </section>
       )}
