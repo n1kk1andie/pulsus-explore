@@ -49,6 +49,8 @@ const STATE_NAME: Record<string, string> = {
 const quarter = (p: string) => `Q${Math.ceil(Number(p.slice(5, 7)) / 3)} ${p.slice(0, 4)}`;
 const when = (l: { cadence?: string }, p: string) => (l.cadence === "yearly" ? `FY${p.slice(0, 4)}` : quarter(p));
 const n0 = (x: number) => x.toLocaleString("en-US");
+/** The most places the comparison holds at once. */
+const MAX_PINS = 4;
 
 /** A group's reading at a period: its latest point at or before it, or now. */
 function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null): number | undefined {
@@ -408,7 +410,38 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   };
   const close = () => { setSel(null); if (!states) flyTo(home); };
   const pinKey = (s: NonNullable<Sel>) => `${s.layerId}|${s.region ?? ""}`;
-  const togglePin = (s: NonNullable<Sel>) => { const k = pinKey(s); setPins((p) => (p.includes(k) ? p.filter((x) => x !== k) : p.length >= 4 ? p : [...p, k])); };
+  const togglePin = (s: NonNullable<Sel>) => { const k = pinKey(s); setPins((p) => (p.includes(k) ? p.filter((x) => x !== k) : p.length >= MAX_PINS ? p : [...p, k])); };
+  // Compare tells you what happened: a short note under the button, read out politely.
+  const [pinNote, setPinNote] = useState<{ text: string; view: boolean } | null>(null);
+  const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const say = (text: string, view = false) => {
+    setPinNote({ text, view });
+    if (noteTimer.current) clearTimeout(noteTimer.current);
+    noteTimer.current = setTimeout(() => setPinNote(null), 7000);
+  };
+  useEffect(() => () => { if (noteTimer.current) clearTimeout(noteTimer.current); }, []);
+  useEffect(() => { setPinNote(null); }, [sel?.layerId, sel?.region]);
+  const pinFromCard = (s: NonNullable<Sel>) => {
+    const k = pinKey(s);
+    if (pins.includes(k)) { togglePin(s); say(pins.length - 1 ? `Removed — ${pins.length - 1} ${pins.length - 1 === 1 ? "place" : "places"} in comparison.` : "Removed from comparison."); return; }
+    if (pins.length >= MAX_PINS) return;
+    togglePin(s);
+    const n = pins.length + 1;
+    say(n === 1 ? `Added to comparison. Choose another place to compare (up to ${MAX_PINS}).` : `Added — ${n} places in comparison.`, n >= 2);
+  };
+  // "View comparison": on a phone the card closes so the tray shows; on a wide screen the tray is beside the card, so it takes focus.
+  const trayHead = useRef<HTMLHeadingElement>(null);
+  const [trayFlash, setTrayFlash] = useState(0);
+  const viewComparison = () => {
+    setPinNote(null); setSheet("");
+    if (!wide) setSel(null);
+    setTrayFlash((x) => x + 1);
+  };
+  useEffect(() => {
+    if (!trayFlash) return;
+    const t = setTimeout(() => trayHead.current?.focus(), 60);
+    return () => clearTimeout(t);
+  }, [trayFlash]);
 
   // ── search ───────────────────────────────────────────────────────────────
   const allGroups = useMemo(() => {
@@ -538,7 +571,14 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           </div>
         )}
         <div className="xa-btns">
-          {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => togglePin(sel)} disabled={!pinned && pins.length >= 4}>{pinned ? "✓ Comparing" : "+ Compare"}</button>}
+          {!g.hidden && <button className={`xa-btn ghost${pinned ? " on" : ""}`} onClick={() => pinFromCard(sel)} aria-pressed={pinned}
+            disabled={!pinned && pins.length >= MAX_PINS} aria-describedby={!pinned && pins.length >= MAX_PINS ? "xa-cmp-full" : undefined}
+            title={pinned ? "In comparison: tap to remove" : undefined}>{pinned ? <>✓ In comparison<span className="xa-vh"> (tap to remove)</span></> : "+ Compare"}</button>}
+          {pins.length > 0 && <button className="xa-btn view" onClick={viewComparison}>View comparison ({pins.length})</button>}
+        </div>
+        {!g.hidden && !pinned && pins.length >= MAX_PINS && <p id="xa-cmp-full" className="xa-cmp-full">Comparison full — remove one to add another.</p>}
+        <div className="xa-cmp-note" role="status" aria-live="polite">
+          {pinNote && <><span>{pinNote.text}</span>{pinNote.view && <button className="xa-linkbtn" onClick={viewComparison}>View comparison</button>}</>}
         </div>
         <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has. No institution is named.</> : <>{def.publisher}. No institution is named.</>}</p>
       </div>
@@ -879,8 +919,8 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
 
       {/* compare */}
       {pins.length > 0 && !sheet && !(sel && !wide) && (
-        <section className="xa-tray" aria-label="Comparing">
-          <div className="xa-card-h"><h2>Comparing {pins.length}</h2><button className="xa-x" onClick={() => setPins([])} aria-label="Clear">×</button></div>
+        <section key={trayFlash} className={`xa-tray${trayFlash ? " flash" : ""}`} aria-labelledby="xa-tray-h">
+          <div className="xa-card-h"><h2 id="xa-tray-h" ref={trayHead} tabIndex={-1}>Comparing {pins.length} of {MAX_PINS}</h2><button className="xa-x" onClick={() => setPins([])} aria-label="Clear all from comparison" title="Clear all">×</button></div>
           <div className="xa-cmp">
             {pins.map((k) => { const s = unpinned(k); const r = groupOf(s); if (!r) return null; const v = valueAt(r.g, measure, at);
               return (
@@ -892,6 +932,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                   <Spark values={(r.g.trend || []).map((t) => t[measure])} color={lineShade((r.g.trend || []).map((t) => t[measure]))} h={30} />
                 </div>
               ); })}
+            {pins.length === 1 && (
+              <div className="xa-cmpc xa-cmp-hint">
+                <b>Add another place to compare</b>
+                <small>{wide ? "Choose a place on the map" : "Tap a place on the map"}, then + Compare (up to {MAX_PINS}).</small>
+              </div>
+            )}
           </div>
         </section>
       )}
