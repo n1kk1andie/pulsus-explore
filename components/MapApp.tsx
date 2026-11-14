@@ -333,10 +333,31 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   const portrait = size.h > size.w;
   // Units per pixel at zoom 1: the whole world's height on a phone, its width on a wide screen.
   const base = portrait ? world.h / size.h : Math.max(world.w / size.w, world.h / size.h);
-  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the header.
-  const home: Cam = useMemo(() => ({ cx: portrait ? 246 : 480, cy: portrait ? 212 : 214, zoom: portrait ? 1.15 : 1.12 }), [portrait]);
+  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the
+  // header (measured: it is solid on a phone) and above the colour key and time slider.
+  const topRef = useRef<HTMLElement>(null);
+  const [topH, setTopH] = useState(0);
+  useEffect(() => {
+    const el = topRef.current; if (!el) return;
+    // The header is hidden on the other tabs (height 0): keep the last real height so the map doesn't jump.
+    const read = () => { const h = Math.round(el.getBoundingClientRect().bottom - (box.current?.getBoundingClientRect().top ?? 0)); if (h > 0) setTopH(h); };
+    const ro = new ResizeObserver(read); ro.observe(el); read();
+    return () => ro.disconnect();
+  }, []);
+  const home: Cam = useMemo(() => {
+    if (!portrait) return { cx: 480, cy: 214, zoom: 1.12 };
+    if (!topH) return { cx: 246, cy: 212, zoom: 1.15 };
+    // the tile grid, in map units (see the US grid below): 12 columns by 8 rows of 14, from (160, 88)
+    const gx = 160, gy = 88, gw = 12 * 14, gh = 8 * 14;
+    const top = topH + 10, bottom = size.h - 112, freeH = Math.max(80, bottom - top), freeW = size.w - 24;
+    const zoom = Math.min(1.15, Math.max(0.6, Math.min(freeW / (gw / base), freeH / (gh / base))));
+    const uu = base / zoom;
+    // the grid's top sits just under the header; any room left over goes below it
+    return { cx: gx + gw / 2, cy: gy + (size.h / 2 - top) * uu, zoom };
+  }, [portrait, topH, size.w, size.h, base]);
   const [cam, setCam] = useState<Cam>(home);
-  useEffect(() => { setCam(home); }, [home]);
+  // re-frame only when the framing itself changes (on a wide screen it never does)
+  useEffect(() => { setCam(home); }, [home.cx, home.cy, home.zoom]);
   const u = base / cam.zoom;
   const vb = `${cam.cx - (size.w * u) / 2} ${cam.cy - (size.h * u) / 2} ${size.w * u} ${size.h * u}`;
   const anim = useRef<number | null>(null);
@@ -806,7 +827,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         })()}
         {gridId && (() => {
           // The US as its states, laid out where the US sits on the map: each tile's colour and number follow the slider.
-          const gl = layers[gridId]; const C = 14, X0 = 160, Y0 = 88;
+          const gl = layers[gridId]; const C = 14, X0 = 160, Y0 = 88;   // keep in step with the phone framing of `home`
           const showNum = C / u >= 18;   // numbers once a tile is big enough on screen; colours always
           return (
             <g className="xa-usgrid" aria-label={`United States by state: ${WORD[measure]}`}>
@@ -884,7 +905,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         ); })()}
 
       {/* the top: brand, search, sectors */}
-      <header className="xa-top">
+      <header className="xa-top" ref={topRef}>
         {brand}
         <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
         {chips}
