@@ -185,7 +185,7 @@ const I_ORGS = "M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 11h.01M15 11h.01";
 const I_GLOBE = "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20";
 const I_SECTORS = "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z";
 const I_NAMED = "M9 12l2 2 4-4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
-const I_HOME = "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z";
+const I_PULSE = "M2.5 12h4l2.2-5.5 4.4 11 2.4-5.5h6";
 const I_LIST = "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01";
 const I_MAP = "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14";
 type View = "overview" | "directory" | "map" | "settings";
@@ -1286,7 +1286,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       )}
     </div>
     <nav className="xa-tabs-bar" aria-label="Views">
-      {([["overview", "Pulse", I_HOME], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["settings", "Settings", I_GEAR]] as [View, string, string][]).map(([k, w, d]) => (
+      {([["overview", "Pulse", I_PULSE], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["settings", "Settings", I_GEAR]] as [View, string, string][]).map(([k, w, d]) => (
         <button key={k} className={view === k ? "on" : ""} aria-current={view === k ? "page" : undefined} onClick={() => { setSheet(""); setView(k); }}><Ico d={d} size={22} /><span>{w}</span></button>
       ))}
     </nav>
