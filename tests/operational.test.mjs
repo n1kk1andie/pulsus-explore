@@ -101,9 +101,9 @@ test("the score: weights add to 100, readings follow the fixed ranges, worked ex
   assert.equal(INDICATORS.reduce((t, d) => t + d.weight, 0), 100);
   assert.equal(subScore("cfpb", "rate", 1), 100); assert.equal(subScore("cfpb", "rate", 10), 50); assert.equal(subScore("cfpb", "rate", 100), 0);
   assert.equal(subScore("fca", "rate", 5), 50); assert.equal(subScore("fca", "timely", 75), 50);
-  // US timeliness: 95% reads 0, 97.5% 50, 100% 100 (US_TIMELY_RANGE, derived from the data).
-  assert.equal(subScore("cfpb", "timely", 95), 0); assert.equal(subScore("cfpb", "timely", 97.5), 50); assert.equal(subScore("cfpb", "timely", 100), 100);
-  assert.equal(subScore("cfpb", "timely", 90), 0);
+  // US timeliness: 90% reads 0, 95% 50, 100% 100 (US_TIMELY_RANGE, checked against the data).
+  assert.equal(subScore("cfpb", "timely", 90), 0); assert.equal(subScore("cfpb", "timely", 95), 50); assert.equal(subScore("cfpb", "timely", 100), 100);
+  assert.equal(subScore("cfpb", "timely", 85), 0);
   // US: rate 10 (50) and timely 100% (100), weights 50:37.5 → (50×50 + 100×37.5) / 87.5 = 71.4 → 71.
   assert.equal(scoreOf({ source: "cfpb", complaints: 100, ind: { rate: 10, timely: 100 } }).score, 71);
   // UK: every reading 50 → 50; the same two parts as the US, in the same 57 : 43 balance.

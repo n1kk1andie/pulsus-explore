@@ -46,15 +46,15 @@ export const MIN_INDICATORS = 2;
 export const OPS_MIN_GROUP = RANK_MIN;
 
 /** US timeliness range: the share of complaints with a timely company response that
- *  reads 0, and the share that reads 100. Derived, not picked: from the scored US
- *  institutions (50 or more complaints) in the CFPB complaints received 1 July 2025
- *  to 30 June 2026, the 5th percentile of the timely-response rate was 96.9% and the
- *  95th percentile 100.0% (82 institutions; the build prints both). The low end is
- *  rounded down, outward, to the nearest 5 points, 95%, so the range never excludes
- *  more than the lowest 5%; the high end is 100%. Fixed, so every institution is read
- *  against the same range, and reviewed once a year, when the period moves on.
- *  (Earlier: 90% to 100%, set by hand.) */
-export const US_TIMELY_RANGE = { zero: 95, full: 100 } as const;
+ *  reads 0, and the share that reads 100. A documented judgment, checked against the
+ *  data: from the scored US institutions (50 or more complaints) in the CFPB complaints
+ *  received 1 July 2025 to 30 June 2026, the 5th percentile of the timely-response rate
+ *  was 96.9% and the 95th 100.0% (82 institutions; the build prints both). Setting the
+ *  low end at that spread (95%) would make one point below 100% cost 20 points; the
+ *  range is kept wider, from 90%, so one point costs 10 and the whole observed spread
+ *  sits inside it. Fixed, so every institution is read against the same range, and
+ *  reviewed once a year, when the period moves on. */
+export const US_TIMELY_RANGE = { zero: 90, full: 100 } as const;
 /** The percentiles US_TIMELY_RANGE is derived from, for the yearly review. */
 export const US_TIMELY_PERCENTILES = [5, 95] as const;
 
