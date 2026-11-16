@@ -757,7 +757,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     </div>
   );
   const logo = <a href="/"><img src={theme === "light" ? "/pulsus-explore-logo.png" : "/pulsus-explore-logo-night.png"} alt="Pulsus Explore" width={588} height={160} /></a>;
-  const you = <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>See How You Stack Up →</button>;
+  const you = <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Compare your organisation →</button>;
   const brand = <div className="xa-brand">{logo}{you}</div>;
   /** Open a place on the map, with its card. */
   const open = (layerId: string, region: string | null) => { setView("map"); choose(layerId, region); };
@@ -827,6 +827,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     <div className="xa-ov">
       <section className="xa-panel xa-hero xa-hb">
         <p className="xa-label">The world of business at a glance · {when(allL, allL.asOf)}</p>
+        <p className="xa-freebar"><span>Free to use</span> Public data from regulators · <button type="button" className="xa-linkbtn" onClick={() => setSheet("about")}>Sources</button></p>
         <div className="xa-pulse-top">
           <div className="xa-pulse-big">
             <strong style={{ color: allL.national.ohi != null ? shade(allL.national.ohi) : undefined }}>{allL.national.ohi ?? "—"}</strong>
@@ -1140,7 +1141,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       {/* the top: brand, search, sectors */}
       <header className="xa-top" ref={topRef}>
         {wide ? (
-          // A wide screen: the updates prompt sits in the header row, beside "See How You Stack Up".
+          // A wide screen: the updates prompt sits in the header row, beside "Compare your organisation".
           <div className="xa-brand">{logo}<Invite />{you}</div>
         ) : brand}
         <div className="xa-tools">
@@ -1236,7 +1237,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
 
       {(sheet === "movers" || sheet === "about" || sheet === "you") && (
         <aside className="xa-sheet" role="dialog" aria-label={sheet}>
-          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and areas to watch" : sheet === "about" ? "About these figures" : "See How You Stack Up"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
+          <div className="xa-card-h"><h2>{sheet === "movers" ? "Movers and areas to watch" : sheet === "about" ? "About these figures" : "Compare your organisation"}</h2><button className="xa-x" onClick={() => setSheet("")} aria-label="Close">×</button></div>
           {sheet === "movers" && (
             <>
               <div className="xa-tabs" role="tablist">
@@ -1272,10 +1273,11 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           )}
           {sheet === "you" && (
             <div className="xa-you-in">
-              <h3>Connect your organisation to see yours.</h3>
-              <p className="xa-muted">Explore is a free window on the world, read from public data. Pulsus <span className="xa-red">Platform</span> reads an organisation from its own systems the same way: Pulse shows its health and what needs attention today; Executive Intelligence adds the deeper tools: the diagnosis, treatments, recovery and where it stands among these peers; Oversight Intelligence watches over many organisations at once.</p>
-              <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>Take a peek</a><a className="xa-btn ghost" href={`${PLATFORM}/signup?product=platform`}>Start a 14-day trial</a><a className="xa-btn ghost" href={`${ABOUT}/walkthrough/`}>Talk to us</a></div>
-              <p className="xa-note">Take a peek: Pulsus <span className="xa-red">Platform</span> with a fictional organisation, no sign-up needed.</p>
+              <p className="xa-free"><b>Explore is free, and stays free.</b> Public data from regulators, scored by fixed, published rules, open to everyone. Nothing here is for sale.</p>
+              <h3>Want to see where your own organisation stands?</h3>
+              <p className="xa-muted">Pulsus <span className="xa-red">Platform</span> reads your organisation from its own data, through the same engine, and places it among these institutions. That comparison, built on your data, is the paid service; the public data in Explore never is.</p>
+              <div className="xa-btns"><a className="xa-btn" href={`${ABOUT}/demo/?from=explore`}>See the Platform</a><a className="xa-btn ghost" href={`${ABOUT}/walkthrough/`}>Talk to us</a></div>
+              <p className="xa-note">See the Platform: a fictional organisation, no sign-up needed.</p>
               <h3>Subscribe for updates</h3>
               <Subscribe />
             </div>

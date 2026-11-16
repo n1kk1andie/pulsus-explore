@@ -133,7 +133,7 @@
 .xa.is-wide .xa-chips{max-width:min(100%,900px)}
 .xa.is-wide .xa-states{padding:150px 400px 90px 16px}
 .xa.is-wide .xa-tiles,.xa.is-wide .xa-crumb{max-width:600px}
-/* the brand row spans the screen: logo on the left, "See How You Stack Up" in the top-right corner */
+/* the brand row spans the screen: logo on the left, "Compare your organisation" in the top-right corner */
 .xa.is-wide .xa-brand{max-width:none}
 /* phones and tablets in portrait: the updates invite lives on the Overview, not over the map */
 .xa:not(.is-wide) .xa-top .xa-invite{display:none}
@@ -528,3 +528,8 @@ button.xa-mx-c{cursor:pointer}button.xa-mx-c:hover,button.xa-mx-c:focus-visible{
 @media (max-width:640px){.xa-mx-r{grid-template-columns:132px repeat(var(--cols),66px) 66px;min-width:0;gap:4px}.xa-mx-l b{font-size:12px}.xa-mx-c{padding:7px 6px 6px 8px;border-left-width:3px}.xa-mx-c b{font-size:17px}.xa-mx-c i{grid-column:1/-1;font-size:10px}.xa-mx-h{font-size:10.5px}}
 .xa-mx-swipe{display:none;color:var(--mute);font-size:11.5px;margin:6px 0 0}
 @media (max-width:640px){.xa-mx-none{justify-content:flex-start;padding-left:12px}.xa-mx-swipe{display:block}}
+/* Explore is free: said plainly, at the top and in the compare panel. */
+.xa-freebar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin:2px 0 4px;color:var(--mute);font-size:12.5px}
+.xa-freebar span{font-weight:700;font-size:11px;letter-spacing:.04em;text-transform:uppercase;color:var(--good);border:1px solid color-mix(in srgb,var(--good) 45%,transparent);border-radius:999px;padding:2px 8px}
+.xa-linkbtn{border:0;background:none;padding:0;color:inherit;font:inherit;text-decoration:underline;cursor:pointer}
+.xa-free{border:1px solid color-mix(in srgb,var(--good) 40%,transparent);background:color-mix(in srgb,var(--good) 10%,transparent);border-radius:12px;padding:10px 12px;font-size:14px}
