@@ -1,6 +1,6 @@
 // How many organisations stand behind an average: four bands, one rule for
 // every average Explore shows. 1–9: no average; 10–19: a limited sample, shown
-// but never ranked or compared; 20–49: moderate confidence; 50+: broader coverage.
+// but never ranked or compared; 20–49: a moderate sample; 50+: a broad sample.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -30,17 +30,17 @@ test("each band boundary: 9, 10, 19, 20, 49, 50", () => {
 });
 
 test("the labels, with their counts", () => {
-  assert.deepEqual(BAND_LABEL, { insufficient: "Insufficient data", limited: "Limited sample", moderate: "Moderate confidence", broad: "Broader coverage" });
+  assert.deepEqual(BAND_LABEL, { insufficient: "Insufficient data", limited: "Limited sample", moderate: "Moderate sample", broad: "Broad sample" });
   assert.equal(sampleText(6), "6 institutions — too few for an average");
   assert.equal(sampleText(1, "banks", "bank"), "1 bank — too few for an average");
   assert.equal(sampleText(9), "9 institutions — too few for an average");
   assert.equal(sampleText(10), "Limited sample · 10 institutions");
   assert.equal(sampleText(14), "Limited sample · 14 institutions");
   assert.equal(sampleText(19, "credit unions"), "Limited sample · 19 credit unions");
-  assert.equal(sampleText(20), "Moderate confidence · 20 institutions");
-  assert.equal(sampleText(49), "Moderate confidence · 49 institutions");
-  assert.equal(sampleText(50), "Broader coverage · 50 institutions");
-  assert.equal(sampleText(4244, "banks"), "Broader coverage · 4,244 banks");
+  assert.equal(sampleText(20), "Moderate sample · 20 institutions");
+  assert.equal(sampleText(49), "Moderate sample · 49 institutions");
+  assert.equal(sampleText(50), "Broad sample · 50 institutions");
+  assert.equal(sampleText(4244, "banks"), "Broad sample · 4,244 banks");
 });
 
 test("the map draws 10–19 as a limited sample and 1–9 as too few", () => {

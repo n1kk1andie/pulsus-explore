@@ -15,7 +15,7 @@ import { ALL, ALL_DEF, allSectors, inView, valueAt, type Measure } from "../lib/
 import { BAND_LABEL, RANK_MIN, SHOW_MIN, bandClass, bandOf, canRank, canShow, rankedFirst, sampleText } from "../lib/atlas/bands";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 import { OPS_SOURCES, opsGroup, scoreOf, type OpsGroup } from "../lib/atlas/operational";
-import { COUNTRY, InstitutionCard, PlaceOpsCard, groupWord, type OpsData } from "./Ops";
+import { COUNTRY, InstitutionCard, PlaceOpsCard, SAME_COUNTRY, groupWord, medianLabel, type OpsData } from "./Ops";
 import { STATE_NAME } from "../lib/atlas/place-names";
 import { ASK_URL, MEASURE_NAME, coversText, explainEmpty, findPlaceIn, findSector, fold, institutionCoverage, isosOf, layerCoverage, sayEmpty } from "../lib/atlas/places";
 
@@ -82,7 +82,7 @@ function Measures({ v, ops, onOps }: { v: number | undefined; ops?: { g: OpsGrou
       <div><dt>Operational Health</dt>
         <dd>{og && !og.hidden ? <><b>{og.median}</b><span>/100</span></> : <b className="xa-dash">—</b>}</dd>
         {og && og.listed > 0 && <Sample n={og.n} many={`scored ${ops!.word}`} />}
-        <p>{og && !og.hidden ? <>Median of the named {ops!.word} scored from published complaints data. Kept separate from Organisational Health.</>
+        <p>{og && !og.hidden ? <>Named {ops!.word}, {medianLabel(og.n)} from published complaints data. {SAME_COUNTRY} Kept separate from Organisational Health.</>
           : og && og.listed ? <>Too few of the named {ops!.word} have a score for a median.</>
           : <>Insufficient operational data to calculate.</>}
           {og && og.listed > 0 && onOps && <> <button className="xa-linkbtn" onClick={onOps}>See the named institutions</button></>}</p>
@@ -776,7 +776,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           <div><strong>{allL.national.ohi ?? "—"}</strong><small>Organisational Health</small></div>
           <div className="xa-hero-ops"><strong>{(["840", "826"] as const).map((c, k) => { const g = opsGroup(insts, c, null); return <span key={c}>{k > 0 && <i> · </i>}<small>{c === "840" ? "US" : "UK"}</small> {g.hidden ? "—" : g.median}</span>; })}</strong><small>Operational Health</small></div>
         </div>
-        <p className="xa-note xa-measure-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, against the same fixed levels; a place&apos;s score is the median of its institutions. Operational Health: calculated from complaints data regulators publish by firm, the median of the named institutions scored in each country. Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a limited sample, never ranked; {RANK_MIN} to 49, moderate confidence; 50 or more, broader coverage. The two measures are kept separate.</p>
+        <p className="xa-note xa-measure-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, against the same fixed levels; a place&apos;s score is the median of its institutions. Operational Health: calculated from complaints data regulators publish by firm; each country&apos;s figure is the {(["840", "826"] as const).map((c) => `${c === "840" ? "US" : "UK"} ${medianLabel(opsGroup(insts, c, null).n)}`).join(" and the ")}. {SAME_COUNTRY} Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a {BAND_LABEL.limited.toLowerCase()}, never ranked; {RANK_MIN} to 49, a {BAND_LABEL.moderate.toLowerCase()}; 50 or more, a {BAND_LABEL.broad.toLowerCase()}. The two measures are kept separate.</p>
         <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors; no institution is named in the financial figures. Operational Health covers {n0(insts.length)} named banks, credit unions and insurers in the United States and the United Kingdom.</p>
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
@@ -829,7 +829,11 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       .filter((i) => (sec === null || i.sector === sec) && (!dirKind || dirKind === "country"))
       .map((i) => ({ i, s: scoreOf(i).score }));
     const az = (a: typeof out[0], b: typeof out[0]) => a.i.name.localeCompare(b.i.name);
-    return out.sort(dirSort === "high" ? (a, b) => (b.s ?? -1) - (a.s ?? -1) || az(a, b) : dirSort === "low" ? (a, b) => (a.s ?? 999) - (b.s ?? 999) || az(a, b) : az);
+    // Scores compare institutions within the same country only: a sort by score orders each
+    // country's institutions on their own, the United States first, then the United Kingdom.
+    const byCountry = (a: typeof out[0], b: typeof out[0]) => b.i.country.localeCompare(a.i.country);
+    const by = dirSort === "high" ? (a: typeof out[0], b: typeof out[0]) => (b.s ?? -1) - (a.s ?? -1) || az(a, b) : dirSort === "low" ? (a: typeof out[0], b: typeof out[0]) => (a.s ?? 999) - (b.s ?? 999) || az(a, b) : az;
+    return out.sort(dirSort === "high" || dirSort === "low" ? (a, b) => byCountry(a, b) || by(a, b) : by);
   }, [instFind, dirQ, sector, dirKind, dirSort]);
   const directory = (
     <div className="xa-dir">
@@ -843,18 +847,21 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         {lensSeg}
         {lens === "ohi"
           ? <p className="xa-sub">{shown.length} {shown.length === 1 ? "place" : "places"} · {WORD[measure]} · places and sectors only; no institution is named</p>
-          : <p className="xa-sub">{instShown.length} named {instShown.length === 1 ? "institution" : "institutions"} · Operational Health, from published complaints data · <a href="/methodology">how it is calculated</a></p>}
+          : <p className="xa-sub">{instShown.length} named {instShown.length === 1 ? "institution" : "institutions"} · Operational Health, from published complaints data · {SAME_COUNTRY} <a href="/methodology">How it is calculated</a></p>}
       </div>
       {lens === "ops" ? (
         <ul className="xa-dir-list">
-          {instShown.map(({ i, s }) => (
-            <li key={i.key}>
+          {instShown.map(({ i, s }, k) => (
+            <React.Fragment key={i.key}>
+            {(dirSort === "high" || dirSort === "low") && (k === 0 || instShown[k - 1].i.country !== i.country) && <li className="xa-dir-h">{COUNTRY[i.country]} · {dirSort === "high" ? "highest" : "lowest"} first, among {i.country === "840" ? "US" : "UK"} institutions only</li>}
+            <li>
               <button onClick={() => openOps(i.country, i.key)}>
                 <span className="xa-dir-dot" style={{ background: s !== null ? shade(s) : COLOR.few }} />
                 <span className="xa-dir-name"><b>{i.name}</b><small>{COUNTRY[i.country]} · {NOUN[i.sector as Sector].replace(/s$/, "")} · {n0(i.complaints)} complaints received</small></span>
                 <span className="xa-dir-v"><strong className={s === null ? "xa-dash" : undefined}>{s ?? "—"}</strong></span>
               </button>
             </li>
+            </React.Fragment>
           ))}
           {!instShown.length && <li className="xa-muted xa-empty">{whyEmpty(dirQ, sector, setDirQ, "No named institution matches. Operational Health covers banks, credit unions and insurers in the US and the UK.")}</li>}
         </ul>
@@ -909,7 +916,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           <h3>About Explore</h3>
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers, hospitals and government agencies today, with universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is a score out of 100 for financial condition. Each institution is scored from the figures its regulator publishes (for banks, credit unions and insurers: capital, profitability, loan quality and costs; for government agencies, published budget and reporting measures), each measured against the same fixed levels over up to three years. A place&apos;s score is the median of its institutions. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
-          <p><b>Operational Health</b> is a separate Pulsus score, out of 100, for named banks, credit unions and insurers. It is calculated by a published formula from complaints data their regulators publish by firm (the US Consumer Financial Protection Bureau and the UK Financial Conduct Authority): how many complaints are received relative to size, how quickly they are handled, and how many are upheld. Complaints received are not findings of wrongdoing. The two scores are never blended. <a href="/methodology">How Operational Health is calculated →</a></p>
+          <p><b>Operational Health</b> is a separate Pulsus score, out of 100, for named banks, credit unions and insurers. It is calculated by a published formula from complaints data their regulators publish by firm (the US Consumer Financial Protection Bureau and the UK Financial Conduct Authority): how many complaints are received relative to size, and how quickly they are handled. The share of complaints a UK firm upheld is shown beside its score, for information only, not scored. {SAME_COUNTRY} Complaints received are not findings of wrongdoing. The two scores are never blended. <a href="/methodology">How Operational Health is calculated →</a></p>
           <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b className="xa-sw-limited" />Limited sample ({SHOW_MIN}–{RANK_MIN - 1}), not ranked</span><span><b style={{ background: COLOR.few }} />Too few for an average (under {SHOW_MIN})</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
           <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
           <p><a href="/technology">How Pulsus Explore works →</a></p>
@@ -961,7 +968,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           const lim = lens === "ops" ? limCls(opsAt(c.id, sector)) : gridId && c.id === "840" ? "" : limCls(r?.g);
           return (
             <React.Fragment key={c.id + c.name}>
-              <path ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${lim}`} onClick={() => tapCountry(c.id)}><title>{lim ? `${c.name}: limited sample` : c.name}</title></path>
+              <path ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${lim}`} onClick={() => tapCountry(c.id)}><title>{lens === "ops" && opsAt(c.id, sector) && !opsAt(c.id, sector)!.hidden ? `${c.name}: ${medianLabel(opsAt(c.id, sector)!.n)}${lim ? " (limited sample)" : ""}` : lim ? `${c.name}: limited sample` : c.name}</title></path>
               {lim && <path d={c.d} className="xa-hatch" />}
             </React.Fragment>
           );
@@ -1086,7 +1093,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       )}
       {!at && !sel && !inst && !sheet && !pins.length && (lens === "ohi"
         ? <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Organisational Health, 0 to 100</span><span className="xa-k-short">Org. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
-        : <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Operational Health, 0 to 100 · median of named institutions</span><span className="xa-k-short">Op. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} /><span className="xa-k-long">Fewer than {SHOW_MIN} scored</span><span className="xa-k-short">Under {SHOW_MIN}</span></span></p>
+        : <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Operational Health, 0 to 100 · each country&apos;s median of the institutions with a score</span><span className="xa-k-short">Op. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} /><span className="xa-k-long">Fewer than {SHOW_MIN} scored</span><span className="xa-k-short">Under {SHOW_MIN}</span></span></p>
       )}
 
       {/* the time slider */}
