@@ -121,6 +121,41 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
   );
 }
 
+const I_CU = "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8";
+const I_SHIELD = "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z";
+const I_GOV = "M5 22V3M5 4h12l-2.5 4L17 12H5";
+const I_HOSP = "M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M3 21h18M12 7v6M9 10h6";
+const I_UNI = "M22 10 12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5";
+const SECTOR_ICON: Record<string, string> = { banks: "M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M12 3l9 5H3z", "credit-unions": I_CU, insurance: I_SHIELD, government: I_GOV, hospitals: I_HOSP, universities: I_UNI };
+const FLAG: Record<string, string> = { "840": "🇺🇸", "826": "🇬🇧", "170": "🇨🇴", "076": "🇧🇷", Europe: "🇪🇺" };
+
+/** The overall median, quarter by quarter: a line with its first and latest values marked. */
+function Trend({ points }: { points: { label: string; v: number }[] }) {
+  if (points.length < 2) return <p className="xa-note">Not enough history yet.</p>;
+  const w = 320, h = 150, pad = { l: 28, r: 14, t: 22, b: 24 };
+  const vs = points.map((p) => p.v); const lo = Math.floor((Math.min(...vs) - 3) / 5) * 5, hi = Math.ceil((Math.max(...vs) + 3) / 5) * 5;
+  const x = (i: number) => pad.l + (i * (w - pad.l - pad.r)) / (points.length - 1);
+  const y = (v: number) => pad.t + ((hi - v) * (h - pad.t - pad.b)) / (hi - lo || 1);
+  const d = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
+  const last = points[points.length - 1], yearAgo = points.length > 4 ? points[points.length - 5] : null;
+  const ticks = [lo, Math.round((lo + hi) / 2), hi];
+  const every = Math.max(1, Math.ceil(points.length / 4));
+  const change = yearAgo ? last.v - yearAgo.v : null;
+  return (
+    <>
+      <svg className="xa-trend" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Overall median from ${points[0].v} in ${points[0].label} to ${last.v} in ${last.label}`}>
+        {ticks.map((t) => <g key={t}><line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} className="xa-trend-grid" /><text x={pad.l - 6} y={y(t) + 4} textAnchor="end" className="xa-trend-ax">{t}</text></g>)}
+        <path d={`${d} L${x(points.length - 1)},${h - pad.b} L${x(0)},${h - pad.b} Z`} className="xa-trend-area" />
+        <path d={d} className="xa-trend-line" />
+        {points.map((p, i) => ((points.length - 1 - i) % every === 0 ? <text key={p.label} x={x(i)} y={h - 6} textAnchor={i === points.length - 1 ? "end" : i === 0 ? "start" : "middle"} className="xa-trend-ax">{p.label}</text> : null))}
+        <circle cx={x(points.length - 1)} cy={y(last.v)} r="4" className="xa-trend-dot" />
+        <text x={x(points.length - 1)} y={y(last.v) - 9} textAnchor="end" className="xa-trend-val">{last.v}</text>
+      </svg>
+      {change !== null && <p className="xa-note">{change === 0 ? <>No change since {yearAgo!.label}</> : <><b className={change > 0 ? "xa-up" : "xa-down"}>{change > 0 ? `▲ +${change}` : `▼ ${change}`}</b> since {yearAgo!.label}</>}</p>}
+    </>
+  );
+}
+
 function Spark({ values, color, h = 56 }: { values: (number | null)[]; color: string; h?: number }) {
   const v = values.filter((x): x is number => x !== null);
   if (v.length < 2) return null;
@@ -758,6 +793,16 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
     return ls.length ? { x, l: ls.length === 1 ? ls[0] : allSectors(ls), n: ls.length } : null;
   }).filter(Boolean) as { x: (typeof SECTORS)[number]; l: AtlasLayer; n: number }[];
+  // By region: every sector's layers in one place (the United States, Europe, Colombia), read as one.
+  const placeCards = (() => {
+    const by = new Map<string, AtlasLayer[]>();
+    for (const d of realDefs) {
+      const l = real[d.id];
+      const name = l.countries.length === 1 ? (l.countries[0] === "840" ? "the United States" : cname(l.countries[0])) : l.scope.split(" (")[0];
+      by.set(name, [...(by.get(name) || []), l]);
+    }
+    return [...by.entries()].map(([name, ls]) => ({ name, flag: FLAG[ls.length && ls[0].countries.length === 1 ? ls[0].countries[0] : name] || "🌐", l: ls.length === 1 ? ls[0] : allSectors(ls) }));
+  })();
   // The movers and areas to watch, for the sector chosen on the Overview ("all": every sector).
   const ovInsight = ovSector === "all" ? insight
     : insightsOf(realDefs.filter((d) => d.sector === ovSector).map((d) => real[d.id]), data.depth);
@@ -790,17 +835,34 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
       <Invite />
-      <h2 className="xa-h2">Sectors</h2>
-      <p className="xa-sub xa-hint">Tap a sector to see it on the map.</p>
-      <div className="xa-sectors">
-        {sectorCards.map(({ x, l }) => (
-          <button key={x.id} className="xa-panel xa-sec" onClick={() => openSectorCard(x.id)} aria-label={`${x.label}: open on the map`}>
-            <span className="xa-sec-h"><b>{x.label}</b><strong>{l.national.ohi ?? "—"}</strong></span>
-            <small>{n0(l.national.n)} {NOUN[x.id]} · {band(l.national.n)} · {x.where}</small>
-            <Spark values={(l.national.trend || []).map((t) => t[measure])} color={lineShade((l.national.trend || []).map((t) => t[measure]))} h={34} />
-          </button>
-        ))}
-        {SECTORS.filter((x) => x.status !== "live").map((x) => <div key={x.id} className="xa-panel xa-sec is-next"><span className="xa-sec-h"><b>{x.label}</b><small>Next</small></span><small>{x.where}</small></div>)}
+      <div className="xa-boxes">
+        <section className="xa-panel xa-box" aria-labelledby="xa-box-sec">
+          <h2 id="xa-box-sec" className="xa-box-h">Sectors <small>median Organisational Health</small></h2>
+          <ul className="xa-bars">
+            {sectorCards.map(({ x, l }) => { const v = l.national.ohi; return (
+              <li key={x.id}><button type="button" onClick={() => openSectorCard(x.id)} aria-label={`${x.label}: ${v ?? "no score"}, ${n0(l.national.n)} ${NOUN[x.id]}. Open on the map`} title={`${n0(l.national.n)} ${NOUN[x.id]} · ${x.where}`}>
+                <Ico d={SECTOR_ICON[x.id] || I_ORGS} size={17} /><span className="xa-bar-l">{x.label}</span>
+                <span className="xa-bar"><i style={{ width: `${v ?? 0}%`, background: v == null ? "var(--few)" : shade(v) }} /></span><b>{v ?? "—"}</b>
+              </button></li>); })}
+            {SECTORS.filter((x) => x.status !== "live").map((x) => <li key={x.id} className="is-next"><span className="xa-row"><Ico d={SECTOR_ICON[x.id] || I_ORGS} size={17} /><span className="xa-bar-l">{x.label}</span><span className="xa-bar" /><small>Next</small></span></li>)}
+          </ul>
+          <p className="xa-note">Tap a sector to see it on the map.</p>
+        </section>
+        <section className="xa-panel xa-box" aria-labelledby="xa-box-where">
+          <h2 id="xa-box-where" className="xa-box-h">By region <small>median Organisational Health</small></h2>
+          <ul className="xa-bars">
+            {placeCards.map(({ name, flag, l }) => { const v = l.national.ohi; return (
+              <li key={name}><span className="xa-row" title={`${n0(l.national.n)} organisations`}>
+                <span className="xa-flag" aria-hidden="true">{flag}</span><span className="xa-bar-l">{name.replace(/^the /, "").replace(/^./, (c) => c.toUpperCase())}</span>
+                <span className="xa-bar"><i style={{ width: `${v ?? 0}%`, background: v == null ? "var(--few)" : shade(v) }} /></span><b>{v ?? "—"}</b>
+              </span></li>); })}
+          </ul>
+          <p className="xa-note">Each region&apos;s median across every sector it has.</p>
+        </section>
+        <section className="xa-panel xa-box" aria-labelledby="xa-box-trend">
+          <h2 id="xa-box-trend" className="xa-box-h">Trend <small>overall median, by quarter</small></h2>
+          <Trend points={(allL.national.trend || []).filter((t) => t.ohi !== null).map((t) => ({ label: when(allL, t.period), v: t.ohi as number }))} />
+        </section>
       </div>
       <h2 className="xa-h2">What&apos;s moving · {ovLabel}</h2>
       <p className="xa-sub xa-hint">Choose a sector for the lists below. Tap a place to see it on the map.</p>
