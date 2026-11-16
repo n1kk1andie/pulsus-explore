@@ -91,7 +91,7 @@ export function InstitutionCard({ i, all, onClose, onPlace }: { i: OpsInstitutio
         <HowOps />
       </div>
       <Caveat src={i.source} />
-      <p className="xa-note">Complaints received are not findings of wrongdoing. Pulsus assessments are independent and are not official regulatory ratings.</p>
+      <p className="xa-note">Complaints received are not findings of wrongdoing. Scores are calculated by Pulsus from published complaints data. They are not official regulatory ratings.</p>
     </div>
   );
 }

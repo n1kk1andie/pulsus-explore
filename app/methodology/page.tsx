@@ -24,7 +24,7 @@ export default function Methodology() {
 
       <h2 className="pz-h3" style={h2}>What it is</h2>
       <p>The Pulsus Operational Health Score is a reading, out of 100, of how a named bank, credit union or insurer handles complaints, from complaints data that its regulator publishes by firm. It is calculated by the published formula below, the same for every institution. It is separate from Organisational Health, which reads financial condition for places from regulators&apos; financial indicators. Explore never blends the two into one number.</p>
-      <p>Complaints received are not findings of wrongdoing, and complaints data describes one part of how an institution operates, not all of it. Pulsus assessments are independent and are not official regulatory ratings.</p>
+      <p>Complaints received are not findings of wrongdoing, and complaints data describes one part of how an institution operates, not all of it. Scores are calculated by Pulsus from published complaints data. They are not official regulatory ratings.</p>
 
       <h2 className="pz-h3" style={h2}>The indicators and their weights</h2>
       <div style={{ overflowX: "auto" }}>

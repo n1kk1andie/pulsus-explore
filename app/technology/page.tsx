@@ -128,7 +128,7 @@ export default function Technology() {
           <dl className="tk-stats">
             <div><dt>Organisations read</dt><dd>{n0(f.organisations)}</dd></div>
             <div><dt>Sectors</dt><dd>{f.sectorsLive}</dd></div>
-            <div><dt>Public datasets</dt><dd>{f.sources.length}</dd></div>
+            <div><dt>Public data streams (sources)</dt><dd>{f.sources.length}</dd></div>
             <div><dt>Fewest behind an average</dt><dd>{SHOW_MIN}</dd></div>
           </dl>
         </section>
@@ -197,7 +197,7 @@ export default function Technology() {
             <section id="score" aria-labelledby="score-h">
               <p className="tk-num">03</p>
               <h2 id="score-h">The score</h2>
-              <p className="tk-lede">The Pulsus Organisational Health Score is an assessment of financial condition, out of 100.</p>
+              <p className="tk-lede">Each institution is scored out of 100 from the figures its regulator publishes, each measured against the same fixed levels over up to three years.</p>
               <p>Each organisation is scored from regulatory indicators taken or calculated from its source’s published figures. The figure Explore shows for a place is the median of the scores of its organisations.</p>
               <p>Each indicator is compared with a range from weak to strong. For some, higher is stronger, such as return on assets and capital; for others, lower is stronger, such as costs, problem loans and charge-offs. The Pulsus engine combines them into one score, calculated the same way for every place.</p>
               <ul className="tk-props">
@@ -235,7 +235,7 @@ export default function Technology() {
               ))}
               {gov && <p>For US federal agencies, the indicators are a few published operational measures rather than financial ratios: how budgets are committed, reporting accuracy and FOIA request handling. They are part of the operational picture, not all of it.</p>}
               <p>Explore also lists a second Pulsus measure, Operational Health, as a dash. Public data does not hold enough operational detail to calculate it; that takes an organisation’s own data. In the All sectors view, a place’s figure is each sector’s median weighted by how many organisations it has.</p>
-              <p className="tk-small">Pulsus assessments are independent and are not official regulatory ratings.</p>
+              <p className="tk-small">Scores are calculated by Pulsus from published regulatory data. They are not official regulatory ratings.</p>
             </section>
 
             <section id="checked" aria-labelledby="checked-h">

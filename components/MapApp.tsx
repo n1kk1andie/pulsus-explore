@@ -85,7 +85,7 @@ function Measures({ v, ops, onOps }: { v: number | undefined; ops?: { g: OpsGrou
   const og = ops?.g;
   return (
     <dl className="xa-measures">
-      <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>Financial-condition assessment based on available regulatory indicators.</p></div>
+      <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>Each institution scored out of 100 from the figures its regulator publishes. A place&apos;s score is the median of its institutions.</p></div>
       <div><dt>Operational Health</dt>
         <dd>{og && !og.hidden ? <><b>{og.median}</b><span>/100</span></> : <b className="xa-dash">—</b>}</dd>
         {og && og.listed > 0 && <Sample n={og.n} many={`scored ${ops!.word}`} />}
@@ -118,8 +118,8 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
       <p className="xa-src-line">Source: {publisher}, {when(l, l.asOf)}{ctx.length ? " · risk measures calculated by Pulsus from the same filings" : ""} · Pulsus independent analysis</p>
       <details className="xa-how">
         <summary>How this score was calculated</summary>
-        <p>The Pulsus Organisational Health Score is an assessment of financial condition, out of 100. It is calculated from the regulatory indicators above, as published by the regulator, for every organisation in the place; the score shown is the median.</p>
-        <p>Each indicator is compared with a range from weak to strong{higher.length ? `: higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; " : ": "}lower is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines them into one score out of 100, calculated the same way for every place. The score is not placed into bands or categories.</p>
+        <p>Each institution is scored out of 100 from the figures its regulator publishes, the indicators above, each measured against the same fixed levels over up to three years. A place&apos;s score is the median of its institutions.</p>
+        <p>{higher.length ? `Higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; lower" : "Lower"} is stronger for ${lower.join(", ")}` : ""}. The Pulsus engine combines the indicators into one score out of 100, calculated the same way for every place. The score is not placed into bands or categories.</p>
         {ctx.length > 0 && <p>{ctx.map((i) => i.label).join(", ")} are shown beside the score because they describe funding, interest-rate and liquidity risk, which the score itself does not measure. They do not change the score.</p>}
         <p>The same inputs always give the same score. The weighting is proprietary (patent pending).</p>
         <p><a href="/technology#score">Learn more about the method →</a></p>
@@ -773,7 +773,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           <div><strong>{allL.national.ohi ?? "—"}</strong><small>Organisational Health</small></div>
           <div className="xa-hero-ops"><strong>{(["840", "826"] as const).map((c, k) => { const g = opsGroup(insts, c, null); return <span key={c}>{k > 0 && <i> · </i>}<small>{c === "840" ? "US" : "UK"}</small> {g.hidden ? "—" : g.median}</span>; })}</strong><small>Operational Health</small></div>
         </div>
-        <p className="xa-note xa-measure-note">Organisational Health: financial-condition assessment based on available regulatory indicators. Operational Health: from complaints data regulators publish by firm, the median of the named institutions scored in each country. Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a limited sample, never ranked; {RANK_MIN} to 49, moderate confidence; 50 or more, broader coverage. The two measures are kept separate.</p>
+        <p className="xa-note xa-measure-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, against the same fixed levels; a place&apos;s score is the median of its institutions. Operational Health: calculated from complaints data regulators publish by firm, the median of the named institutions scored in each country. Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a limited sample, never ranked; {RANK_MIN} to 49, moderate confidence; 50 or more, broader coverage. The two measures are kept separate.</p>
         <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors; no institution is named in the financial figures. Operational Health covers {n0(insts.length)} named banks, credit unions and insurers in the United States and the United Kingdom.</p>
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
@@ -802,7 +802,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <section className="xa-panel"><h2 className="xa-h2 is-down"><Delta n={-1} bare /> Declining Indicators</h2><p className="xa-sub">{ovLabel}</p><div className="xa-list">{ovInsight.down.length ? ovInsight.down.slice(0, 4).map(moverRow) : <p className="xa-sub">None over the last year.</p>}</div></section>
         <section className="xa-panel"><h2 className="xa-h2 is-hot">Areas to Watch</h2><p className="xa-sub">{ovLabel}: places with the lowest median Organisational Health</p><div className="xa-list">{ovInsight.hotspots.length ? ovInsight.hotspots.slice(0, 4).map(moverRow) : <p className="xa-sub">Not enough places to rank yet.</p>}</div></section>
       </div>
-      <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. Pulsus assessments are independent and are not official regulatory ratings.</p>
+      <p className="xa-note">Organisational Health over the last year, among places with at least {INSIGHT_MIN} organisations. Scores are calculated by Pulsus from published regulatory data. They are not official regulatory ratings.</p>
     </div>
   );
 
@@ -905,7 +905,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <div className="xa-sub-sec">
           <h3>About Explore</h3>
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers, hospitals and government agencies today, with universities next. Anyone can use it, with no account.</p>
-          <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
+          <p><b>Organisational Health</b> is a score out of 100 for financial condition. Each institution is scored from the figures its regulator publishes (for banks, credit unions and insurers: capital, profitability, loan quality and costs; for government agencies, published budget and reporting measures), each measured against the same fixed levels over up to three years. A place&apos;s score is the median of its institutions. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
           <p><b>Operational Health</b> is a separate Pulsus score, out of 100, for named banks, credit unions and insurers. It is calculated by a published formula from complaints data their regulators publish by firm (the US Consumer Financial Protection Bureau and the UK Financial Conduct Authority): how many complaints are received relative to size, how quickly they are handled, and how many are upheld. Complaints received are not findings of wrongdoing. The two scores are never blended. <a href="/methodology">How Operational Health is calculated →</a></p>
           <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b className="xa-sw-limited" />Limited sample ({SHOW_MIN}–{RANK_MIN - 1}), not ranked</span><span><b style={{ background: COLOR.few }} />Too few for an average (under {SHOW_MIN})</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
           <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
@@ -914,14 +914,14 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <div className="xa-sub-sec">
           <h3>How the Numbers Are Made</h3>
           <ul className="xa-principles">
-            <li><b>Calculated, not invented.</b> Scores are produced by defined mathematical rules.</li>
+            <li><b>Calculated from published figures by fixed rules.</b> The same rules for every institution and every place.</li>
             <li><b>Consistent and reproducible.</b> Identical inputs and calculation settings produce identical results.</li>
             <li><b>Traceable.</b> Every score can be traced to its underlying indicators.</li>
           </ul>
-          <p className="xa-muted">Pulsus assessments are independent and are not official regulatory ratings. No institution is named in the financial figures; Operational Health names institutions only from complaints data their regulators publish by name under an open licence.</p>
+          <p className="xa-muted">Scores are calculated by Pulsus from published regulatory and complaints data. They are not official regulatory ratings. No institution is named in the financial figures; Operational Health names institutions only from complaints data their regulators publish by name under an open licence.</p>
         </div>
         <div className="xa-sub-sec">
-          <h3>Sources</h3>
+          <h3>Data streams (sources)</h3>
           <p className="xa-label">Organisational Health</p>
           <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
           <p className="xa-label">Operational Health</p>
@@ -1174,12 +1174,12 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           {sheet === "about" && (
             <div className="xa-about">
               <ul className="xa-principles">
-                <li><b>Calculated, not invented.</b> Scores are produced by defined mathematical rules.</li>
+                <li><b>Calculated from published figures by fixed rules.</b> The same rules for every institution and every place.</li>
                 <li><b>Consistent and reproducible.</b> Identical inputs and calculation settings produce identical results.</li>
                 <li><b>Traceable.</b> Every score can be traced to its underlying indicators.</li>
               </ul>
-              <p>Pulsus assessments are independent and are not official regulatory ratings. No institution is named in the financial figures.</p>
-              <p className="xa-label">Sources</p>
+              <p>Scores are calculated by Pulsus from published regulatory data. They are not official regulatory ratings. No institution is named in the financial figures.</p>
+              <p className="xa-label">Data streams (sources)</p>
               <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}
                 {OPS_SOURCES.filter((s) => s.used).map((s) => <li key={s.id}><b>Operational Health</b> · {s.publisher}, {s.dataset} · {s.licence}</li>)}</ul>
               <p><a href="/methodology">How Operational Health is calculated</a></p>
