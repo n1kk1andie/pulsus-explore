@@ -162,6 +162,10 @@ function useTheme(): ["light" | "dark", () => void] {
 const I_SUN = "M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4";
 const I_MOON = "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z";
 const I_MAIL = "M3 5h18v14H3zM3 7l9 6 9-6";
+const I_ORGS = "M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6M9 11h.01M15 11h.01";
+const I_GLOBE = "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20";
+const I_SECTORS = "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z";
+const I_NAMED = "M9 12l2 2 4-4M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z";
 const I_HOME = "M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z";
 const I_LIST = "M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01";
 const I_MAP = "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2zM9 4v14M15 6v14";
@@ -748,7 +752,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     setTimeout(() => { if (own.length === 1 && layers[layerId].countries.length === 1) flyToCountry(layers[layerId].countries[0]); else flyTo(home); }, 30);
   };
 
-  // ── Overview: the world at a glance ──────────────────────────────────────
+  // ── Overview (the Pulse tab): the world of business at a glance ──────────────────────────────────────
   const allL = layers[ALL];
   const sectorCards = SECTORS.filter((x) => x.status === "live").map((x) => {
     const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
@@ -771,13 +775,18 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   const overview = (
     <div className="xa-ov">
       <section className="xa-panel xa-hero">
-        <p className="xa-label">The world at a glance · {when(allL, allL.asOf)}</p>
+        <p className="xa-label">The world of business at a glance · {when(allL, allL.asOf)}</p>
         <div className="xa-hero-row">
           <div><strong>{allL.national.ohi ?? "—"}</strong><small>Organisational Health</small></div>
           <div className="xa-hero-ops"><strong>{(["840", "826"] as const).map((c, k) => { const g = opsGroup(insts, c, null); return <span key={c}>{k > 0 && <i> · </i>}<small>{c === "840" ? "US" : "UK"}</small> {g.hidden ? "—" : g.median}</span>; })}</strong><small>Operational Health</small></div>
         </div>
         <p className="xa-note xa-measure-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, against the same fixed levels; a place&apos;s score is the median of its institutions. Operational Health: calculated from complaints data regulators publish by firm; each country&apos;s figure is the {(["840", "826"] as const).map((c) => `${c === "840" ? "US" : "UK"} ${medianLabel(opsGroup(insts, c, null).n)}`).join(" and the ")}. {SAME_COUNTRY} Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a {BAND_LABEL.limited.toLowerCase()}, never ranked; {RANK_MIN} to 49, a {BAND_LABEL.moderate.toLowerCase()}; 50 or more, a {BAND_LABEL.broad.toLowerCase()}. The two measures are kept separate.</p>
-        <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors; no institution is named in the financial figures. Operational Health covers {n0(insts.length)} named banks, credit unions and insurers in the United States and the United Kingdom.</p>
+        <ul className="xa-stats" aria-label="What Explore covers">
+          <li title="Organisations scored for Organisational Health; none is named in the financial figures"><Ico d={I_ORGS} size={18} /><b>{n0(allL.national.n)}</b><small>organisations</small></li>
+          <li title={shownWhere}><Ico d={I_GLOBE} size={18} /><b>{whereList.length}</b><small>{whereList.length === 1 ? "region" : "regions"}</small></li>
+          <li title={sectorCards.map(({ x }) => x.label).join(", ")}><Ico d={I_SECTORS} size={18} /><b>{sectorCards.length}</b><small>sectors</small></li>
+          <li title="Banks, credit unions and insurers named for Operational Health, in the United States and the United Kingdom"><Ico d={I_NAMED} size={18} /><b>{n0(insts.length)}</b><small>named · US &amp; UK</small></li>
+        </ul>
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
       <Invite />

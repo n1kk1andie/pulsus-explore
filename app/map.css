@@ -441,3 +441,9 @@
 .xa:not(.is-wide) .xa-key .xa-k-long{display:none}
 .xa:not(.is-wide) .xa-key .xa-k-short{display:inline}
 .xa:not(.is-wide) .xa-key .xa-scale i{width:28px}
+/* The Pulse tab's counts: an icon, a number and a word each, not a sentence. */
+.xa-stats{list-style:none;margin:10px 0 4px;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.xa-stats li{display:flex;align-items:center;gap:7px;padding:7px 12px;border-radius:999px;background:color-mix(in srgb,var(--mute) 12%,transparent);border:1px solid color-mix(in srgb,var(--mute) 22%,transparent)}
+.xa-stats li svg{color:var(--mute);flex:none}
+.xa-stats b{font:700 16px Sora,sans-serif}
+.xa-stats small{color:var(--mute);font-size:12px}
