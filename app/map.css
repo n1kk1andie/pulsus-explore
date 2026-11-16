@@ -252,6 +252,11 @@
 .xa-dir-v{text-align:right;flex:none}
 .xa-dir-v strong{font:800 20px Sora,sans-serif}
 .xa-empty{padding:16px}
+/* a search that found nothing, and why (lib/atlas/places.ts) */
+.xa-why{display:flex;flex-direction:column;gap:10px;color:var(--ink);font-size:15px;line-height:1.45}
+.xa-why p{margin:0}
+.xa-why-do{display:flex;align-items:center;flex-wrap:wrap;gap:8px 16px;font-size:14px}
+.xa .xa-why .xa-why-do .xa-btn{display:inline-block;flex:none;width:auto;padding:7px 14px;font-size:13px;border:1px solid var(--line);border-radius:999px;background:transparent}
 
 /* about */
 .xa-ab{display:flex;flex-direction:column;gap:12px}

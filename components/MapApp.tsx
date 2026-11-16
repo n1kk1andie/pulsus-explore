@@ -14,6 +14,8 @@ import { INSIGHT_MIN, insightsOf } from "../lib/atlas/explore";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 import { OPS_MIN_GROUP, OPS_SOURCES, opsGroup, scoreOf, type OpsGroup } from "../lib/atlas/operational";
 import { COUNTRY, InstitutionCard, PlaceOpsCard, groupWord, type OpsData } from "./Ops";
+import { STATE_NAME } from "../lib/atlas/place-names";
+import { ASK_URL, MEASURE_NAME, coversText, explainEmpty, findPlaceIn, findSector, fold, institutionCoverage, isosOf, layerCoverage, sayEmpty } from "../lib/atlas/places";
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
 type Measure = "ohi" | "oh";
@@ -48,9 +50,6 @@ const TILES: [string, number, number][] = [
   ["OK", 4, 6], ["LA", 5, 6], ["MS", 6, 6], ["AL", 7, 6], ["GA", 8, 6],
   ["HI", 0, 7], ["TX", 4, 7], ["FL", 9, 7], ["PR", 11, 7],
 ];
-const STATE_NAME: Record<string, string> = {
-  AK: "Alaska", AL: "Alabama", AR: "Arkansas", AZ: "Arizona", CA: "California", CO: "Colorado", CT: "Connecticut", DC: "District of Columbia", DE: "Delaware", FL: "Florida", GA: "Georgia", HI: "Hawaii", IA: "Iowa", ID: "Idaho", IL: "Illinois", IN: "Indiana", KS: "Kansas", KY: "Kentucky", LA: "Louisiana", MA: "Massachusetts", MD: "Maryland", ME: "Maine", MI: "Michigan", MN: "Minnesota", MO: "Missouri", MS: "Mississippi", MT: "Montana", NC: "North Carolina", ND: "North Dakota", NE: "Nebraska", NH: "New Hampshire", NJ: "New Jersey", NM: "New Mexico", NV: "Nevada", NY: "New York", OH: "Ohio", OK: "Oklahoma", OR: "Oregon", PA: "Pennsylvania", PR: "Puerto Rico", RI: "Rhode Island", SC: "South Carolina", SD: "South Dakota", TN: "Tennessee", TX: "Texas", UT: "Utah", VA: "Virginia", VT: "Vermont", WA: "Washington", WI: "Wisconsin", WV: "West Virginia", WY: "Wyoming", VI: "US Virgin Islands", GU: "Guam", AS: "American Samoa", MP: "Northern Mariana Islands", FM: "Micronesia", MH: "Marshall Islands", PW: "Palau",
-};
 const quarter = (p: string) => `Q${Math.ceil(Number(p.slice(5, 7)) / 3)} ${p.slice(0, 4)}`;
 const when = (l: { cadence?: string }, p: string) => (l.cadence === "yearly" ? `FY${p.slice(0, 4)}` : quarter(p));
 const n0 = (x: number) => x.toLocaleString("en-US");
@@ -323,7 +322,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   // Where Explore shows figures: a country on its own once a group there has at
   // least the layer's minimum; a layer across many countries is named by its
   // scope ("Europe").
-  const shownWhere = useMemo(() => {
+  const whereList = useMemo(() => {
     const out: string[] = [];
     for (const d of realDefs) {
       const l = real[d.id];
@@ -331,8 +330,9 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       // A layer across many countries is named by its scope ("Europe"), however finely it is broken up.
       const n = l.scope.split(" (")[0]; if (!out.includes(n)) out.push(n);
     }
-    return out.length > 1 ? `${out.slice(0, -1).join(", ")} and ${out[out.length - 1]}` : out[0] || "";
+    return out;
   }, [realDefs, real, cname]);
+  const shownWhere = whereList.length > 1 ? `${whereList.slice(0, -1).join(", ")} and ${whereList[whereList.length - 1]}` : whereList[0] || "";
   // A US state names its country ("Alaska, US"), so states and countries can't be mistaken in one list.
   const stateName = (code: string) => { const n = STATE_NAME[code] || code; return n.startsWith("US ") ? n : `${n}, US`; };
   const place = useCallback((l: AtlasLayer, region: string) => (region.startsWith("US-") ? stateName(region.slice(3)) : l.regionKind === "state" ? stateName(region) : l.regions[region]?.area || cname(region)), [cname]);
@@ -501,24 +501,52 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
 
   // ── search ───────────────────────────────────────────────────────────────
   const allGroups = useMemo(() => {
-    const out: { layerId: string; region: string | null; label: string; g: AtlasGroup }[] = [];
+    // `hay`: what a search matches, without case or accents; an area ("Benelux and Ireland") also answers to its countries' names.
+    const out: { layerId: string; region: string | null; label: string; g: AtlasGroup; hay: string }[] = [];
     for (const def of realDefs) {
       const l = layers[def.id];
-      out.push({ layerId: def.id, region: null, label: def.title, g: l.national });
-      for (const [r, g] of Object.entries(l.regions)) if (!g.hidden && !(l.regionKind === "country" && l.countries.length === 1)) out.push({ layerId: def.id, region: r, label: `${place(l, r)}: ${NOUN[def.sector]}`, g });
+      out.push({ layerId: def.id, region: null, label: def.title, g: l.national, hay: fold(`${def.title} ${def.sector}`) });
+      for (const [r, g] of Object.entries(l.regions)) if (!g.hidden && !(l.regionKind === "country" && l.countries.length === 1)) { const label = `${place(l, r)}: ${NOUN[def.sector]}`; out.push({ layerId: def.id, region: r, label, g, hay: fold(`${label} ${def.sector} ${(g.members || []).map(cname).join(" ")}`) }); }
     }
     return out;
-  }, [realDefs, layers, place]);
-  const instHits = useMemo(() => {
-    const t = q.trim().toLowerCase(); if (t.length < 2) return [];
-    const words = t.split(/\s+/);
-    return insts.filter((i) => words.every((w) => `${i.name} ${i.listedAs.join(" ")}`.toLowerCase().includes(w))).slice(0, 8);
-  }, [q, insts]);
+  }, [realDefs, layers, place, cname]);
+  /** Named institutions a search finds. In the Operational Health view a place's name
+   *  ("UK", "United States") finds that country's institutions. */
+  const instFind = useCallback((text: string, withPlace: boolean, hay: (i: (typeof insts)[number]) => string) => {
+    const f = withPlace ? findPlaceIn(text) : null;
+    const isos = f ? isosOf(f.place) : [];
+    const words = f && isos.length ? f.rest : fold(text).split(" ").filter(Boolean);
+    return insts.filter((i) => (!isos.length || isos.includes(i.country)) && words.every((w) => fold(hay(i)).includes(w)));
+  }, [insts]);
+  const instHits = useMemo(() => (q.trim().length < 2 ? [] : instFind(q, lens === "ops", (i) => `${i.name} ${i.listedAs.join(" ")}`).slice(0, 8)), [q, lens, instFind]);
+  /** In the Operational Health view, a country it reads, by name: its place card. */
+  const placeHit = useMemo(() => {
+    if (lens !== "ops" || q.trim().length < 2) return null;
+    const f = findPlaceIn(q); if (!f || f.place.kind !== "country" || f.rest.length) return null;
+    const iso = f.place.iso; return insts.some((i) => i.country === iso) ? iso : null;
+  }, [q, lens, insts]);
   const hits = useMemo(() => {
-    const t = q.trim().toLowerCase(); if (t.length < 2) return [];
-    const words = t.split(/\s+/);
-    return allGroups.filter((g) => words.every((w) => g.label.toLowerCase().includes(w) || (defs.find((d) => d.id === g.layerId)?.sector || "").includes(w))).slice(0, 8);
-  }, [q, allGroups, defs]);
+    if (q.trim().length < 2) return [];
+    const words = fold(q).split(" ").filter(Boolean);
+    return allGroups.filter((g) => words.every((w) => g.hay.includes(w))).slice(0, 8);
+  }, [q, allGroups]);
+  /** A search that found nothing: why, when it names a place Explore doesn't
+   *  cover, one coming next, or one with nothing in the sector (lib/atlas/places.ts). */
+  const whyEmpty = (text: string, chosen: Sector, setText: (s: string) => void, plain: React.ReactNode) => {
+    const named = findSector(text);
+    const ohiCov = layerCoverage(realDefs.map((d) => real[d.id])), opsCov = institutionCoverage(insts);
+    const o = explainEmpty(text, chosen !== "all" ? chosen : named, lens === "ohi" ? ohiCov : opsCov, NEXT, lens === "ohi" ? opsCov : ohiCov);
+    if (!o) return plain;
+    const covers = coversText({ ohi: whereList, ops: (["840", "826"] as const).filter((c) => insts.some((i) => i.country === c)).map((c) => (c === "840" ? "the United States" : "the United Kingdom")) });
+    const s = sayEmpty(o, covers, (x) => NOUN[x as Sector] || x, lens);
+    const toAll = () => { if (chosen !== "all") { setSector("all"); setSel(null); setStates(null); } if (named) setText(o.place.name.replace(/^the /, "")); };
+    return (
+      <div className="xa-why" role="status">
+        <p>{s.text}</p>
+        {(s.allSectors || s.ask || s.switchTo) && <p className="xa-why-do">{s.switchTo && <button type="button" className="xa-btn ghost" onClick={() => setLens(s.switchTo!)}>Switch to {MEASURE_NAME[s.switchTo]}</button>}{s.allSectors && <button type="button" className="xa-btn ghost" onClick={toAll}>Try all sectors</button>}{s.ask && <a href={ASK_URL}>Ask us to add it</a>}</p>}
+      </div>
+    );
+  };
 
   // ── what is shown ────────────────────────────────────────────────────────
   const cur = sel && sel.layerId ? groupOf(sel) : null;
@@ -770,22 +798,21 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     return { ...r, l, def, v: valueAt(r.g, measure, null), ch: yearChange(r.g, measure) };
   }), [allGroups, layers, defs, measure]);
   const shown = useMemo(() => {
-    const words = dirQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const words = fold(dirQ).split(" ").filter(Boolean);
     const out = rows.filter((r) => (sector === "all" || r.def.sector === sector)
       && (!dirKind || (dirKind === "state") === (r.region !== null && r.l.regionKind === "state"))
-      && words.every((w) => r.label.toLowerCase().includes(w) || r.def.sector.includes(w) || r.def.title.toLowerCase().includes(w)));
+      && words.every((w) => r.hay.includes(w) || fold(r.def.title).includes(w)));
     const by = { high: (a: typeof out[0], b: typeof out[0]) => (b.v ?? -1) - (a.v ?? -1), low: (a: typeof out[0], b: typeof out[0]) => (a.v ?? 999) - (b.v ?? 999), change: (a: typeof out[0], b: typeof out[0]) => Math.abs(b.ch ?? 0) - Math.abs(a.ch ?? 0), az: (a: typeof out[0], b: typeof out[0]) => a.label.localeCompare(b.label) }[dirSort];
     return out.sort(by);
   }, [rows, dirQ, sector, measure, dirSort, dirKind]);
   const instShown = useMemo(() => {
-    const words = dirQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const sec = opsSector(sector);
-    const out = insts.filter((i) => (sec === null || i.sector === sec) && (!dirKind || dirKind === "country")
-      && words.every((w) => `${i.name} ${i.listedAs.join(" ")} ${i.group || ""} ${COUNTRY[i.country]} ${i.sector}`.toLowerCase().includes(w)))
+    const out = instFind(dirQ, true, (i) => `${i.name} ${i.listedAs.join(" ")} ${i.group || ""} ${COUNTRY[i.country]} ${i.sector}`)
+      .filter((i) => (sec === null || i.sector === sec) && (!dirKind || dirKind === "country"))
       .map((i) => ({ i, s: scoreOf(i).score }));
     const az = (a: typeof out[0], b: typeof out[0]) => a.i.name.localeCompare(b.i.name);
     return out.sort(dirSort === "high" ? (a, b) => (b.s ?? -1) - (a.s ?? -1) || az(a, b) : dirSort === "low" ? (a, b) => (a.s ?? 999) - (b.s ?? 999) || az(a, b) : az);
-  }, [insts, dirQ, sector, dirKind, dirSort]);
+  }, [instFind, dirQ, sector, dirKind, dirSort]);
   const directory = (
     <div className="xa-dir">
       <div className="xa-dir-tools">
@@ -811,7 +838,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
               </button>
             </li>
           ))}
-          {!instShown.length && <li className="xa-muted xa-empty">No named institution matches. Operational Health covers banks, credit unions and insurers in the US and the UK.</li>}
+          {!instShown.length && <li className="xa-muted xa-empty">{whyEmpty(dirQ, sector, setDirQ, "No named institution matches. Operational Health covers banks, credit unions and insurers in the US and the UK.")}</li>}
         </ul>
       ) : (
       <ul className="xa-dir-list">
@@ -824,7 +851,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
             </button>
           </li>
         ))}
-        {!shown.length && <li className="xa-muted xa-empty">Nothing matches. Try another word, or all sectors.</li>}
+        {!shown.length && <li className="xa-muted xa-empty">{whyEmpty(dirQ, sector, setDirQ, "Nothing matches. Try another word, or all sectors.")}</li>}
       </ul>
       )}
     </div>
@@ -1090,9 +1117,10 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           </div>
           <div className="xa-results">
             {hits.map((h) => <button key={`${h.layerId}|${h.region}`} onClick={() => choose(h.layerId, h.region)}><b>{h.label}</b><small>{n0(h.g.n)} · {SHORT.ohi} {h.g.ohi ?? "—"}</small></button>)}
+            {placeHit && <button onClick={() => openOps(placeHit)}><b>{COUNTRY[placeHit]}: Operational Health</b><small>{n0(insts.filter((i) => i.country === placeHit).length)} named institutions</small></button>}
             {instHits.length > 0 && <p className="xa-label">Named institutions · Operational Health</p>}
             {instHits.map((i) => { const s = scoreOf(i).score; return <button key={i.key} onClick={() => openOps(i.country, i.key)}><b>{i.name}</b><small>{COUNTRY[i.country]} · {SHORT.oh} {s ?? "—"}</small></button>; })}
-            {q.trim().length >= 2 && !hits.length && !instHits.length && <p className="xa-muted">Nothing matches. Try a country, a US state, a bank or insurer&apos;s name, or banks, credit unions, insurers or agencies.</p>}
+            {q.trim().length >= 2 && !hits.length && !instHits.length && !placeHit && <div className="xa-muted">{whyEmpty(q, "all", setQ, <p>Nothing matches. Try a country, a US state, a bank or insurer&apos;s name, or banks, credit unions, insurers or agencies.</p>)}</div>}
             {q.trim().length < 2 && <p className="xa-muted">For example: “credit unions Texas”, “banks Germany”, “agencies”.</p>}
           </div>
         </div>
