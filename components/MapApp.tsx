@@ -128,6 +128,16 @@ const I_GOV = "M5 22V3M5 4h12l-2.5 4L17 12H5";
 const I_HOSP = "M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M3 21h18M12 7v6M9 10h6";
 const I_UNI = "M22 10 12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5";
 const SECTOR_ICON: Record<string, string> = { banks: "M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M12 3l9 5H3z", "credit-unions": I_CU, insurance: I_SHIELD, government: I_GOV, hospitals: I_HOSP, universities: I_UNI };
+const CONTINENTS = [
+  { id: "na", label: "North America", globe: "🌎" },
+  { id: "lac", label: "Latin America & Caribbean", globe: "🌎" },
+  { id: "eu", label: "Europe", globe: "🌍" },
+  { id: "af", label: "Africa", globe: "🌍" },
+  { id: "me", label: "Middle East", globe: "🌍" },
+  { id: "as", label: "Asia", globe: "🌏" },
+  { id: "oc", label: "Oceania", globe: "🌏" },
+];
+const CONTINENT_OF: Record<string, string> = { "840": "na", "124": "na", "484": "lac", "170": "lac", "076": "lac", "388": "lac", "826": "eu", "036": "oc", "554": "oc", "356": "as", "392": "as", "156": "as", "710": "af", "566": "af", "404": "af", "784": "me", "682": "me" };
 const FLAG: Record<string, string> = { "840": "🇺🇸", "826": "🇬🇧", "170": "🇨🇴", "076": "🇧🇷", Europe: "🇪🇺" };
 
 function Spark({ values, color, h = 56 }: { values: (number | null)[]; color: string; h?: number }) {
@@ -767,25 +777,24 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
     return ls.length ? { x, l: ls.length === 1 ? ls[0] : allSectors(ls), n: ls.length } : null;
   }).filter(Boolean) as { x: (typeof SECTORS)[number]; l: AtlasLayer; n: number }[];
-  // By region: every sector's layers in one place (the United States, Europe, Colombia), read as one.
-  const placeOf = (l: AtlasLayer) => (l.countries.length === 1 ? (l.countries[0] === "840" ? "the United States" : cname(l.countries[0])) : l.scope.split(" (")[0]);
-  const placeCards = (() => {
-    const by = new Map<string, AtlasLayer[]>();
-    for (const d of realDefs) { const l = real[d.id]; by.set(placeOf(l), [...(by.get(placeOf(l)) || []), l]); }
-    return [...by.entries()].map(([name, ls]) => ({ name, label: name.replace(/^the /, "").replace(/^./, (c) => c.toUpperCase()), flag: FLAG[ls[0].countries.length === 1 ? ls[0].countries[0] : name] || "🌐", l: ls.length === 1 ? ls[0] : allSectors(ls) }));
-  })();
   /** A group as a tile: its median, how many, and the change on a year ago (four quarters back). */
   const cellOf = (l: AtlasLayer): Cell => {
     const t = (l.national.trend || []).filter((p) => p.ohi !== null);
     const now = l.national.ohi ?? null, ago = t.length > 4 ? t[t.length - 5].ohi : null;
     return { v: now, n: l.national.n, change: now !== null && ago !== null ? now - ago : null };
   };
+  // Sector by region: every continent, so a reader sees what is covered and what is not yet.
+  const continentOf = (l: AtlasLayer) => (l.countries.length === 1 ? CONTINENT_OF[l.countries[0]] : /europe/i.test(l.scope) ? "eu" : CONTINENT_OF[l.countries[0]]) || "other";
   const matrix: MatrixData = {
-    rows: sectorCards.map(({ x, l }) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, total: cellOf(l) })),
-    cols: placeCards.map((p) => ({ id: p.name, label: p.label, flag: p.flag, total: cellOf(p.l) })),
-    cells: Object.fromEntries(sectorCards.map(({ x }) => [x.id, Object.fromEntries(placeCards.map((p) => {
-      const ls = realDefs.filter((d) => d.sector === x.id && placeOf(real[d.id]) === p.name).map((d) => real[d.id]);
-      return [p.name, ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null];
+    rows: CONTINENTS.map((ct) => {
+      const ls = realDefs.map((d) => real[d.id]).filter((l) => continentOf(l) === ct.id);
+      const sub = ls.length ? [...new Set(ls.map((l) => (l.countries.length === 1 ? (l.countries[0] === "840" ? "United States" : cname(l.countries[0])) : `${l.countries.length} countries`)))].join(", ") : "Not covered yet";
+      return { id: ct.id, label: ct.label, sub, globe: ct.globe, total: ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null };
+    }),
+    cols: sectorCards.map(({ x, l }) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, total: cellOf(l) })),
+    cells: Object.fromEntries(CONTINENTS.map((ct) => [ct.id, Object.fromEntries(sectorCards.map(({ x }) => {
+      const ls = realDefs.filter((d) => d.sector === x.id && continentOf(real[d.id]) === ct.id).map((d) => real[d.id]);
+      return [x.id, ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null];
     }))])),
     all: cellOf(allL),
   };
@@ -795,10 +804,10 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     ...SECTORS.filter((x) => x.status !== "live").map((x) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, n: 0, median: null, scores: [], next: true, where: x.where })),
   ];
   const beats = (allL.national.trend || []).filter((t) => t.ohi !== null).map((t) => ({ label: when(allL, t.period), v: t.ohi as number }));
-  const pickCell = (row: string, col: string) => {
-    const p = placeCards.find((x) => x.name === col);
-    openSectorCard(row as Sector);
-    if (p && p.l.countries.length === 1) setTimeout(() => flyToCountry(p.l.countries[0]), 60);
+  const pickCell = (sector: string, region: string) => {
+    const ls = realDefs.filter((d) => d.sector === sector && (!region || continentOf(real[d.id]) === region)).map((d) => real[d.id]);
+    openSectorCard(sector as Sector);
+    if (region && ls.length === 1 && ls[0].countries.length === 1) setTimeout(() => flyToCountry(ls[0].countries[0]), 60);
   };
   // The movers and areas to watch, for the sector chosen on the Overview ("all": every sector).
   const ovInsight = ovSector === "all" ? insight
@@ -849,7 +858,8 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       </section>
       <section className="xa-panel xa-ov-sec" aria-labelledby="xa-mx-h">
         <h2 id="xa-mx-h" className="xa-box-h">Sector by region</h2>
-        <p className="xa-sub">The median of each sector in each region, with how many organisations it describes and its change on a year ago. Tap a tile to see it on the map.</p>
+        <p className="xa-sub">The median of each sector in each part of the world, with how many organisations it describes and its change on a year ago. Where Explore has no public data yet, it says so. Tap a tile to see it on the map.</p>
+        <p className="xa-mx-swipe">Swipe the grid sideways for every sector →</p>
         <Matrix m={matrix} shade={shade} icon={(d) => <Ico d={d} size={16} />} onPick={pickCell} />
       </section>
       <h2 className="xa-h2">What&apos;s moving · {ovLabel}</h2>

@@ -131,42 +131,44 @@ export function Shapes({ rows, shade, icon, onPick }: { rows: ShapeRow[]; shade:
 
 export interface Cell { v: number | null; n: number; change: number | null }
 export interface MatrixData {
-  rows: { id: string; label: string; icon: string; total: Cell }[];
-  cols: { id: string; label: string; flag: string; total: Cell }[];
-  cells: Record<string, Record<string, Cell | null>>;   // row id → col id → cell (null: not covered)
+  /** Every continent, covered or not: an empty one says so rather than being left out. */
+  rows: { id: string; label: string; sub: string; globe: string; total: Cell | null }[];
+  cols: { id: string; label: string; icon: string; total: Cell }[];
+  cells: Record<string, Record<string, Cell | null>>;   // row id → col id → cell (null: no data)
   all: Cell;
 }
 
 const arrow = (c: number | null) => (c === null || c === 0 ? null : c > 0 ? <i className="xa-up">▲{c}</i> : <i className="xa-down">▼{-c}</i>);
 
-export function Matrix({ m, shade, icon, onPick }: { m: MatrixData; shade: Shade; icon: (d: string) => React.ReactNode; onPick: (row: string, col: string) => void }) {
+export function Matrix({ m, shade, icon, onPick }: { m: MatrixData; shade: Shade; icon: (d: string) => React.ReactNode; onPick: (sector: string, region: string) => void }) {
   const [ref, seen] = useSeen<HTMLDivElement>();
   const tile = (c: Cell | null, key: string, label: string, pick?: () => void, strong = false) => {
-    if (!c || c.v === null) return <span key={key} className="xa-mx-c is-none" aria-label={`${label}: not covered yet`}>·</span>;
+    if (!c || c.v === null) return <span key={key} role="cell" className="xa-mx-c is-none" aria-label={`${label}: no data available yet`}><small>No data</small></span>;
     const body = <><b>{c.v}</b>{arrow(c.change)}<small>{c.n.toLocaleString("en-US")}</small></>;
     const style = { "--c": shade(c.v) } as React.CSSProperties;
     const aria = `${label}: median ${c.v} of ${c.n.toLocaleString("en-US")}${c.change ? `, ${c.change > 0 ? "up" : "down"} ${Math.abs(c.change)} on a year ago` : ""}`;
     return pick
-      ? <button key={key} type="button" className={`xa-mx-c${strong ? " is-total" : ""}`} style={style} onClick={pick} aria-label={`${aria}. Open on the map`}>{body}</button>
-      : <span key={key} className={`xa-mx-c${strong ? " is-total" : ""}`} style={style} aria-label={aria}>{body}</span>;
+      ? <button key={key} type="button" role="cell" className={`xa-mx-c${strong ? " is-total" : ""}`} style={style} onClick={pick} aria-label={`${aria}. Open on the map`}>{body}</button>
+      : <span key={key} role="cell" className={`xa-mx-c${strong ? " is-total" : ""}`} style={style} aria-label={aria}>{body}</span>;
   };
   return (
-    <div ref={ref} className={`xa-mx${seen ? " is-on" : ""}`} style={{ "--cols": m.cols.length } as React.CSSProperties} role="table" aria-label="Median Organisational Health by sector and region">
+    <div ref={ref} className={`xa-mx${seen ? " is-on" : ""}`} style={{ "--cols": m.cols.length } as React.CSSProperties} role="table" aria-label="Median Organisational Health by region and sector">
       <div className="xa-mx-r is-head" role="row">
-        <span role="columnheader" />
-        {m.cols.map((c) => <span key={c.id} role="columnheader" className="xa-mx-h"><em aria-hidden="true">{c.flag}</em>{c.label}</span>)}
-        <span role="columnheader" className="xa-mx-h is-total">All regions</span>
+        <span role="columnheader" className="xa-mx-l" />
+        {m.cols.map((c) => <span key={c.id} role="columnheader" className="xa-mx-h">{icon(c.icon)}<span>{c.label}</span></span>)}
+        <span role="columnheader" className="xa-mx-h is-total"><span>All sectors</span></span>
       </div>
       {m.rows.map((r) => (
-        <div key={r.id} className="xa-mx-r" role="row">
-          <span role="rowheader" className="xa-mx-l">{icon(r.icon)}{r.label}</span>
-          {m.cols.map((c) => tile(m.cells[r.id]?.[c.id] ?? null, c.id, `${r.label}, ${c.label}`, () => onPick(r.id, c.id)))}
-          {tile(r.total, "t", `${r.label}, all regions`, () => onPick(r.id, ""), true)}
+        <div key={r.id} className={`xa-mx-r${r.total ? "" : " is-empty"}`} role="row">
+          <span role="rowheader" className="xa-mx-l"><em aria-hidden="true">{r.globe}</em><span><b>{r.label}</b><small>{r.sub}</small></span></span>
+          {r.total
+            ? <>{m.cols.map((c) => tile(m.cells[r.id]?.[c.id] ?? null, c.id, `${r.label}, ${c.label}`, () => onPick(c.id, r.id)))}{tile(r.total, "t", `${r.label}, all sectors`, undefined, true)}</>
+            : <span role="cell" className="xa-mx-none">No data available yet for any sector</span>}
         </div>
       ))}
       <div className="xa-mx-r is-foot" role="row">
-        <span role="rowheader" className="xa-mx-l">All sectors</span>
-        {m.cols.map((c) => tile(c.total, c.id, `All sectors, ${c.label}`, undefined, true))}
+        <span role="rowheader" className="xa-mx-l"><span><b>All regions</b></span></span>
+        {m.cols.map((c) => tile(c.total, c.id, `${c.label}, all regions`, () => onPick(c.id, ""), true))}
         {tile(m.all, "all", "All sectors, all regions", undefined, true)}
       </div>
     </div>
