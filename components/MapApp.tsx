@@ -11,6 +11,7 @@ import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
 import { countryGroup, regionKeyOf } from "../lib/atlas/layers";
 import { INSIGHT_MIN, insightsOf } from "../lib/atlas/explore";
+import { Heartbeat, Matrix, Shapes, beatSentence, type Cell, type MatrixData, type ShapeRow } from "./PulseOverview";
 import { ALL, ALL_DEF, allSectors, inView, valueAt, type Measure } from "../lib/atlas/allSectors";
 import { BAND_LABEL, RANK_MIN, SHOW_MIN, bandClass, bandOf, canRank, canShow, rankedFirst, sampleText } from "../lib/atlas/bands";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
@@ -127,34 +128,17 @@ const I_GOV = "M5 22V3M5 4h12l-2.5 4L17 12H5";
 const I_HOSP = "M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M3 21h18M12 7v6M9 10h6";
 const I_UNI = "M22 10 12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5";
 const SECTOR_ICON: Record<string, string> = { banks: "M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M12 3l9 5H3z", "credit-unions": I_CU, insurance: I_SHIELD, government: I_GOV, hospitals: I_HOSP, universities: I_UNI };
+const CONTINENTS = [
+  { id: "na", label: "North America", globe: "🌎" },
+  { id: "lac", label: "Latin America & Caribbean", globe: "🌎" },
+  { id: "eu", label: "Europe", globe: "🌍" },
+  { id: "af", label: "Africa", globe: "🌍" },
+  { id: "me", label: "Middle East", globe: "🌍" },
+  { id: "as", label: "Asia", globe: "🌏" },
+  { id: "oc", label: "Oceania", globe: "🌏" },
+];
+const CONTINENT_OF: Record<string, string> = { "840": "na", "124": "na", "484": "lac", "170": "lac", "076": "lac", "388": "lac", "826": "eu", "036": "oc", "554": "oc", "356": "as", "392": "as", "156": "as", "710": "af", "566": "af", "404": "af", "784": "me", "682": "me" };
 const FLAG: Record<string, string> = { "840": "🇺🇸", "826": "🇬🇧", "170": "🇨🇴", "076": "🇧🇷", Europe: "🇪🇺" };
-
-/** The overall median, quarter by quarter: a line with its first and latest values marked. */
-function Trend({ points }: { points: { label: string; v: number }[] }) {
-  if (points.length < 2) return <p className="xa-note">Not enough history yet.</p>;
-  const w = 320, h = 150, pad = { l: 28, r: 14, t: 22, b: 24 };
-  const vs = points.map((p) => p.v); const lo = Math.floor((Math.min(...vs) - 3) / 5) * 5, hi = Math.ceil((Math.max(...vs) + 3) / 5) * 5;
-  const x = (i: number) => pad.l + (i * (w - pad.l - pad.r)) / (points.length - 1);
-  const y = (v: number) => pad.t + ((hi - v) * (h - pad.t - pad.b)) / (hi - lo || 1);
-  const d = points.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(" ");
-  const last = points[points.length - 1], yearAgo = points.length > 4 ? points[points.length - 5] : null;
-  const ticks = [lo, Math.round((lo + hi) / 2), hi];
-  const every = Math.max(1, Math.ceil(points.length / 4));
-  const change = yearAgo ? last.v - yearAgo.v : null;
-  return (
-    <>
-      <svg className="xa-trend" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Overall median from ${points[0].v} in ${points[0].label} to ${last.v} in ${last.label}`}>
-        {ticks.map((t) => <g key={t}><line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} className="xa-trend-grid" /><text x={pad.l - 6} y={y(t) + 4} textAnchor="end" className="xa-trend-ax">{t}</text></g>)}
-        <path d={`${d} L${x(points.length - 1)},${h - pad.b} L${x(0)},${h - pad.b} Z`} className="xa-trend-area" />
-        <path d={d} className="xa-trend-line" />
-        {points.map((p, i) => ((points.length - 1 - i) % every === 0 ? <text key={p.label} x={x(i)} y={h - 6} textAnchor={i === points.length - 1 ? "end" : i === 0 ? "start" : "middle"} className="xa-trend-ax">{p.label}</text> : null))}
-        <circle cx={x(points.length - 1)} cy={y(last.v)} r="4" className="xa-trend-dot" />
-        <text x={x(points.length - 1)} y={y(last.v) - 9} textAnchor="end" className="xa-trend-val">{last.v}</text>
-      </svg>
-      {change !== null && <p className="xa-note">{change === 0 ? <>No change since {yearAgo!.label}</> : <><b className={change > 0 ? "xa-up" : "xa-down"}>{change > 0 ? `▲ +${change}` : `▼ ${change}`}</b> since {yearAgo!.label}</>}</p>}
-    </>
-  );
-}
 
 function Spark({ values, color, h = 56 }: { values: (number | null)[]; color: string; h?: number }) {
   const v = values.filter((x): x is number => x !== null);
@@ -793,16 +777,38 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
     return ls.length ? { x, l: ls.length === 1 ? ls[0] : allSectors(ls), n: ls.length } : null;
   }).filter(Boolean) as { x: (typeof SECTORS)[number]; l: AtlasLayer; n: number }[];
-  // By region: every sector's layers in one place (the United States, Europe, Colombia), read as one.
-  const placeCards = (() => {
-    const by = new Map<string, AtlasLayer[]>();
-    for (const d of realDefs) {
-      const l = real[d.id];
-      const name = l.countries.length === 1 ? (l.countries[0] === "840" ? "the United States" : cname(l.countries[0])) : l.scope.split(" (")[0];
-      by.set(name, [...(by.get(name) || []), l]);
-    }
-    return [...by.entries()].map(([name, ls]) => ({ name, flag: FLAG[ls.length && ls[0].countries.length === 1 ? ls[0].countries[0] : name] || "🌐", l: ls.length === 1 ? ls[0] : allSectors(ls) }));
-  })();
+  /** A group as a tile: its median, how many, and the change on a year ago (four quarters back). */
+  const cellOf = (l: AtlasLayer): Cell => {
+    const t = (l.national.trend || []).filter((p) => p.ohi !== null);
+    const now = l.national.ohi ?? null, ago = t.length > 4 ? t[t.length - 5].ohi : null;
+    return { v: now, n: l.national.n, change: now !== null && ago !== null ? now - ago : null };
+  };
+  // Sector by region: every continent, so a reader sees what is covered and what is not yet.
+  const continentOf = (l: AtlasLayer) => (l.countries.length === 1 ? CONTINENT_OF[l.countries[0]] : /europe/i.test(l.scope) ? "eu" : CONTINENT_OF[l.countries[0]]) || "other";
+  const matrix: MatrixData = {
+    rows: CONTINENTS.map((ct) => {
+      const ls = realDefs.map((d) => real[d.id]).filter((l) => continentOf(l) === ct.id);
+      const sub = ls.length ? [...new Set(ls.map((l) => (l.countries.length === 1 ? (l.countries[0] === "840" ? "United States" : cname(l.countries[0])) : `${l.countries.length} countries`)))].join(", ") : "Not covered yet";
+      return { id: ct.id, label: ct.label, sub, globe: ct.globe, total: ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null };
+    }),
+    cols: sectorCards.map(({ x, l }) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, total: cellOf(l) })),
+    cells: Object.fromEntries(CONTINENTS.map((ct) => [ct.id, Object.fromEntries(sectorCards.map(({ x }) => {
+      const ls = realDefs.filter((d) => d.sector === x.id && continentOf(real[d.id]) === ct.id).map((d) => real[d.id]);
+      return [x.id, ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null];
+    }))])),
+    all: cellOf(allL),
+  };
+  const shapeRows: ShapeRow[] = [
+    ...sectorCards.map(({ x, l }) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, n: l.national.n, median: l.national.ohi ?? null,
+      scores: realDefs.filter((d) => d.sector === x.id).flatMap((d) => real[d.id].peers?.all?.ohi || []) })),
+    ...SECTORS.filter((x) => x.status !== "live").map((x) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, n: 0, median: null, scores: [], next: true, where: x.where })),
+  ];
+  const beats = (allL.national.trend || []).filter((t) => t.ohi !== null).map((t) => ({ label: when(allL, t.period), v: t.ohi as number }));
+  const pickCell = (sector: string, region: string) => {
+    const ls = realDefs.filter((d) => d.sector === sector && (!region || continentOf(real[d.id]) === region)).map((d) => real[d.id]);
+    openSectorCard(sector as Sector);
+    if (region && ls.length === 1 && ls[0].countries.length === 1) setTimeout(() => flyToCountry(ls[0].countries[0]), 60);
+  };
   // The movers and areas to watch, for the sector chosen on the Overview ("all": every sector).
   const ovInsight = ovSector === "all" ? insight
     : insightsOf(realDefs.filter((d) => d.sector === ovSector).map((d) => real[d.id]), data.depth);
@@ -819,13 +825,20 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   };
   const overview = (
     <div className="xa-ov">
-      <section className="xa-panel xa-hero">
+      <section className="xa-panel xa-hero xa-hb">
         <p className="xa-label">The world of business at a glance · {when(allL, allL.asOf)}</p>
-        <div className="xa-hero-row">
-          <div><strong>{allL.national.ohi ?? "—"}</strong><small>Organisational Health</small></div>
-          <div className="xa-hero-ops"><strong>{(["840", "826"] as const).map((c, k) => { const g = opsGroup(insts, c, null); return <span key={c}>{k > 0 && <i> · </i>}<small>{c === "840" ? "US" : "UK"}</small> {g.hidden ? "—" : g.median}</span>; })}</strong><small>Operational Health</small></div>
+        <div className="xa-pulse-top">
+          <div className="xa-pulse-big">
+            <strong style={{ color: allL.national.ohi != null ? shade(allL.national.ohi) : undefined }}>{allL.national.ohi ?? "—"}</strong>
+            <span><b>Organisational Health</b><small>median of {n0(allL.national.n)} organisations, out of 100</small><em>{beatSentence(beats)}</em></span>
+          </div>
+          <div className="xa-pulse-ops" title={SAME_COUNTRY}>
+            <small>Operational Health</small>
+            <span>{(["840", "826"] as const).map((c) => { const g = opsGroup(insts, c, null); return <b key={c}><i>{FLAG[c]}</i>{g.hidden ? "—" : g.median}</b>; })}</span>
+            <small>each within its own country</small>
+          </div>
         </div>
-        <p className="xa-note xa-measure-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, against the same fixed levels; a place&apos;s score is the median of its institutions. Operational Health: calculated from complaints data regulators publish by firm; each country&apos;s figure is the {(["840", "826"] as const).map((c) => `${c === "840" ? "US" : "UK"} ${medianLabel(opsGroup(insts, c, null).n)}`).join(" and the ")}. {SAME_COUNTRY} Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a {BAND_LABEL.limited.toLowerCase()}, never ranked; {RANK_MIN} to 49, a {BAND_LABEL.moderate.toLowerCase()}; 50 or more, a {BAND_LABEL.broad.toLowerCase()}. The two measures are kept separate.</p>
+        <Heartbeat points={beats} shade={shade} />
         <ul className="xa-stats" aria-label="What Explore covers">
           <li title="Organisations scored for Organisational Health; none is named in the financial figures"><Ico d={I_ORGS} size={18} /><b>{n0(allL.national.n)}</b><small>organisations</small></li>
           <li title={shownWhere}><Ico d={I_GLOBE} size={18} /><b>{whereList.length}</b><small>{whereList.length === 1 ? "region" : "regions"}</small></li>
@@ -833,37 +846,22 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           <li title="Banks, credit unions and insurers named for Operational Health, in the United States and the United Kingdom"><Ico d={I_NAMED} size={18} /><b>{n0(insts.length)}</b><small>named · US &amp; UK</small></li>
         </ul>
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
+        <details className="xa-how"><summary>How these scores work</summary>
+          <p className="xa-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, against the same fixed levels; a place&apos;s score is the median of its institutions. Operational Health: calculated from complaints data regulators publish by firm; each country&apos;s figure is the {(["840", "826"] as const).map((c) => `${c === "840" ? "US" : "UK"} ${medianLabel(opsGroup(insts, c, null).n)}`).join(" and the ")}. {SAME_COUNTRY} Every average shows how many organisations it describes: under {SHOW_MIN}, no average; {SHOW_MIN} to {RANK_MIN - 1}, a {BAND_LABEL.limited.toLowerCase()}, never ranked; {RANK_MIN} to 49, a {BAND_LABEL.moderate.toLowerCase()}; 50 or more, a {BAND_LABEL.broad.toLowerCase()}. The two measures are kept separate.</p>
+        </details>
       </section>
       <Invite />
-      <div className="xa-boxes">
-        <section className="xa-panel xa-box" aria-labelledby="xa-box-sec">
-          <h2 id="xa-box-sec" className="xa-box-h">Sectors <small>median Organisational Health</small></h2>
-          <ul className="xa-bars">
-            {sectorCards.map(({ x, l }) => { const v = l.national.ohi; return (
-              <li key={x.id}><button type="button" onClick={() => openSectorCard(x.id)} aria-label={`${x.label}: ${v ?? "no score"}, ${n0(l.national.n)} ${NOUN[x.id]}. Open on the map`} title={`${n0(l.national.n)} ${NOUN[x.id]} · ${x.where}`}>
-                <Ico d={SECTOR_ICON[x.id] || I_ORGS} size={17} /><span className="xa-bar-l">{x.label}</span>
-                <span className="xa-bar"><i style={{ width: `${v ?? 0}%`, background: v == null ? "var(--few)" : shade(v) }} /></span><b>{v ?? "—"}</b>
-              </button></li>); })}
-            {SECTORS.filter((x) => x.status !== "live").map((x) => <li key={x.id} className="is-next"><span className="xa-row"><Ico d={SECTOR_ICON[x.id] || I_ORGS} size={17} /><span className="xa-bar-l">{x.label}</span><span className="xa-bar" /><small>Next</small></span></li>)}
-          </ul>
-          <p className="xa-note">Tap a sector to see it on the map.</p>
-        </section>
-        <section className="xa-panel xa-box" aria-labelledby="xa-box-where">
-          <h2 id="xa-box-where" className="xa-box-h">By region <small>median Organisational Health</small></h2>
-          <ul className="xa-bars">
-            {placeCards.map(({ name, flag, l }) => { const v = l.national.ohi; return (
-              <li key={name}><span className="xa-row" title={`${n0(l.national.n)} organisations`}>
-                <span className="xa-flag" aria-hidden="true">{flag}</span><span className="xa-bar-l">{name.replace(/^the /, "").replace(/^./, (c) => c.toUpperCase())}</span>
-                <span className="xa-bar"><i style={{ width: `${v ?? 0}%`, background: v == null ? "var(--few)" : shade(v) }} /></span><b>{v ?? "—"}</b>
-              </span></li>); })}
-          </ul>
-          <p className="xa-note">Each region&apos;s median across every sector it has.</p>
-        </section>
-        <section className="xa-panel xa-box" aria-labelledby="xa-box-trend">
-          <h2 id="xa-box-trend" className="xa-box-h">Trend <small>overall median, by quarter</small></h2>
-          <Trend points={(allL.national.trend || []).filter((t) => t.ohi !== null).map((t) => ({ label: when(allL, t.period), v: t.ohi as number }))} />
-        </section>
-      </div>
+      <section className="xa-panel xa-ov-sec" aria-labelledby="xa-shapes-h">
+        <h2 id="xa-shapes-h" className="xa-box-h">The shape of each sector</h2>
+        <p className="xa-sub">Every organisation in a sector, by its score. The taller the shape, the more organisations score there; the line is the median, the shaded band the middle half. Tap a sector to see it on the map.</p>
+        <Shapes rows={shapeRows} shade={shade} icon={(d) => <Ico d={d} size={17} />} onPick={(id) => openSectorCard(id as Sector)} />
+      </section>
+      <section className="xa-panel xa-ov-sec" aria-labelledby="xa-mx-h">
+        <h2 id="xa-mx-h" className="xa-box-h">Sector by region</h2>
+        <p className="xa-sub">The median of each sector in each part of the world, with how many organisations it describes and its change on a year ago. Where Explore has no public data yet, it says so. Tap a tile to see it on the map.</p>
+        <p className="xa-mx-swipe">Swipe the grid sideways for every sector →</p>
+        <Matrix m={matrix} shade={shade} icon={(d) => <Ico d={d} size={16} />} onPick={pickCell} />
+      </section>
       <h2 className="xa-h2">What&apos;s moving · {ovLabel}</h2>
       <p className="xa-sub xa-hint">Choose a sector for the lists below. Tap a place to see it on the map.</p>
       <div className="xa-chips xa-ov-chips" role="group" aria-label="Sector for the lists below">
