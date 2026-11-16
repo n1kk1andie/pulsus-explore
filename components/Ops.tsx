@@ -7,6 +7,7 @@
 
 import React from "react";
 import { INDICATORS, MIN_COMPLAINTS, OPS_MIN_GROUP, OPS_SOURCES, opsGroup, scoreOf, type IndicatorId, type OpsGroup, type OpsInstitution, type SourceId } from "../lib/atlas/operational";
+import { BAND_LABEL, SHOW_MIN, bandOf, canRank, sampleText } from "../lib/atlas/bands";
 
 export interface OpsData { institutions: OpsInstitution[]; built: string }
 
@@ -81,13 +82,16 @@ export function InstitutionCard({ i, all, onClose, onPlace }: { i: OpsInstitutio
           </>
         )}
         <p className="xa-src-line">Source: {src.publisher}, {src.dataset} · {i.period}. Published as {i.listedAs.map((n) => `“${n}”`).join(" and ")}. {i.match}.</p>
+        {/* How it compares: only with OPS_MIN_GROUP (20) or more scored peers. A limited sample (10–19) is not compared with. */}
         <p className="xa-ops-peer">{g.hidden
-          ? <>Fewer than {OPS_MIN_GROUP} {groupWord(i.country, i.sector)} have a score ({g.n}), so no group median or comparison is shown.</>
-          : <>Median of {g.n} scored {groupWord(i.country, i.sector)}: <b style={{ color: shade(g.median!) }}>{g.median}</b>. <button className="xa-linkbtn" onClick={onPlace}>See them all</button></>}</p>
+          ? <>{sampleText(g.n, `scored ${groupWord(i.country, i.sector)}`)}, so no group median or comparison is shown.</>
+          : !canRank(g.n)
+            ? <>{sampleText(g.n, `scored ${groupWord(i.country, i.sector)}`)}: not compared with this firm (comparisons need at least {OPS_MIN_GROUP}). <button className="xa-linkbtn" onClick={onPlace}>See them all</button></>
+            : <>Median of {g.n} scored {groupWord(i.country, i.sector)}: <b style={{ color: shade(g.median!) }}>{g.median}</b> · {BAND_LABEL[bandOf(g.n)]}. <button className="xa-linkbtn" onClick={onPlace}>See them all</button></>}</p>
         <HowOps />
       </div>
       <Caveat src={i.source} />
-      <p className="xa-note">Complaints received are not findings of wrongdoing. Pulsus assessments are independent and are not official regulatory ratings.</p>
+      <p className="xa-note">Complaints received are not findings of wrongdoing. Scores are calculated by Pulsus from published complaints data. They are not official regulatory ratings.</p>
     </div>
   );
 }
@@ -98,7 +102,7 @@ export function HowOps() {
     <details className="xa-how">
       <summary>How this score was calculated</summary>
       <p>The Pulsus Operational Health Score, out of 100, is calculated from complaints data that regulators publish by firm. Each indicator is read against a fixed range, the same for every institution, and the readings are averaged with these weights: {INDICATORS.map((d) => `${d.label.toLowerCase()} ${d.weight}`).join(", ")}. When an indicator is not published for an institution, its weight is shared among the others.</p>
-      <p>An institution is scored only with at least {MIN_COMPLAINTS} complaints in the period and at least two indicators. A group median, and any comparison with peers, needs at least {OPS_MIN_GROUP} scored institutions. The score is not placed into bands or categories, and it is kept separate from Organisational Health.</p>
+      <p>An institution is scored only with at least {MIN_COMPLAINTS} complaints in the period and at least two indicators. A group median needs at least {SHOW_MIN} scored institutions, and is labelled with how many it describes ({SHOW_MIN} to {OPS_MIN_GROUP - 1}: a limited sample); any comparison with peers needs at least {OPS_MIN_GROUP}. The score itself is not placed into bands or categories, and it is kept separate from Organisational Health.</p>
       <p><a href="/methodology">The full method, its ranges and its sources →</a></p>
     </details>
   );
@@ -116,11 +120,12 @@ export function PlaceOpsCard({ country, sector, all, sectorLabel, onClose, onIns
         <>
           <p className="xa-sub">Operational Health · {srcOf(src!).publisher}</p>
           <dl className="xa-measures">
-            <Score v={g.hidden ? null : g.median!} reason={`Fewer than ${OPS_MIN_GROUP} institutions here have a score (${g.n}), so no median is shown. Each institution's own score is below.`} />
+            <Score v={g.hidden ? null : g.median!} reason="No median: too few institutions here have a score. Each institution's own score is below." />
           </dl>
-          <p className="xa-muted small">{g.n} of {rows.length} named institutions have enough operational data for a score.{!g.hidden && " The score shown is their median."}</p>
+          <p className={`xa-sample is-${bandOf(g.n)}`}>{g.hidden && <b>{BAND_LABEL.insufficient} · </b>}{sampleText(g.n, "scored institutions", "scored institution")}</p>
+          <p className="xa-muted small">{g.n} of {rows.length} named institutions have enough operational data for a score.{!g.hidden && " The score shown is their median."}{!g.hidden && !canRank(g.n) && " A limited sample: not ranked or compared."}</p>
           {!g.hidden && g.ind && Object.keys(g.ind).length > 0 && (
-            <div className="xa-ind"><p className="xa-label">Indicators · median of {g.n}</p>
+            <div className="xa-ind"><p className="xa-label">Indicators · median of {g.n} · {BAND_LABEL[bandOf(g.n)]}</p>
               <dl>{INDICATORS.filter((d) => g.ind![d.id] !== undefined).map((d) => <div key={d.id}><dt>{indLabel(d.id, src!)}</dt><dd>{fmtInd(d.id, g.ind![d.id]!)}</dd></div>)}</dl>
             </div>
           )}

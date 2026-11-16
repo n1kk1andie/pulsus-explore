@@ -125,7 +125,7 @@
 .xa.is-wide.has-card .xa-time,.xa.is-wide:has(.xa-sheet) .xa-time{right:392px}
 .xa.is-wide .xa-key{left:16px;bottom:84px}
 .xa.is-wide .xa-top{padding:16px 16px 0}
-.xa.is-wide.has-card .xa-top{max-width:calc(100% - 400px)}
+/* (the toolbar keeps its width when a card opens: the card sits below it) */
 /* side buttons hug the right edge; they step left only when the right-hand card is open */
 .xa.is-wide .xa-fabs{right:16px}
 .xa.is-wide.has-card .xa-fabs,.xa.is-wide:has(.xa-sheet) .xa-fabs{right:392px}
@@ -399,3 +399,42 @@
 .xa:not(.is-wide) .xa-top{background:linear-gradient(color-mix(in srgb,var(--bg) 96%,transparent),color-mix(in srgb,var(--panel) 93%,transparent));
   -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);padding-bottom:6px;border-bottom:1px solid var(--line);box-shadow:0 8px 24px #0006}
 .xa.is-light:not(.is-wide) .xa-top{box-shadow:0 6px 18px #121a4218}
+
+/* how many organisations stand behind an average (lib/atlas/bands.ts) */
+.xa-sample{display:inline-block;margin:2px 0 8px;padding:2px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px;line-height:1.5;color:var(--mute)}
+.xa-sample b{font-weight:600;color:var(--ink)}
+.xa-sample.is-limited{border-style:dashed;color:var(--ink)}
+.xa-measures .xa-sample{margin:4px 0 2px}
+.xa-band.is-limited{color:var(--ink);font-weight:600}
+/* on the map: a limited sample is lighter and hatched; too few is the plain "too few" grey */
+.xa-c.is-limited,.xa-ut.is-limited>rect:first-of-type{fill-opacity:.55}
+.xa-hatch{fill:url(#xa-hatch);pointer-events:none}
+#xa-hatch line{stroke:var(--fade);stroke-width:1.3;opacity:.8}
+.xa .xa-tile.is-limited{background-image:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--fade) 60%,transparent) 4px 6px)!important}
+.xa-val.is-limited rect{stroke-dasharray:3 2}
+.xa-key b.xa-sw-limited,.xa-legend b.xa-sw-limited{background:repeating-linear-gradient(135deg,var(--watch) 0 1.6px,transparent 1.6px 3.4px);box-shadow:inset 0 0 0 1px var(--watch);opacity:.85}
+.xa:not(.is-light) .xa-ut.is-limited text{fill:var(--ink)}
+
+/* Wide screens: the controls are a toolbar above the map, never over it. The
+   map is drawn below it (MapApp: mapTop); the card and sheets start below it too. */
+.xa-tools{display:flex;flex-direction:column;gap:8px}
+.xa.is-wide .xa-top{background:var(--bg);border-bottom:1px solid var(--line);padding:12px 16px;gap:10px}
+.xa.is-wide .xa-tools{flex-direction:row;align-items:center;flex-wrap:wrap;gap:10px}
+.xa.is-wide .xa-tools .xa-search{flex:0 0 280px;max-width:280px;box-shadow:none;padding:8px 14px}
+.xa.is-wide .xa-tools .xa-chips{flex:1 1 380px;min-width:0;max-width:none}
+.xa.is-wide .xa-tools .xa-lens{flex:0 0 auto;box-shadow:none}
+.xa.is-wide .xa-brand .xa-invite{margin:0 auto;align-self:center;box-shadow:none}
+.xa.is-wide .xa-brand .xa-you{margin-left:0}
+.xa.is-wide .xa-card,.xa.is-wide .xa-sheet{top:calc(var(--maptop) + 12px)}
+.xa.is-wide .xa-map{height:auto;bottom:0}
+
+/* The colour key: full labels on a wide screen; on a phone, one compact row,
+   so the map's opening view (framed above it) keeps the covered places clear. */
+.xa-key .xa-k-long,.xa-key .xa-k-short{display:inline;background:none;border:0;padding:0;font-size:inherit}
+.xa-key .xa-k-short{display:none}
+.xa:not(.is-wide) .xa-key{flex-wrap:nowrap;max-width:calc(100% - 24px);gap:4px;overflow-x:auto;scrollbar-width:none}
+.xa:not(.is-wide) .xa-key::-webkit-scrollbar{display:none}
+.xa:not(.is-wide) .xa-key>span{font-size:11px;padding:2px 7px;white-space:nowrap;gap:4px}
+.xa:not(.is-wide) .xa-key .xa-k-long{display:none}
+.xa:not(.is-wide) .xa-key .xa-k-short{display:inline}
+.xa:not(.is-wide) .xa-key .xa-scale i{width:28px}

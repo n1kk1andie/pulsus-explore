@@ -117,12 +117,15 @@ test("every built score is the formula applied to the built indicators, and each
   }
 });
 
-test("group medians and peer comparisons need at least 20 scored institutions", () => {
+test("group medians need at least 10 scored institutions, peer comparisons at least 20 (lib/atlas/bands.ts)", () => {
   assert.equal(OPS_MIN_GROUP, 20);
   for (const [c, s] of [["840", "banks"], ["840", "credit-unions"], ["826", "banks"], ["826", "insurance"], ["840", null], ["826", null]]) {
     const g = opsGroup(ops.institutions, c, s);
-    if (g.n < 20) { assert.equal(g.hidden, true); assert.equal(g.median, undefined); } else assert.ok(Number.isFinite(g.median));
+    if (g.n < 10) { assert.equal(g.hidden, true); assert.equal(g.median, undefined); } else assert.ok(Number.isFinite(g.median));
   }
+  // US credit unions: 19 scored, so a limited sample, now with its median.
+  const cu = opsGroup(ops.institutions, "840", "credit-unions");
+  if (cu.n >= 10 && cu.n < 20) assert.equal(cu.hidden, false);
 });
 
 test("sources: each used one is free to reuse, with its licence and attribution; the others say why not", () => {
