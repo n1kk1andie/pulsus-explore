@@ -1,0 +1,15 @@
+complaint_id,date_received,company,product,timely,company_response,submitted_via
+22721769,2026-05-29T22:45:16.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with explanation,Web
+20921784,2026-04-02T06:02:42.000Z,BUSEY BANK,Mortgage,Yes,Closed with explanation,Referral
+20345498,2026-03-17T19:29:46.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with explanation,Web
+18438408,2026-01-03T03:44:13.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with monetary relief,Web
+18227801,2025-12-22T20:01:52.000Z,BUSEY BANK,Mortgage,Yes,Closed with explanation,Web
+17434629,2025-11-21T16:22:48.000Z,BUSEY BANK,Mortgage,Yes,Closed with explanation,Postal mail
+17346456,2025-11-19T15:40:01.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with explanation,Web
+16664544,2025-10-17T03:14:27.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with explanation,Web
+16374058,2025-10-05T21:49:46.000Z,BUSEY BANK,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+16312398,2025-10-02T15:14:08.000Z,BUSEY BANK,Mortgage,Yes,Closed with explanation,Web
+15477713,2025-08-23T17:44:48.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with explanation,Web
+14916315,2025-07-25T09:13:14.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with monetary relief,Referral
+14510700,2025-07-08T01:42:02.000Z,BUSEY BANK,Vehicle loan or lease,Yes,Closed with explanation,Web
+14441783,2025-07-03T19:17:53.000Z,BUSEY BANK,Checking or savings account,Yes,Closed with explanation,Web

@@ -2,7 +2,7 @@
   "name": "pulsus-explore",
   "version": "1.0.0",
   "private": true,
-  "description": "Pulsus Explore: a free window on the world's sectors, read from public data. Aggregated; no institution is named.",
+  "description": "Pulsus Explore: a free window on the world's sectors, read from public data. Financial figures are aggregated, naming no institution; Operational Health names institutions from regulators' openly licensed complaints data.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

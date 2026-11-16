@@ -12,10 +12,15 @@ import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
 import { countryGroup, regionKeyOf } from "../lib/atlas/layers";
 import { INSIGHT_MIN, insightsOf } from "../lib/atlas/explore";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
+import { OPS_MIN_GROUP, OPS_SOURCES, opsGroup, scoreOf, type OpsGroup } from "../lib/atlas/operational";
+import { COUNTRY, InstitutionCard, PlaceOpsCard, groupWord, type OpsData } from "./Ops";
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
 type Measure = "ohi" | "oh";
-type Sel = { layerId: string; region: string | null } | null;   // region null: the layer as a whole
+type Sel = { layerId: string; region: string | null } | null;   // region null: the layer as a whole; layerId "ops": a country in the Operational Health view
+/** Which measure the map shows: Organisational Health (financial condition, places) or Operational Health (named institutions). */
+type Lens = "ohi" | "ops";
+const OPS_SECTORS = ["banks", "credit-unions", "insurance"];
 
 const ABOUT = "https://about.pulsus.tech";
 const PLATFORM = (process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pulsus.tech").replace(/\/+$/, "");
@@ -66,11 +71,18 @@ function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null): numb
  *  institution's figures are ever shown. */
 /** Both Pulsus measures, side by side: Organisational Health from the regulatory
  *  indicators, and Operational Health, which public data cannot supply. */
-function Measures({ v }: { v: number | undefined }) {
+function Measures({ v, ops, onOps }: { v: number | undefined; ops?: { g: OpsGroup; word: string } | null; onOps?: () => void }) {
+  const og = ops?.g;
   return (
     <dl className="xa-measures">
       <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>Financial-condition assessment based on available regulatory indicators.</p></div>
-      <div><dt>Operational Health</dt><dd><b className="xa-dash">—</b></dd><p>Insufficient operational data to calculate.</p></div>
+      <div><dt>Operational Health</dt>
+        <dd>{og && !og.hidden ? <><b>{og.median}</b><span>/100</span></> : <b className="xa-dash">—</b>}</dd>
+        <p>{og && !og.hidden ? <>Median of {og.n} named {ops!.word} with published complaints data. Kept separate from Organisational Health.</>
+          : og && og.listed ? <>Calculated for {og.n} named {ops!.word}; fewer than {OPS_MIN_GROUP}, so no median is shown.</>
+          : <>Insufficient operational data to calculate.</>}
+          {og && og.listed > 0 && onOps && <> <button className="xa-linkbtn" onClick={onOps}>See the named institutions</button></>}</p>
+      </div>
     </dl>
   );
 }
@@ -240,7 +252,7 @@ function Delta({ n, bare = false }: { n: number; bare?: boolean }) {
 // ── the camera: what part of the map is in view ─────────────────────────────
 interface Cam { cx: number; cy: number; zoom: number }
 
-export default function MapApp({ data, world }: { data: ExploreData; world: World }) {
+export default function MapApp({ data, world, ops }: { data: ExploreData; world: World; ops: OpsData }) {
   const real = useMemo(() => Object.fromEntries(data.layers.map((l) => [l.layer, l])) as Record<string, AtlasLayer>, [data]);
   const realDefs = useMemo(() => LAYERS.filter((d) => real[d.id]), [real]);
   // "All sectors": every country's sectors read together (lib below), as one more layer.
@@ -269,6 +281,21 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // Health needs an organisation's own operational data, which only Pulsus Platform reads.
   const measure: Measure = "ohi";
   const [sel, setSel] = useState<Sel>(null);
+  // Operational Health: named institutions, from published complaints data (components/Ops.tsx).
+  const [lens, setLensRaw] = useState<Lens>("ohi");
+  const [inst, setInst] = useState<string | null>(null);
+  const insts = ops.institutions;
+  const instOf = (k: string | null) => (k ? insts.find((i) => i.key === k) || null : null);
+  const opsSector = (s: Sector) => (s === "all" ? null : OPS_SECTORS.includes(s) ? s : "none");
+  const opsAt = (iso: string, s: Sector) => { const sec = opsSector(s); if (sec === "none" || !insts.some((i) => i.country === iso && (!sec || i.sector === sec))) return null; return opsGroup(insts, iso, sec); };
+  /** A layer's Operational Health, where named institutions cover it (the US banks and credit unions, as a whole). */
+  const opsForLayer = (l: AtlasLayer, region: string | null): { g: OpsGroup; word: string } | null => {
+    if (l.layer === "us-banks" && region === null) return { g: opsGroup(insts, "840", "banks"), word: "US banks" };
+    if (l.layer === "us-credit-unions" && region === null) return { g: opsGroup(insts, "840", "credit-unions"), word: "US credit unions" };
+    if (l.layer === ALL && region === "840") return { g: opsGroup(insts, "840", null), word: "US banks and credit unions" };
+    return null;
+  };
+  const setLens = (k: Lens) => { setLensRaw(k); setSel(null); setInst(null); setPlaying(false); };
   /** The US grid of states for a sector, when it is read by state: the map opens on it. */
   const usGridFor = (sec: Sector): string | null => {
     if (sec === "all") return Object.keys(layers[ALL]?.regions || {}).some((k) => k.startsWith("US-")) ? ALL : null;
@@ -414,6 +441,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   // ── choosing ─────────────────────────────────────────────────────────────
   const tapCountry = (iso: string) => {
     if (moved.current > 8) return;
+    if (lens === "ops") { setInst(null); setSel({ layerId: "ops", region: iso }); setStates(null); setSheet(""); flyToCountry(iso); return; }
     const r = atCountry(iso);
     if (!r) { setSel({ layerId: "", region: iso }); flyToCountry(iso); setSheet(""); return; }
     // The US opens state by state, where every quarter visibly moves the tiles.
@@ -430,7 +458,13 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     const iso = region ?? l.countries[0];
     setTimeout(() => flyToCountry(iso), 30);
   };
-  const close = () => { setSel(null); if (!states) flyTo(home); };
+  const close = () => { setSel(null); setInst(null); if (!states) flyTo(home); };
+  /** Open the Operational Health view on a country (and, optionally, one of its named institutions). */
+  const openOps = (iso: string, key: string | null = null) => {
+    setLensRaw("ops"); setPlaying(false); setView("map"); setSheet(""); setStates(null); setQ("");
+    setSel({ layerId: "ops", region: iso }); setInst(key);
+    setTimeout(() => flyToCountry(iso), 30);
+  };
   const pinKey = (s: NonNullable<Sel>) => `${s.layerId}|${s.region ?? ""}`;
   const togglePin = (s: NonNullable<Sel>) => { const k = pinKey(s); setPins((p) => (p.includes(k) ? p.filter((x) => x !== k) : p.length >= MAX_PINS ? p : [...p, k])); };
   // Compare tells you what happened: a short note under the button, read out politely.
@@ -475,6 +509,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     }
     return out;
   }, [realDefs, layers, place]);
+  const instHits = useMemo(() => {
+    const t = q.trim().toLowerCase(); if (t.length < 2) return [];
+    const words = t.split(/\s+/);
+    return insts.filter((i) => words.every((w) => `${i.name} ${i.listedAs.join(" ")}`.toLowerCase().includes(w))).slice(0, 8);
+  }, [q, insts]);
   const hits = useMemo(() => {
     const t = q.trim().toLowerCase(); if (t.length < 2) return [];
     const words = t.split(/\s+/);
@@ -498,10 +537,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       const l = layers[layer]; const def = defs.find((d) => d.id === layer); if (!l || !def || (sector !== "all" && def.sector !== sector)) return;
       const iso = kind === "state" ? l.countries[0] : region; if (iso === "840" && usGridFor(sector)) return; if (!m.some((x) => x.iso === iso)) m.push({ iso, color });
     };
+    if (lens === "ops") return m;
     for (const x of insight.up.slice(0, 3)) add(x.layer, x.region, x.regionKind, COLOR.good);
     for (const x of insight.down.slice(0, 3)) add(x.layer, x.region, x.regionKind, COLOR.bad);
     return m;
-  }, [insight, layers, defs, sector]);
+  }, [insight, layers, defs, sector, lens]);
   // Every country's middle and width, measured once the map is drawn: where its number and marker sit.
   const [centres, setCentres] = useState<Record<string, [number, number, number]>>({});
   useEffect(() => {
@@ -510,7 +550,12 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     setCentres(c);
   }, [world]);
   // Each covered country's reading at the chosen period: shown on the map, so the slider visibly moves it.
-  const gridId = usGridFor(sector);   // the US is drawn as its states, on the world map
+  const gridId = lens === "ops" ? null : usGridFor(sector);   // the US is drawn as its states, on the world map (financial view only)
+  /** A country's colour and number in the Operational Health view: its median, with enough scored institutions. */
+  const opsFill = (iso: string) => { const g = opsAt(iso, sector); return !g ? (NEXT[iso] ? COLOR.next : COLOR.none) : g.hidden ? COLOR.few : shade(g.median!); };
+  const opsLabels = useMemo(() => Object.keys(COUNTRY).map((iso) => ({ iso, g: opsAt(iso, sector) })).filter((x) => x.g && !x.g.hidden && centres[x.iso]).map((x) => ({ iso: x.iso, v: x.g!.median! })),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [insts, sector, centres]);
   const labels = useMemo(() => {
     const out: { iso: string; v: number }[] = [];
     for (const c of world.countries) {
@@ -520,14 +565,15 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       const v = valueAt(r.g, measure, at);
       if (v !== undefined) out.push({ iso: c.id, v });
     }
-    return out;
-  }, [world, atCountry, centres, measure, at, gridId]);
+    return lens === "ops" ? opsLabels : out;
+  }, [world, atCountry, centres, measure, at, gridId, lens, opsLabels]);
   // A multi-country layer where no country has enough organisations on its own
   // (Europe's largest banks: 105 banks, none of the 25 countries with 20) is
   // read as one region: a single badge with the region's score, and its
   // countries lightly tinted with that colour. No country is given a score of its own.
   const regionBadges = useMemo(() => {
     const out: { layerId: string; name: string; x: number; y: number; v: number; isos: string[] }[] = [];
+    if (lens === "ops") return out;
     for (const def of realDefs) {
       if (sector !== "all" && def.sector !== sector) continue;
       const l = real[def.id];
@@ -540,19 +586,32 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       out.push({ layerId: def.id, name: l.scope.split(" (")[0].replace(/'s largest.*$/, ""), x: big.reduce((a, p) => a + p[0], 0) / big.length, y: big.reduce((a, p) => a + p[1], 0) / big.length, v, isos: l.countries });
     }
     return out;
-  }, [realDefs, real, sector, measure, at, centres]);
+  }, [realDefs, real, sector, measure, at, centres, lens]);
   const regionTint = useMemo(() => { const t: Record<string, string> = {}; for (const b of regionBadges) for (const i of b.isos) t[i] = `color-mix(in srgb, ${shade(b.v)} 45%, ${COLOR.few})`; return t; }, [regionBadges]);
   const unpinned = (k: string) => { const [layerId, region] = k.split("|"); return { layerId, region: region || null }; };
 
   // ── the card ─────────────────────────────────────────────────────────────
   const card = (() => {
+    const one = instOf(inst);
+    if (one) return <InstitutionCard i={one} all={insts} onClose={close} onPlace={() => { setInst(null); setSector(one.sector as Sector); setSel({ layerId: "ops", region: one.country }); }} />;
     if (!sel) return null;
+    if (sel.layerId === "ops") {
+      const iso = sel.region!; const sec = opsSector(sector);
+      if (!COUNTRY[iso] || sec === "none") return (
+        <div className="xa-card-in">
+          <div className="xa-card-h"><h2>{cname(iso)}</h2><button className="xa-x" onClick={close} aria-label="Close">×</button></div>
+          <p className="xa-muted">Operational Health: no complaints data from a free, openly licensed source covers {sec === "none" ? `${NOUN[sector]} here` : "institutions here"} yet. Explore shows it for named banks and credit unions in the United States and banks and insurers in the United Kingdom.</p>
+        </div>
+      );
+      return <PlaceOpsCard country={iso} sector={sec} all={insts} sectorLabel={sec ? NOUN[sector as Sector] : iso === "826" ? "banks and insurers" : "banks and credit unions"} onClose={close} onInst={(k) => setInst(k)} />;
+    }
     if (!sel.layerId) {
       const iso = sel.region!;
       return (
         <div className="xa-card-in">
           <div className="xa-card-h"><h2>{cname(iso)}</h2><button className="xa-x" onClick={close} aria-label="Close">×</button></div>
           <p className="xa-muted">{NEXT[iso] || ELSEWHERE}</p>
+          {insts.some((i) => i.country === iso) && <div className="xa-btns"><button className="xa-btn" onClick={() => openOps(iso)}>See Operational Health ›</button></div>}
         </div>
       );
     }
@@ -568,7 +627,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <div className="xa-stats">
               <div><small>{NOUN[def.sector]}</small><b>{n0(g.n)}</b></div>
             </div>
-            <Measures v={valueAt(g, "ohi", at)} />
+            <Measures v={valueAt(g, "ohi", at)} ops={opsForLayer(l, sel.region)} onOps={() => openOps("840")} />
             {(g.trend || []).length > 1 && (
               <>
                 <Spark values={(g.trend || []).map((t) => t[measure])} color={lineShade((g.trend || []).map((t) => t[measure]))} />
@@ -602,7 +661,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-cmp-note" role="status" aria-live="polite">
           {pinNote && <><span>{pinNote.text}</span>{pinNote.view && <button className="xa-linkbtn" onClick={viewComparison}>View comparison</button>}</>}
         </div>
-        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has. No institution is named.</> : <>{def.publisher}. No institution is named.</>}</p>
+        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has. No institution is named in the financial figures.</> : <>{def.publisher}. No institution is named in the financial figures.</>}</p>
       </div>
     );
   })();
@@ -618,6 +677,14 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     </div>
   );
 
+  /** Which measure the map shows. The two are never blended. */
+  const lensSeg = (
+    <div className="xa-seg xa-lens" role="group" aria-label="Measure">
+      {([["ohi", "Organisational Health"], ["ops", "Operational Health"]] as [Lens, string][]).map(([k, w]) => (
+        <button key={k} className={lens === k ? "on" : ""} aria-pressed={lens === k} onClick={() => { setLens(k); if (view === "map") flyTo(home); }}>{w}</button>
+      ))}
+    </div>
+  );
   const brand = (
     <div className="xa-brand">
       <a href="/"><img src={theme === "light" ? "/pulsus-explore-logo.png" : "/pulsus-explore-logo-night.png"} alt="Pulsus Explore" width={588} height={160} /></a>
@@ -662,11 +729,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <p className="xa-label">The world at a glance · {when(allL, allL.asOf)}</p>
         <div className="xa-hero-row">
           <div><strong>{allL.national.ohi ?? "—"}</strong><small>Organisational Health</small></div>
-          <div><strong className="xa-dash">—</strong><small>Operational Health</small></div>
+          <div className="xa-hero-ops"><strong>{(["840", "826"] as const).map((c, k) => { const g = opsGroup(insts, c, null); return <span key={c}>{k > 0 && <i> · </i>}<small>{c === "840" ? "US" : "UK"}</small> {g.hidden ? "—" : g.median}</span>; })}</strong><small>Operational Health</small></div>
         </div>
-        <p className="xa-note xa-measure-note">Organisational Health: financial-condition assessment based on available regulatory indicators. Operational Health: insufficient operational data to calculate.</p>
-        <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors. No institution is named.</p>
-        <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
+        <p className="xa-note xa-measure-note">Organisational Health: financial-condition assessment based on available regulatory indicators. Operational Health: from complaints data regulators publish by firm, the median of the named institutions scored in each country (at least {OPS_MIN_GROUP}). The two are kept separate.</p>
+        <p className="xa-muted">{n0(allL.national.n)} organisations across {shownWhere}, in {sectorCards.length} sectors; no institution is named in the financial figures. Operational Health covers {n0(insts.length)} named banks, credit unions and insurers in the United States and the United Kingdom.</p>
+        <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
       </section>
       <Invite />
       <h2 className="xa-h2">Sectors</h2>
@@ -710,6 +777,15 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
     const by = { high: (a: typeof out[0], b: typeof out[0]) => (b.v ?? -1) - (a.v ?? -1), low: (a: typeof out[0], b: typeof out[0]) => (a.v ?? 999) - (b.v ?? 999), change: (a: typeof out[0], b: typeof out[0]) => Math.abs(b.ch ?? 0) - Math.abs(a.ch ?? 0), az: (a: typeof out[0], b: typeof out[0]) => a.label.localeCompare(b.label) }[dirSort];
     return out.sort(by);
   }, [rows, dirQ, sector, measure, dirSort, dirKind]);
+  const instShown = useMemo(() => {
+    const words = dirQ.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const sec = opsSector(sector);
+    const out = insts.filter((i) => (sec === null || i.sector === sec) && (!dirKind || dirKind === "country")
+      && words.every((w) => `${i.name} ${i.listedAs.join(" ")} ${i.group || ""} ${COUNTRY[i.country]} ${i.sector}`.toLowerCase().includes(w)))
+      .map((i) => ({ i, s: scoreOf(i).score }));
+    const az = (a: typeof out[0], b: typeof out[0]) => a.i.name.localeCompare(b.i.name);
+    return out.sort(dirSort === "high" ? (a, b) => (b.s ?? -1) - (a.s ?? -1) || az(a, b) : dirSort === "low" ? (a, b) => (a.s ?? 999) - (b.s ?? 999) || az(a, b) : az);
+  }, [insts, dirQ, sector, dirKind, dirSort]);
   const directory = (
     <div className="xa-dir">
       <div className="xa-dir-tools">
@@ -719,8 +795,25 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <div className="xa-dir-row">
           <label className="xa-sort"><span>Sort</span><select value={dirSort} onChange={(e) => setDirSort(e.target.value as typeof dirSort)}><option value="high">Highest first</option><option value="low">Lowest first</option><option value="change">Biggest change</option><option value="az">A to Z</option></select></label>
         </div>
-        <p className="xa-sub">{shown.length} {shown.length === 1 ? "place" : "places"} · {WORD[measure]} · places and sectors only; no institution is named</p>
+        {lensSeg}
+        {lens === "ohi"
+          ? <p className="xa-sub">{shown.length} {shown.length === 1 ? "place" : "places"} · {WORD[measure]} · places and sectors only; no institution is named</p>
+          : <p className="xa-sub">{instShown.length} named {instShown.length === 1 ? "institution" : "institutions"} · Operational Health, from published complaints data · <a href="/methodology">how it is calculated</a></p>}
       </div>
+      {lens === "ops" ? (
+        <ul className="xa-dir-list">
+          {instShown.map(({ i, s }) => (
+            <li key={i.key}>
+              <button onClick={() => openOps(i.country, i.key)}>
+                <span className="xa-dir-dot" style={{ background: s !== null ? shade(s) : COLOR.few }} />
+                <span className="xa-dir-name"><b>{i.name}</b><small>{COUNTRY[i.country]} · {NOUN[i.sector as Sector].replace(/s$/, "")} · {n0(i.complaints)} complaints received</small></span>
+                <span className="xa-dir-v"><strong className={s === null ? "xa-dash" : undefined}>{s ?? "—"}</strong></span>
+              </button>
+            </li>
+          ))}
+          {!instShown.length && <li className="xa-muted xa-empty">No named institution matches. Operational Health covers banks, credit unions and insurers in the US and the UK.</li>}
+        </ul>
+      ) : (
       <ul className="xa-dir-list">
         {shown.map((r) => (
           <li key={`${r.layerId}|${r.region}`}>
@@ -733,6 +826,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         ))}
         {!shown.length && <li className="xa-muted xa-empty">Nothing matches. Try another word, or all sectors.</li>}
       </ul>
+      )}
     </div>
   );
 
@@ -770,6 +864,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           <h3>About Explore</h3>
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers, hospitals and government agencies today, with universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is the Pulsus assessment of financial condition, out of 100. For banks, credit unions and insurers it is built from the financial indicators their regulators publish: capital, profitability, loan quality and costs. For government agencies, from published budget and reporting measures. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
+          <p><b>Operational Health</b> is a separate Pulsus score, out of 100, for named banks, credit unions and insurers. It is calculated by a published formula from complaints data their regulators publish by firm (the US Consumer Financial Protection Bureau and the UK Financial Conduct Authority): how many complaints are received relative to size, how quickly they are handled, and how many are upheld. Complaints received are not findings of wrongdoing. The two scores are never blended. <a href="/methodology">How Operational Health is calculated →</a></p>
           <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few to show</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
           <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
           <p><a href="/technology">How Pulsus Explore works →</a></p>
@@ -781,11 +876,15 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
             <li><b>Consistent and reproducible.</b> Identical inputs and calculation settings produce identical results.</li>
             <li><b>Traceable.</b> Every score can be traced to its underlying indicators.</li>
           </ul>
-          <p className="xa-muted">Pulsus assessments are independent and are not official regulatory ratings. No institution is named.</p>
+          <p className="xa-muted">Pulsus assessments are independent and are not official regulatory ratings. No institution is named in the financial figures; Operational Health names institutions only from complaints data their regulators publish by name under an open licence.</p>
         </div>
         <div className="xa-sub-sec">
           <h3>Sources</h3>
+          <p className="xa-label">Organisational Health</p>
           <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
+          <p className="xa-label">Operational Health</p>
+          <ul className="xa-src">{OPS_SOURCES.filter((s) => s.used).map((s) => <li key={s.id}><b>{s.dataset}</b><small>{s.publisher} · {s.period}</small><small>Licence: <a href={s.licenceUrl}>{s.licence}</a></small><small>{s.attribution}</small></li>)}</ul>
+          <p className="xa-muted small">Checked and not used, because they are not free to reuse: {OPS_SOURCES.filter((s) => !s.used).map((s) => s.publisher).join("; ")}. <a href="/methodology#sources">Why, and the full method →</a></p>
         </div>
       </section>
       <section className="xa-panel">
@@ -802,7 +901,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
   );
 
   return (
-    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel ? " has-card" : ""} on-${view}`}>
+    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel || inst ? " has-card" : ""} on-${view}`}>
     <div className="xa-stage" ref={box}>
       {/* the map */}
       <svg className="xa-map" viewBox={vb} role="img" aria-label={`World map: ${WORD[measure]} of ${NOUN[sector]} by country. Use search to choose a place.`}
@@ -810,7 +909,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <rect x={-2000} y={-2000} width={5000} height={5000} fill="transparent" onClick={() => { if (moved.current <= 8 && sel) close(); }} />
         {world.countries.map((c) => {
           const r = atCountry(c.id);
-          const col = gridId && c.id === "840" ? COLOR.none : r && r.g.hidden && regionTint[c.id] ? regionTint[c.id] : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
+          const col = lens === "ops" ? opsFill(c.id) : gridId && c.id === "840" ? COLOR.none : r && r.g.hidden && regionTint[c.id] ? regionTint[c.id] : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)) || (cur?.g.members?.includes(c.id) ?? false));
           return <path key={c.id + c.name} ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}`} onClick={() => tapCountry(c.id)}><title>{c.name}</title></path>;
         })}
@@ -910,8 +1009,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       {/* the top: brand, search, sectors */}
       <header className="xa-top" ref={topRef}>
         {brand}
-        <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places and sectors"><Ico d={I_SEARCH} size={18} /> <span>Search places and sectors</span></button>
+        <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places, sectors and institutions"><Ico d={I_SEARCH} size={18} /> <span>{lens === "ops" ? "Search places and institutions" : "Search places and sectors"}</span></button>
         {chips}
+        {lensSeg}
         {!sel && !sheet && !states && <Invite />}
       </header>
 
@@ -922,15 +1022,16 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
         <button onClick={toggleTheme} aria-label={theme === "dark" ? "Switch to day" : "Switch to night"} title={theme === "dark" ? "Day" : "Night"}><Ico d={theme === "dark" ? I_SUN : I_MOON} /></button>
       </div>
 
-      {at && !sel && !(sheet && !wide) && (
+      {lens === "ohi" && at && !sel && !(sheet && !wide) && (
         <p className="xa-period" aria-live="polite"><b>{when(inSector[0]?.l || {}, at)}</b><span>{WORD[measure]} then · the numbers and colours show that quarter</span></p>
       )}
-      {!at && !sel && !sheet && !pins.length && (
-        <p className="xa-key" aria-hidden="true"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
+      {!at && !sel && !inst && !sheet && !pins.length && (lens === "ohi"
+        ? <p className="xa-key" aria-hidden="true"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
+        : <p className="xa-key" aria-hidden="true"><span className="xa-scale"><i />Operational Health, 0 to 100 · median of named institutions</span><span><b style={{ background: COLOR.few }} />Fewer than {OPS_MIN_GROUP} scored</span></p>
       )}
 
       {/* the time slider */}
-      {periods.length > 1 && !(sel && !wide) && !(sheet && !wide) && (
+      {lens === "ohi" && periods.length > 1 && !(sel && !wide) && !(sheet && !wide) && (
         <div className="xa-time">
           <button className="xa-play" onClick={() => { if (!playing && at === null) setPi(0); setPlaying(!playing); }} aria-label={playing ? "Pause" : "Play the years"}>{playing ? "❚❚" : "▶"}</button>
           <input type="range" min={0} max={periods.length - 1} value={pi === null ? periods.length - 1 : pi} onChange={(e) => { setPlaying(false); const i = Number(e.target.value); setPi(i >= periods.length - 1 ? null : i); }} aria-label="Period" />
@@ -939,7 +1040,7 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
       )}
 
       {/* the card: a bottom sheet on a phone, a side panel on a wide screen */}
-      {card && <aside className="xa-card" aria-live="polite">{card}</aside>}
+      {card && <aside className="xa-card" aria-live="polite" key={inst || (sel ? `${sel.layerId}|${sel.region}` : "")}>{card}</aside>}
 
       {/* compare */}
       {pins.length > 0 && !sheet && !(sel && !wide) && (
@@ -989,7 +1090,9 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
           </div>
           <div className="xa-results">
             {hits.map((h) => <button key={`${h.layerId}|${h.region}`} onClick={() => choose(h.layerId, h.region)}><b>{h.label}</b><small>{n0(h.g.n)} · {SHORT.ohi} {h.g.ohi ?? "—"}</small></button>)}
-            {q.trim().length >= 2 && !hits.length && <p className="xa-muted">Nothing matches. Try a country, a US state, or banks, credit unions, insurers or agencies.</p>}
+            {instHits.length > 0 && <p className="xa-label">Named institutions · Operational Health</p>}
+            {instHits.map((i) => { const s = scoreOf(i).score; return <button key={i.key} onClick={() => openOps(i.country, i.key)}><b>{i.name}</b><small>{COUNTRY[i.country]} · {SHORT.oh} {s ?? "—"}</small></button>; })}
+            {q.trim().length >= 2 && !hits.length && !instHits.length && <p className="xa-muted">Nothing matches. Try a country, a US state, a bank or insurer&apos;s name, or banks, credit unions, insurers or agencies.</p>}
             {q.trim().length < 2 && <p className="xa-muted">For example: “credit unions Texas”, “banks Germany”, “agencies”.</p>}
           </div>
         </div>
@@ -1023,9 +1126,11 @@ export default function MapApp({ data, world }: { data: ExploreData; world: Worl
                 <li><b>Consistent and reproducible.</b> Identical inputs and calculation settings produce identical results.</li>
                 <li><b>Traceable.</b> Every score can be traced to its underlying indicators.</li>
               </ul>
-              <p>Pulsus assessments are independent and are not official regulatory ratings. No institution is named.</p>
+              <p>Pulsus assessments are independent and are not official regulatory ratings. No institution is named in the financial figures.</p>
               <p className="xa-label">Sources</p>
-              <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}</ul>
+              <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}
+                {OPS_SOURCES.filter((s) => s.used).map((s) => <li key={s.id}><b>Operational Health</b> · {s.publisher}, {s.dataset} · {s.licence}</li>)}</ul>
+              <p><a href="/methodology">How Operational Health is calculated</a></p>
               <p><a href="/privacy">Privacy</a> · © 2026 Tumblehill Holdings LLC</p>
             </div>
           )}

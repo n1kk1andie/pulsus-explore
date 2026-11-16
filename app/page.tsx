@@ -1,5 +1,5 @@
 import MapApp, { type World } from "../components/MapApp";
-import { exploreData } from "../lib/atlas/serve";
+import { exploreData, opsData } from "../lib/atlas/serve";
 import world from "../lib/atlas/world.json";
 import "./map.css";
 
@@ -9,5 +9,5 @@ import "./map.css";
 export const dynamic = "force-static";
 
 export default function Home() {
-  return <MapApp data={exploreData()} world={world as World} />;
+  return <MapApp data={exploreData()} world={world as World} ops={opsData()} />;
 }

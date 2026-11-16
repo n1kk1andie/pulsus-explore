@@ -1,3 +1,6 @@
+// Operational Health (named institutions, from regulators' openly licensed
+// complaints data) is defined separately, in lib/atlas/operational.ts.
+//
 // The Atlas: whole sectors read anonymously from public data, through the same
 // engine an organisation's own readings go through, with the organisation
 // placed among its peers. This file lists what is live and what is next.
@@ -49,7 +52,7 @@ export const NEXT: Record<string, string> = {
   "036": "Next: banks and credit unions, from the prudential regulator's institution-level statistics.",
   "076": "Next: banks, from the central bank's institution-level data (its service is unavailable at the moment).",
   "356": "Next: banks, from the central bank's bank-wise statistics.",
-  "826": "Next: the largest banks and insurers, from published regulatory disclosures; universities.",
+  "826": "Operational Health is live for named UK banks, building societies and insurers, from the FCA's firm-level complaints data. Next: their financial condition, from published regulatory disclosures; universities.",
   "484": "Next: banks, from the banking supervisor's published institution data.",
   "152": "Next: banks, from the financial market commission's institution data.",
   "604": "Next: banks, from the banking supervisor's institution data.",
