@@ -427,3 +427,14 @@
 .xa.is-wide .xa-brand .xa-you{margin-left:0}
 .xa.is-wide .xa-card,.xa.is-wide .xa-sheet{top:calc(var(--maptop) + 12px)}
 .xa.is-wide .xa-map{height:auto;bottom:0}
+
+/* The colour key: full labels on a wide screen; on a phone, one compact row,
+   so the map's opening view (framed above it) keeps the covered places clear. */
+.xa-key .xa-k-long,.xa-key .xa-k-short{display:inline;background:none;border:0;padding:0;font-size:inherit}
+.xa-key .xa-k-short{display:none}
+.xa:not(.is-wide) .xa-key{flex-wrap:nowrap;max-width:calc(100% - 24px);gap:4px;overflow-x:auto;scrollbar-width:none}
+.xa:not(.is-wide) .xa-key::-webkit-scrollbar{display:none}
+.xa:not(.is-wide) .xa-key>span{font-size:11px;padding:2px 7px;white-space:nowrap;gap:4px}
+.xa:not(.is-wide) .xa-key .xa-k-long{display:none}
+.xa:not(.is-wide) .xa-key .xa-k-short{display:inline}
+.xa:not(.is-wide) .xa-key .xa-scale i{width:28px}

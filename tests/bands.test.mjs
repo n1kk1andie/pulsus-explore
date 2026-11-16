@@ -54,7 +54,7 @@ test("the map draws 10–19 as a limited sample and 1–9 as too few", () => {
   assert.match(css, /\.xa-sw-limited/);
   const app = readFileSync(new URL("components/MapApp.tsx", root), "utf8");
   assert.match(app, /<pattern id="xa-hatch"/);
-  assert.match(app, /className="xa-sw-limited" \/>Limited sample/);   // the map's key
+  assert.match(app, /className="xa-key"[^\n]*className="xa-sw-limited" \/><span className="xa-k-long">Limited sample<\/span><span className="xa-k-short">Limited<\/span>/);   // the map's key
 });
 
 test("rankings exclude groups below 20: they follow, A to Z, unranked", () => {

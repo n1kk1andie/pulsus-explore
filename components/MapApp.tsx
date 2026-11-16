@@ -349,6 +349,21 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     const ro = new ResizeObserver(read); ro.observe(el); read();
     return () => ro.disconnect();
   }, []);
+  // The colour key's top, measured like the header (kept while it is hidden): a phone's map is framed above it.
+  const keyRef = useRef<HTMLParagraphElement | null>(null);
+  const [keyTop, setKeyTop] = useState(0);
+  const keyObs = useRef<ResizeObserver | null>(null);
+  const setKeyEl = useCallback((el: HTMLParagraphElement | null) => {
+    keyObs.current?.disconnect(); keyRef.current = el; if (!el) return;
+    const read = () => { const t = Math.round(el.getBoundingClientRect().top - (box.current?.getBoundingClientRect().top ?? 0)); if (t > 0) setKeyTop(t); };
+    keyObs.current = new ResizeObserver(read); keyObs.current.observe(el); read();
+  }, []);
+  /** The bounding box of some countries' outlines, in map units. */
+  const boxOf = useCallback((ids: string[]) => {
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of world.countries) if (ids.includes(c.id)) for (const m of c.d.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)) { x0 = Math.min(x0, +m[1]); x1 = Math.max(x1, +m[1]); y0 = Math.min(y0, +m[2]); y1 = Math.max(y1, +m[2]); }
+    return Number.isFinite(x0) ? { x0, y0, x1, y1 } : null;
+  }, [world]);
   // Every place Explore covers, in map units: on a wide screen the map opens framed on all of them.
   const coveredBox = useMemo(() => {
     const ids = new Set([...realDefs.flatMap((d) => real[d.id].countries), ...insts.map((i) => i.country)]);
@@ -365,14 +380,20 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       return { cx: (b.x0 + b.x1) / 2 - (L + freeW / 2 - size.w / 2) * uu, cy: (b.y0 + b.y1) / 2 - (T + freeH / 2 - mh / 2) * uu, zoom };
     }
     if (!topH) return { cx: 246, cy: 212, zoom: 1.15 };
-    // the tile grid, in map units (see the US grid below): 12 columns by 8 rows of 14, from (160, 88)
-    const gx = 160, gy = 88, gw = 12 * 14, gh = 8 * 14;
-    const top = topH + 10, bottom = mh - 112, freeH = Math.max(80, bottom - top), freeW = size.w - 24;
-    const zoom = Math.min(1.15, Math.max(0.6, Math.min(freeW / (gw / base), freeH / (gh / base))));
-    const uu = base / zoom;
-    // the grid's top sits just under the header; any room left over goes below it
-    return { cx: gx + gw / 2, cy: gy + (mh / 2 - top) * uu, zoom };
-  }, [portrait, topH, size.w, mh, base, coveredBox]);
+    // A phone opens on the covered Americas, clear of the header above and the colour key below:
+    // the US grid of states (12 by 8 tiles of 14 map units, from (160, 88)) and Colombia; with
+    // Operational Health, the US and the UK.
+    const grid = { x0: 160, y0: 88, x1: 160 + 12 * 14, y1: 88 + 8 * 14 };
+    const join = (a: typeof grid, b: typeof grid | null) => (b ? { x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) } : a);
+    const opsIds = [...new Set(insts.map((i) => i.country))];
+    const t = lens === "ops" ? (boxOf(opsIds) ?? grid) : join(grid, real["co-banks"] || real["co-insurers"] ? boxOf(["170"]) : null);
+    // ...and clear of the round buttons on the right edge.
+    const L = 12, R = 64, top = topH + 10, bottom = (keyTop > topH ? keyTop : mh - 112) - 10, freeH = Math.max(80, bottom - top), freeW = Math.max(100, size.w - L - R);
+    const pad = 3, bw = t.x1 - t.x0 + 2 * pad, bh = t.y1 - t.y0 + 2 * pad;
+    const uu = Math.max(bw / freeW, bh / freeH), zoom = Math.min(1.6, base / uu);
+    const u2 = base / zoom;
+    return { cx: (t.x0 + t.x1) / 2 - (L + freeW / 2 - size.w / 2) * u2, cy: (t.y0 + t.y1) / 2 - ((top + bottom) / 2 - mh / 2) * u2, zoom };
+  }, [portrait, topH, keyTop, size.w, mh, base, coveredBox, lens, insts, boxOf, real]);
   const [cam, setCam] = useState<Cam>(home);
   // re-frame only when the framing itself changes (on a wide screen it never does)
   useEffect(() => { setCam(home); }, [home.cx, home.cy, home.zoom]);
@@ -389,6 +410,13 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     };
     anim.current = requestAnimationFrame(step);
   }, [cam]);
+  // Switching the measure flies to that measure's opening view (a phone frames the US and the UK for Operational Health).
+  const lensSeen = useRef(lens);
+  useEffect(() => {
+    if (lensSeen.current === lens) return; lensSeen.current = lens;
+    if (view === "map") flyTo(home);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lens, home.cx, home.cy, home.zoom]);
   const paths = useRef(new Map<string, SVGPathElement>());
   /** Fly so a country fills the part of the screen the card leaves free. */
   const flyToCountry = useCallback((iso: string) => {
@@ -701,7 +729,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   const lensSeg = (
     <div className="xa-seg xa-lens" role="group" aria-label="Measure">
       {([["ohi", "Organisational Health"], ["ops", "Operational Health"]] as [Lens, string][]).map(([k, w]) => (
-        <button key={k} className={lens === k ? "on" : ""} aria-pressed={lens === k} onClick={() => { setLens(k); if (view === "map") flyTo(home); }}>{w}</button>
+        <button key={k} className={lens === k ? "on" : ""} aria-pressed={lens === k} onClick={() => setLens(k)}>{w}</button>
       ))}
     </div>
   );
@@ -938,8 +966,9 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
             </React.Fragment>
           );
         })}
-        {gridId && (() => {
+        {gridId && wide && (() => {
           // Alaska and Hawaii on the world map take their state's colour too (the tiles cover only the lower 48's place).
+          // On a phone the AK and HI tiles carry them: Alaska's land would sit under the header.
           const us = world.countries.find((c) => c.id === "840"); if (!us) return null;
           const gl = layers[gridId]; const parts = usOuterStates(us.d);
           return (["AK", "HI"] as const).map((code) => {
@@ -1056,8 +1085,8 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <p className="xa-period" aria-live="polite"><b>{when(inSector[0]?.l || {}, at)}</b><span>{WORD[measure]} then · the numbers and colours show that quarter</span></p>
       )}
       {!at && !sel && !inst && !sheet && !pins.length && (lens === "ohi"
-        ? <p className="xa-key" aria-hidden="true"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b className="xa-sw-limited" />Limited sample</span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
-        : <p className="xa-key" aria-hidden="true"><span className="xa-scale"><i />Operational Health, 0 to 100 · median of named institutions</span><span><b className="xa-sw-limited" />Limited sample</span><span><b style={{ background: COLOR.few }} />Fewer than {SHOW_MIN} scored</span></p>
+        ? <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Organisational Health, 0 to 100</span><span className="xa-k-short">Org. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
+        : <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Operational Health, 0 to 100 · median of named institutions</span><span className="xa-k-short">Op. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} /><span className="xa-k-long">Fewer than {SHOW_MIN} scored</span><span className="xa-k-short">Under {SHOW_MIN}</span></span></p>
       )}
 
       {/* the time slider */}
