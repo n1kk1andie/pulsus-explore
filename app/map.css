@@ -399,3 +399,17 @@
 .xa:not(.is-wide) .xa-top{background:linear-gradient(color-mix(in srgb,var(--bg) 96%,transparent),color-mix(in srgb,var(--panel) 93%,transparent));
   -webkit-backdrop-filter:blur(14px) saturate(1.3);backdrop-filter:blur(14px) saturate(1.3);padding-bottom:6px;border-bottom:1px solid var(--line);box-shadow:0 8px 24px #0006}
 .xa.is-light:not(.is-wide) .xa-top{box-shadow:0 6px 18px #121a4218}
+
+/* how many organisations stand behind an average (lib/atlas/bands.ts) */
+.xa-sample{display:inline-block;margin:2px 0 8px;padding:2px 9px;border:1px solid var(--line);border-radius:999px;font-size:12px;line-height:1.5;color:var(--mute)}
+.xa-sample b{font-weight:600;color:var(--ink)}
+.xa-sample.is-limited{border-style:dashed;color:var(--ink)}
+.xa-measures .xa-sample{margin:4px 0 2px}
+.xa-band.is-limited{color:var(--ink);font-weight:600}
+/* on the map: a limited sample is lighter and hatched; too few is the plain "too few" grey */
+.xa-c.is-limited,.xa-ut.is-limited>rect:first-of-type{fill-opacity:.55}
+.xa-hatch{fill:url(#xa-hatch);pointer-events:none}
+#xa-hatch line{stroke:var(--fade);stroke-width:1.3;opacity:.8}
+.xa .xa-tile.is-limited{background-image:repeating-linear-gradient(135deg,transparent 0 4px,color-mix(in srgb,var(--fade) 60%,transparent) 4px 6px)!important}
+.xa-val.is-limited rect{stroke-dasharray:3 2}
+.xa-key b.xa-sw-limited,.xa-legend b.xa-sw-limited{background:repeating-linear-gradient(135deg,var(--watch) 0 1.6px,transparent 1.6px 3.4px);box-shadow:inset 0 0 0 1px var(--watch);opacity:.85}

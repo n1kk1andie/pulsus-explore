@@ -14,7 +14,7 @@ import usGovernment from "./data/us-government.json";
 import usHospitals from "./data/us-hospitals.json";
 import operational from "./data/operational.json";
 import type { OpsInstitution } from "./operational";
-import type { AtlasLayer } from "./layers";
+import { withLimited, type AtlasLayer } from "./layers";
 import { LAYERS } from "./catalog";
 import { exploreAt, type ExploreData } from "./explore";
 
@@ -23,7 +23,8 @@ const BY_ID: Record<string, unknown> = {
   "us-credit-unions": usCreditUnions, "co-insurers": coInsurers, "us-government": usGovernment, "us-hospitals": usHospitals,
 };
 
-export const ALL_LAYERS: AtlasLayer[] = LAYERS.map((d) => BY_ID[d.id] as AtlasLayer).filter(Boolean);
+// Groups of 10–19 are opened here, on the server, as limited samples; 1–9 keep only their count.
+export const ALL_LAYERS: AtlasLayer[] = LAYERS.map((d) => BY_ID[d.id] as AtlasLayer).filter(Boolean).map(withLimited);
 
 /** Everyone gets everything: Explore is free and needs no account. */
 export const exploreData = (): ExploreData => exploreAt(ALL_LAYERS, "full");

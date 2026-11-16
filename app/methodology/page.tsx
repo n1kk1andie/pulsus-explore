@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import operational from "../../lib/atlas/data/operational.json";
-import { INDICATORS, MIN_COMPLAINTS, MIN_INDICATORS, OPS_MIN_GROUP, OPS_SOURCES, RANGES, opsGroup, type OpsInstitution } from "../../lib/atlas/operational";
+import { INDICATORS, MIN_COMPLAINTS, MIN_INDICATORS, OPS_SOURCES, RANGES, opsGroup, type OpsInstitution } from "../../lib/atlas/operational";
+import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN, bandOf, sampleText } from "../../lib/atlas/bands";
 
 export const metadata: Metadata = { title: "Operational Health: method and sources · Pulsus Platform · Explore" };
 export const dynamic = "force-static";
@@ -42,8 +43,18 @@ export default function Methodology() {
       <p>The score is the weighted mean of the readings an institution has. When an indicator is not published for it, its weight is shared among the others in proportion: a US institution, with two indicators, is read 57% on its complaint rate and 43% on timeliness. The ranges&apos; fixed points: US complaint rate {RANGES.cfpb.rate.best} {RANGES.cfpb.rate.unit} scores 100; UK {RANGES.fca.rate.best} {RANGES.fca.rate.unit} scores 100.</p>
 
       <h2 className="pz-h3" style={h2}>Who gets a score</h2>
-      <p>An institution is scored only with at least {MIN_COMPLAINTS} complaints in the period and at least {MIN_INDICATORS} indicators. Otherwise Explore shows “—” with the reason. A group&apos;s median, and any comparison with peers, needs at least {OPS_MIN_GROUP} scored institutions, as for every figure in Explore.</p>
-      <ul>{groups.map(([w, c, s]) => { const g = opsGroup(insts, c, s); return <li key={w}>{w}: {g.n} scored of {g.listed} named{g.hidden ? `, fewer than ${OPS_MIN_GROUP}, so no median` : `; median ${g.median}`}.</li>; })}</ul>
+      <p>An institution is scored only with at least {MIN_COMPLAINTS} complaints in the period and at least {MIN_INDICATORS} indicators. Otherwise Explore shows “—” with the reason.</p>
+
+      <h2 className="pz-h3" style={h2} id="sample">How many institutions stand behind an average</h2>
+      <p>Every average in Explore, for Operational Health and Organisational Health alike, is labelled with how many institutions it describes, in four bands:</p>
+      <ul>
+        <li><b>{BAND_LABEL.insufficient}</b>: 1 to {SHOW_MIN - 1}. No average is shown, only the count (for example, “6 institutions — too few for an average”). Too few for a fair average, and too few to be sure no single institution could be picked out.</li>
+        <li><b>{BAND_LABEL.limited}</b>: {SHOW_MIN} to {RANK_MIN - 1}. The average is shown, labelled, and drawn lighter on the map. It is not ranked, put in order of highest or lowest, or compared with other groups or with a single institution: one institution can still move it a long way.</li>
+        <li><b>{BAND_LABEL.moderate}</b>: {RANK_MIN} to {BROAD_MIN - 1}. The average is shown, ranked and compared.</li>
+        <li><b>{BAND_LABEL.broad}</b>: {BROAD_MIN} or more.</li>
+      </ul>
+      <p>Organisational Health&apos;s financial figures are always anonymous: a group&apos;s figures are medians, and no group of fewer than {SHOW_MIN} shows a figure, so no institution can be identified from them.</p>
+      <ul>{groups.map(([w, c, s]) => { const g = opsGroup(insts, c, s); return <li key={w}>{w}: {g.n} scored of {g.listed} named · {g.hidden ? sampleText(g.n, "scored") : `${BAND_LABEL[bandOf(g.n)]}; median ${g.median}`}.</li>; })}</ul>
       <p>Colours follow the same continuous scale as Organisational Health: red at 0, amber at 50, green at 100, with no bands or categories.</p>
 
       <h2 className="pz-h3" style={h2}>Which institutions are named</h2>

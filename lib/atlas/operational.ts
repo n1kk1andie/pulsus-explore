@@ -5,6 +5,8 @@
 // ranges each is read against, and the weights. Pure, so the build
 // (scripts/operational), the tests and the app all use this one definition.
 
+import { RANK_MIN, SHOW_MIN } from "./bands";
+
 /** The measures the score can use. Each is read against a fixed range, the same for every institution. */
 export type IndicatorId = "rate" | "timely" | "upheld" | "scam";
 
@@ -33,8 +35,9 @@ export const INDICATORS: IndicatorDef[] = [
 export const MIN_COMPLAINTS = 50;
 /** The fewest indicators an institution needs to be scored. */
 export const MIN_INDICATORS = 2;
-/** The fewest scored institutions a group needs for a median or a peer comparison (as for every Explore figure). */
-export const OPS_MIN_GROUP = 20;
+/** The fewest scored institutions a group needs for a peer comparison (as for every ranking in Explore).
+ *  A median is shown from SHOW_MIN, with its sample band (lib/atlas/bands.ts). */
+export const OPS_MIN_GROUP = RANK_MIN;
 
 /** Fixed ranges, per source. */
 export const RANGES = {
@@ -98,11 +101,12 @@ const medianOf = (xs: number[]) => {
 
 export interface OpsGroup { n: number; listed: number; hidden: boolean; median?: number; ind?: Partial<Record<IndicatorId, number>> }
 
-/** A group's Operational Health: the median of its scored institutions, only with at least OPS_MIN_GROUP of them. */
+/** A group's Operational Health: the median of its scored institutions, only with at least SHOW_MIN of them
+ *  (10–19: a limited sample, never compared; lib/atlas/bands.ts). */
 export function opsGroup(all: OpsInstitution[], country: string | null, sector: string | null): OpsGroup {
   const rows = all.filter((i) => (!country || i.country === country) && (!sector || sector === "all" || i.sector === sector));
   const scored = rows.map((i) => ({ i, s: scoreOf(i) })).filter((x) => x.s.score !== null);
-  if (scored.length < OPS_MIN_GROUP) return { n: scored.length, listed: rows.length, hidden: true };
+  if (scored.length < SHOW_MIN) return { n: scored.length, listed: rows.length, hidden: true };
   // One source per group: medians of indicators read on different scales are not mixed.
   const sources = new Set(scored.map((x) => x.i.source));
   const ind: Partial<Record<IndicatorId, number>> = {};

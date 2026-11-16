@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ALL_LAYERS } from "../../lib/atlas/serve";
 import { LAYERS, SECTORS } from "../../lib/atlas/catalog";
 import { factsOf, periodLabel } from "../../lib/atlas/facts";
+import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN } from "../../lib/atlas/bands";
 import ThemeSwitch from "../../components/ThemeSwitch";
 import "./technology.css";
 
@@ -128,7 +129,7 @@ export default function Technology() {
             <div><dt>Organisations read</dt><dd>{n0(f.organisations)}</dd></div>
             <div><dt>Sectors</dt><dd>{f.sectorsLive}</dd></div>
             <div><dt>Public datasets</dt><dd>{f.sources.length}</dd></div>
-            <div><dt>Minimum per place</dt><dd>{f.minGroup}</dd></div>
+            <div><dt>Fewest behind an average</dt><dd>{SHOW_MIN}</dd></div>
           </dl>
         </section>
 
@@ -179,10 +180,15 @@ export default function Technology() {
                 {gov && <>and US federal agencies, from their published budget, reporting and FOIA figures.</>}
               </p>
 
-              <h3>Small groups stay hidden</h3>
-              <p>A place appears on its own only when it has at least {f.minGroup} organisations in that sector. Smaller groups are counted in the totals but not shown, so no group can stand in for an identifiable institution and one organisation cannot swing a place’s median.</p>
-              {ex && <p>{ex.title}, {n0(ex.n)} banks across {ex.countries} countries, use a minimum of {ex.minGroup}: {word(ex.alone)} countries meet it on their own, and the rest are read together as {list(ex.areas)}.</p>}
-              <p>The lists of improving and declining places, and the areas to watch, include only places with at least {f.insightMin} organisations.</p>
+              <h3 id="sample">How many organisations stand behind an average</h3>
+              <p>Every average in Explore says how many organisations it describes, in four bands:</p>
+              <ul>
+                <li><b>{BAND_LABEL.insufficient}</b>, 1 to {SHOW_MIN - 1}: no average, only the count. Too few for a fair average, and too few to be sure no single institution could be picked out. They are still counted in the totals.</li>
+                <li><b>{BAND_LABEL.limited}</b>, {SHOW_MIN} to {RANK_MIN - 1}: the average is shown, labelled, and drawn lighter on the map, but never ranked or compared, because one organisation can still move it a long way.</li>
+                <li><b>{BAND_LABEL.moderate}</b>, {RANK_MIN} to {BROAD_MIN - 1}, and <b>{BAND_LABEL.broad.toLowerCase()}</b>, {BROAD_MIN} or more: shown, ranked and compared.</li>
+              </ul>
+              {ex && <p>{ex.title}, {n0(ex.n)} banks across {ex.countries} countries: {word(ex.alone)} countries have at least {SHOW_MIN} on their own, and the rest are read together as {list(ex.areas)}.</p>}
+              <p>The lists of improving and declining places, the areas to watch, the “highest” and “lowest” orderings and every comparison include only places with at least {f.insightMin} organisations.</p>
 
               <h3>How often it is refreshed</h3>
               <p>The figures are rebuilt from the sources each quarter. {quarterly.length > 0 && <>Quarterly sources ({list(quarterly.map((s) => s.title))}) add a quarter at a time; </>}{yearly.length > 0 && <>{list(yearly.map((s) => s.title))} are published by fiscal year and move a year at a time.</>}{eu && <> {eu.title} come from the European Banking Authority’s yearly transparency exercise, which covers the {word(eu.points)} quarters to {periodLabel(eu.cadence, eu.to)}.</>} Each card in Explore names its source and the period it describes.{built && <> The current figures were built on {longDate(built)}.</>}</p>
