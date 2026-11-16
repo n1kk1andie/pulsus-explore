@@ -11,6 +11,7 @@ import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
 import { countryGroup, regionKeyOf } from "../lib/atlas/layers";
 import { INSIGHT_MIN, insightsOf } from "../lib/atlas/explore";
+import { ALL, ALL_DEF, allSectors, inView, valueAt, type Measure } from "../lib/atlas/allSectors";
 import { BAND_LABEL, RANK_MIN, SHOW_MIN, bandClass, bandOf, canRank, canShow, rankedFirst, sampleText } from "../lib/atlas/bands";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 import { OPS_SOURCES, opsGroup, scoreOf, type OpsGroup } from "../lib/atlas/operational";
@@ -19,7 +20,6 @@ import { STATE_NAME } from "../lib/atlas/place-names";
 import { ASK_URL, MEASURE_NAME, coversText, explainEmpty, findPlaceIn, findSector, fold, institutionCoverage, isosOf, layerCoverage, sayEmpty } from "../lib/atlas/places";
 
 export interface World { w: number; h: number; countries: { id: string; name: string; d: string }[] }
-type Measure = "ohi" | "oh";
 type Sel = { layerId: string; region: string | null } | null;   // region null: the layer as a whole; layerId "ops": a country in the Operational Health view
 /** Which measure the map shows: Organisational Health (financial condition, places) or Operational Health (named institutions). */
 type Lens = "ohi" | "ops";
@@ -57,13 +57,6 @@ const n0 = (x: number) => x.toLocaleString("en-US");
 /** The most places the comparison holds at once. */
 const MAX_PINS = 4;
 
-/** A group's reading at a period: its latest point at or before it, or now. */
-function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null): number | undefined {
-  if (!g || g.hidden || !canShow(g.n)) return undefined;   // 1–9: never a figure (lib/atlas/bands.ts)
-  if (!at) return g[k];
-  const t = (g.trend || []).filter((p) => p.period <= at && p[k] !== null);
-  return t.length ? (t[t.length - 1][k] as number) : undefined;
-}
 
 /** The regulator's own figures beside the Pulsus score: each indicator's median
  *  across the place's organisations, with its source and date, and how the
@@ -215,39 +208,6 @@ function mainland(d: string): [number, number, number] {
   return best;
 }
 
-/** All sectors together: for each country, its sectors' groups combined.
- *  Counts add up exactly; the readings
- *  are each sector's median weighted by its size (labelled as such). */
-const ALL = "all-sectors";
-const ALL_DEF: LayerDef = { id: ALL, sector: "all" as SectorId, title: "All sectors", publisher: "Every source in Explore", asOf: "", evidence: "financial" };
-function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
-  const vis = gs.filter((g) => !g.hidden);
-  const n = gs.reduce((t, g) => t + g.n, 0);
-  if (!vis.length) return { n, hidden: true };
-  const avg = (k: Measure, at: string | null) => {
-    let w = 0, t = 0;
-    for (const g of vis) { const v = valueAt(g, k, at); if (v !== undefined) { w += g.n; t += v * g.n; } }
-    return w ? Math.round(t / w) : undefined;
-  };
-  return {
-    n: vis.reduce((t, g) => t + g.n, 0), ohi: avg("ohi", null), oh: avg("oh", null),
-    trend: periods.map((p) => ({ period: p, ohi: avg("ohi", p) ?? null, oh: avg("oh", p) ?? null })),
-    // A country read only as part of an area (Sweden, in the Nordic and Baltic countries) keeps the area's name.
-    ...(vis.length === 1 && vis[0].area ? { area: vis[0].area, members: vis[0].members } : {}),
-  };
-}
-function allSectors(ls: AtlasLayer[], id: string = ALL, sector: string = "all"): AtlasLayer {
-  // The timeline follows the quarterly sources; yearly ones carry their latest year.
-  const periods = [...new Set(ls.filter((l) => l.cadence !== "yearly").flatMap((l) => (l.national.trend || []).map((t) => t.period)))].sort();
-  const countries = [...new Set(ls.flatMap((l) => l.countries))];
-  const regions: Record<string, AtlasGroup> = {};
-  for (const iso of countries) regions[iso] = combine(ls.map((l) => countryGroup(l, iso)).filter((g): g is AtlasGroup => !!g), periods);
-  // The US state by state: the sectors read by state, together (keys "US-TX").
-  const byState = ls.filter((l) => l.regionKind === "state" && l.countries.includes("840"));
-  for (const code of new Set(byState.flatMap((l) => Object.keys(l.regions)))) regions[`US-${code}`] = combine(byState.map((l) => l.regions[code]).filter((g): g is AtlasGroup => !!g), periods);
-  const latest = ls.map((l) => l.asOf).sort().pop() || "";
-  return { ...ls[0], layer: id, sector, scope: sector, regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
-}
 
 /** A change, with a drawn arrow (text arrows become emoji on iPhones). */
 function Delta({ n, bare = false }: { n: number; bare?: boolean }) {
@@ -317,7 +277,8 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   const [sheet, setSheet] = useState<"" | "movers" | "about" | "you" | "search">("");
   const [moverTab, setMoverTab] = useState<"up" | "down" | "hot">("down");
   const [q, setQ] = useState("");
-  const inSector = useMemo(() => realDefs.filter((d) => d.sector === sector).map((def) => ({ def, l: layers[def.id] })), [defs, layers, sector]);
+  // The layers the map reads for the chosen sector; "All sectors" is its own combined layer (lib/atlas/allSectors.ts).
+  const inSector = useMemo(() => inView(sector, realDefs, layers), [realDefs, layers, sector]);
   const periods = useMemo(() => [...new Set(inSector.flatMap(({ l }) => (l.national.trend || []).map((t) => t.period)))].sort(), [inSector]);
   const [pi, setPi] = useState<number | null>(null);   // null: the latest
   const at = pi === null || pi >= periods.length - 1 ? null : periods[pi];
@@ -371,12 +332,16 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   }, []);
   const wide = size.w >= 900;
   const portrait = size.h > size.w;
-  // Units per pixel at zoom 1: the whole world's height on a phone, its width on a wide screen.
-  const base = portrait ? world.h / size.h : Math.max(world.w / size.w, world.h / size.h);
-  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the
-  // header (measured: it is solid on a phone) and above the colour key and time slider.
+  // On a wide screen the controls are a toolbar above the map, not over it: the map is drawn
+  // in the space below (mapTop, mh). On a phone it fills the screen under a compact header.
   const topRef = useRef<HTMLElement>(null);
   const [topH, setTopH] = useState(0);
+  const mapTop = wide ? topH : 0;
+  const mh = Math.max(1, size.h - mapTop);
+  // Units per pixel at zoom 1: the whole world's height on a phone, its width on a wide screen.
+  const base = portrait ? world.h / mh : Math.max(world.w / size.w, world.h / mh);
+  // On a phone the map opens on the Americas, framed so the US grid of states sits whole below the
+  // header (measured: it is solid on a phone) and above the colour key and time slider.
   useEffect(() => {
     const el = topRef.current; if (!el) return;
     // The header is hidden on the other tabs (height 0): keep the last real height so the map doesn't jump.
@@ -384,22 +349,35 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     const ro = new ResizeObserver(read); ro.observe(el); read();
     return () => ro.disconnect();
   }, []);
+  // Every place Explore covers, in map units: on a wide screen the map opens framed on all of them.
+  const coveredBox = useMemo(() => {
+    const ids = new Set([...realDefs.flatMap((d) => real[d.id].countries), ...insts.map((i) => i.country)]);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const c of world.countries) if (ids.has(c.id)) for (const m of c.d.matchAll(/(-?[\d.]+)[ ,](-?[\d.]+)/g)) { x0 = Math.min(x0, +m[1]); x1 = Math.max(x1, +m[1]); y0 = Math.min(y0, +m[2]); y1 = Math.max(y1, +m[2]); }
+    return Number.isFinite(x0) ? { x0, y0, x1, y1 } : { x0: 0, y0: 0, x1: world.w, y1: world.h };
+  }, [world, realDefs, real, insts]);
   const home: Cam = useMemo(() => {
-    if (!portrait) return { cx: 480, cy: 214, zoom: 1.12 };
+    if (!portrait) {
+      // Kept clear of the round buttons on the right and the key and time slider at the bottom.
+      const L = 16, R = 84, T = 12, B = 124, freeW = Math.max(100, size.w - L - R), freeH = Math.max(100, mh - T - B);
+      const b = coveredBox, pad = 6, bw = b.x1 - b.x0 + 2 * pad, bh = b.y1 - b.y0 + 2 * pad;
+      const uu = Math.max(bw / freeW, bh / freeH), zoom = base / uu;
+      return { cx: (b.x0 + b.x1) / 2 - (L + freeW / 2 - size.w / 2) * uu, cy: (b.y0 + b.y1) / 2 - (T + freeH / 2 - mh / 2) * uu, zoom };
+    }
     if (!topH) return { cx: 246, cy: 212, zoom: 1.15 };
     // the tile grid, in map units (see the US grid below): 12 columns by 8 rows of 14, from (160, 88)
     const gx = 160, gy = 88, gw = 12 * 14, gh = 8 * 14;
-    const top = topH + 10, bottom = size.h - 112, freeH = Math.max(80, bottom - top), freeW = size.w - 24;
+    const top = topH + 10, bottom = mh - 112, freeH = Math.max(80, bottom - top), freeW = size.w - 24;
     const zoom = Math.min(1.15, Math.max(0.6, Math.min(freeW / (gw / base), freeH / (gh / base))));
     const uu = base / zoom;
     // the grid's top sits just under the header; any room left over goes below it
-    return { cx: gx + gw / 2, cy: gy + (size.h / 2 - top) * uu, zoom };
-  }, [portrait, topH, size.w, size.h, base]);
+    return { cx: gx + gw / 2, cy: gy + (mh / 2 - top) * uu, zoom };
+  }, [portrait, topH, size.w, mh, base, coveredBox]);
   const [cam, setCam] = useState<Cam>(home);
   // re-frame only when the framing itself changes (on a wide screen it never does)
   useEffect(() => { setCam(home); }, [home.cx, home.cy, home.zoom]);
   const u = base / cam.zoom;
-  const vb = `${cam.cx - (size.w * u) / 2} ${cam.cy - (size.h * u) / 2} ${size.w * u} ${size.h * u}`;
+  const vb = `${cam.cx - (size.w * u) / 2} ${cam.cy - (mh * u) / 2} ${size.w * u} ${mh * u}`;
   const anim = useRef<number | null>(null);
   const flyTo = useCallback((to: Cam) => {
     if (anim.current) cancelAnimationFrame(anim.current);
@@ -417,13 +395,13 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     const p = paths.current.get(iso); if (!p) return;
     let b = p.getBBox();
     if (iso === "840") b = { x: 170, y: 117, width: 147, height: 76 } as DOMRect;   // the lower 48, not Alaska and the islands
-    const freeW = wide ? size.w - 420 : size.w, freeH = wide ? size.h - 120 : size.h * 0.42;
+    const freeW = wide ? size.w - 420 : size.w, freeH = wide ? mh - 120 : mh * 0.42;
     const zoom = Math.min(10, Math.max(1, Math.min(freeW / (b.width / base), freeH / (b.height / base)) * 0.6));
     const uu = base / zoom;
     const cx = b.x + b.width / 2 + (wide ? (420 / 2) * uu : 0);
-    const cy = b.y + b.height / 2 + (wide ? 0 : (size.h * 0.27) * uu);
+    const cy = b.y + b.height / 2 + (wide ? 0 : (mh * 0.27) * uu);
     flyTo({ cx, cy, zoom });
-  }, [wide, size, base, flyTo]);
+  }, [wide, size, mh, base, flyTo]);
 
   // Drag to pan, pinch or wheel to zoom; a short press is a tap.
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
@@ -727,12 +705,9 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       ))}
     </div>
   );
-  const brand = (
-    <div className="xa-brand">
-      <a href="/"><img src={theme === "light" ? "/pulsus-explore-logo.png" : "/pulsus-explore-logo-night.png"} alt="Pulsus Explore" width={588} height={160} /></a>
-      <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>See How You Stack Up →</button>
-    </div>
-  );
+  const logo = <a href="/"><img src={theme === "light" ? "/pulsus-explore-logo.png" : "/pulsus-explore-logo-night.png"} alt="Pulsus Explore" width={588} height={160} /></a>;
+  const you = <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>See How You Stack Up →</button>;
+  const brand = <div className="xa-brand">{logo}{you}</div>;
   /** Open a place on the map, with its card. */
   const open = (layerId: string, region: string | null) => { setView("map"); choose(layerId, region); };
   const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(null); setView("map"); flyTo(home); };
@@ -943,10 +918,10 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   );
 
   return (
-    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel || inst ? " has-card" : ""} on-${view}`}>
+    <div className={`xa${theme === "light" ? " is-light" : ""}${wide ? " is-wide" : ""}${sel || inst ? " has-card" : ""} on-${view}`} style={{ "--maptop": `${mapTop}px` } as React.CSSProperties}>
     <div className="xa-stage" ref={box}>
       {/* the map */}
-      <svg className="xa-map" viewBox={vb} role="img" aria-label={`World map: ${WORD[measure]} of ${NOUN[sector]} by country. Use search to choose a place.`}
+      <svg className="xa-map" style={{ top: mapTop }} viewBox={vb} role="img" aria-label={`World map: ${WORD[measure]} of ${NOUN[sector]} by country. Use search to choose a place.`}
         onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onWheel={onWheel}>
         {/* A limited sample (10–19) is drawn lighter, under this hatch. */}
         <defs><pattern id="xa-hatch" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="4" /></pattern></defs>
@@ -1059,11 +1034,15 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
 
       {/* the top: brand, search, sectors */}
       <header className="xa-top" ref={topRef}>
-        {brand}
+        {wide ? (
+          // A wide screen: the updates prompt sits in the header row, beside "See How You Stack Up".
+          <div className="xa-brand">{logo}<Invite />{you}</div>
+        ) : brand}
+        <div className="xa-tools">
         <button className="xa-search" onClick={() => setSheet("search")} aria-label="Search places, sectors and institutions"><Ico d={I_SEARCH} size={18} /> <span>{lens === "ops" ? "Search places and institutions" : "Search places and sectors"}</span></button>
         {chips}
         {lensSeg}
-        {!sel && !sheet && !states && <Invite />}
+        </div>
       </header>
 
       {/* the side buttons */}
