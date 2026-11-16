@@ -1,0 +1,165 @@
+/* How Pulsus Explore works (/technology). Explore's navy and red, Sora and
+   IBM Plex Sans; night by default, day when the device or the reader asks.
+   Every rule is scoped to .tk. */
+
+html:has(.tk), .tk {
+  --tk-bg: #0a0f2c; --tk-panel: #121a42; --tk-panel2: #18215a; --tk-line: #26306a;
+  --tk-ink: #eef1ff; --tk-ink2: #c6cae3; --tk-mute: #9aa3cc;
+  --tk-red: #ff4f6d; --tk-link: #ff8fa3; --tk-btn: #ff4f6d; --tk-btn-ink: #0a0f2c;
+  --tk-good: #3ddc97; --tk-watch: #f5b947; --tk-bad: #ff4f6d; --tk-focus: #7aa2ff;
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: light) {
+  html:not([data-pz-theme="dark"]):has(.tk), html:not([data-pz-theme="dark"]) .tk {
+    --tk-bg: #f4f6fb; --tk-panel: #ffffff; --tk-panel2: #eef1f8; --tk-line: #d6dcec;
+    --tk-ink: #121a42; --tk-ink2: #2e3766; --tk-mute: #4f5885;
+    --tk-red: #c01f40; --tk-link: #b01c3b; --tk-btn: #c01f40; --tk-btn-ink: #ffffff;
+    --tk-good: #17a86b; --tk-watch: #d99a12; --tk-bad: #e23a5a; --tk-focus: #2f5bd3;
+    color-scheme: light;
+  }
+}
+html[data-pz-theme="light"]:has(.tk), html[data-pz-theme="light"] .tk {
+  --tk-bg: #f4f6fb; --tk-panel: #ffffff; --tk-panel2: #eef1f8; --tk-line: #d6dcec;
+  --tk-ink: #121a42; --tk-ink2: #2e3766; --tk-mute: #4f5885;
+  --tk-red: #c01f40; --tk-link: #b01c3b; --tk-btn: #c01f40; --tk-btn-ink: #ffffff;
+  --tk-good: #17a86b; --tk-watch: #d99a12; --tk-bad: #e23a5a; --tk-focus: #2f5bd3;
+  color-scheme: light;
+}
+body:has(.tk) { background: var(--tk-bg); }
+
+.tk { min-height: 100vh; background: var(--tk-bg); color: var(--tk-ink2); font: 16.5px/1.65 "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif; overflow-wrap: break-word; }
+.tk *, .tk *::before, .tk *::after { box-sizing: border-box; }
+.tk h1, .tk h2, .tk h3, .tk h4 { font-family: Sora, system-ui, sans-serif; color: var(--tk-ink); margin: 0; letter-spacing: -0.015em; }
+.tk p { margin: 0 0 14px; }
+.tk a { color: var(--tk-link); text-underline-offset: 3px; }
+.tk a:hover { text-decoration-thickness: 2px; }
+.tk :focus-visible { outline: 3px solid var(--tk-focus); outline-offset: 2px; border-radius: 6px; }
+.tk-red { color: var(--tk-red); }
+.tk-small { font-size: 14px; color: var(--tk-mute); }
+.tk-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tk-skip { position: absolute; left: 12px; top: -60px; z-index: 5; background: var(--tk-panel); color: var(--tk-ink); padding: 8px 14px; border-radius: 8px; }
+.tk-skip:focus { top: 12px; }
+
+/* top bar */
+.tk-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 1120px; margin: 0 auto; padding: calc(14px + env(safe-area-inset-top)) 16px 14px; }
+.tk-logo { display: block; flex: 0 1 auto; min-width: 0; }
+.tk-logo img { display: block; height: 40px; width: auto; max-width: 100%; }
+.tk-logo-day { display: none !important; }
+@media (prefers-color-scheme: light) {
+  html:not([data-pz-theme="dark"]) .tk-logo-day { display: block !important; }
+  html:not([data-pz-theme="dark"]) .tk-logo-night { display: none !important; }
+}
+html[data-pz-theme="light"] .tk-logo-day { display: block !important; }
+html[data-pz-theme="light"] .tk-logo-night { display: none !important; }
+html[data-pz-theme="dark"] .tk-logo-day { display: none !important; }
+html[data-pz-theme="dark"] .tk-logo-night { display: block !important; }
+.tk-top-nav { display: flex; gap: 8px; flex: none; }
+
+.tk-btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 10px 18px; border-radius: 999px; border: 1px solid var(--tk-btn); background: var(--tk-btn); color: var(--tk-btn-ink) !important; font: 600 15px/1.2 "IBM Plex Sans", system-ui, sans-serif; text-decoration: none; cursor: pointer; }
+.tk-btn.ghost { background: transparent; border-color: var(--tk-line); color: var(--tk-ink) !important; }
+.tk-btn.ghost:hover { border-color: var(--tk-mute); }
+.tk-btn:disabled { opacity: .6; cursor: default; }
+@media (max-width: 420px) { .tk-top-nav .tk-btn { padding: 10px 13px; font-size: 14px; } .tk-logo img { height: 34px; } }
+
+/* hero */
+.tk-hero { max-width: 1120px; margin: 0 auto; padding: 40px 16px 36px; border-bottom: 1px solid var(--tk-line); }
+.tk-eyebrow, .tk-label, .tk-num { font: 600 12.5px/1.3 Sora, system-ui, sans-serif; letter-spacing: .14em; text-transform: uppercase; color: var(--tk-red); margin: 0 0 12px; }
+.tk-hero h1 { font-size: clamp(34px, 7.4vw, 64px); line-height: 1.04; font-weight: 800; letter-spacing: -0.03em; max-width: 16ch; }
+.tk-deck { font-size: clamp(17.5px, 2.3vw, 21px); line-height: 1.55; color: var(--tk-ink2); max-width: 44em; margin: 20px 0 0; }
+.tk-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 32px 0 0; border-top: 1px solid var(--tk-line); }
+.tk-stats div { padding: 16px 12px 4px 0; }
+.tk-stats dt { font-size: 13px; color: var(--tk-mute); order: 2; }
+.tk-stats dd { margin: 0; font: 800 clamp(30px, 6vw, 44px)/1.1 Sora, system-ui, sans-serif; color: var(--tk-ink); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.tk-stats div { display: flex; flex-direction: column-reverse; }
+@media (min-width: 720px) { .tk-stats { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* body: contents beside the article on a wide screen */
+.tk-body { max-width: 1120px; margin: 0 auto; padding: 8px 16px 40px; }
+.tk-toc { padding: 24px 0 8px; }
+.tk-toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.tk-toc a { display: inline-flex; gap: 8px; align-items: baseline; padding: 8px 13px; border: 1px solid var(--tk-line); border-radius: 999px; color: var(--tk-ink); text-decoration: none; font-size: 14.5px; min-height: 40px; }
+.tk-toc a span { font: 600 11.5px Sora, sans-serif; color: var(--tk-mute); }
+.tk-toc a:hover { border-color: var(--tk-mute); }
+@media (min-width: 1000px) {
+  .tk-body { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 56px; }
+  .tk-toc { position: sticky; top: 0; align-self: start; padding-top: 44px; }
+  .tk-toc ol { flex-direction: column; gap: 2px; }
+  .tk-toc a { border: 0; border-left: 2px solid var(--tk-line); border-radius: 0; padding: 7px 12px; min-height: 0; }
+  .tk-toc a:hover { border-left-color: var(--tk-red); }
+}
+.tk-content { min-width: 0; max-width: 760px; }
+.tk-content section { padding: 44px 0 12px; border-bottom: 1px solid var(--tk-line); scroll-margin-top: 12px; }
+.tk-content section:last-child { border-bottom: 0; }
+.tk-content h2 { font-size: clamp(26px, 4.6vw, 36px); line-height: 1.12; font-weight: 700; margin: 0 0 18px; }
+.tk-content h3 { font-size: 18px; font-weight: 700; margin: 30px 0 10px; }
+.tk-num { margin-bottom: 8px; }
+.tk-lede { font-size: 19px; color: var(--tk-ink); }
+
+/* the flow diagram */
+.tk-flow { margin: 28px 0 8px; padding: 20px; background: var(--tk-panel); border: 1px solid var(--tk-line); border-radius: 18px; }
+.tk-flow ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.tk-flow li { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--tk-panel2); }
+.tk-flow li.is-explore { outline: 2px solid var(--tk-red); outline-offset: -2px; }
+.tk-flow-ic { flex: none; width: 40px; height: 40px; display: grid; place-items: center; border-radius: 10px; background: var(--tk-bg); color: var(--tk-red); }
+.tk-flow-t { display: flex; flex-direction: column; font-size: 14.5px; line-height: 1.45; }
+.tk-flow-t b { font: 700 15.5px Sora, sans-serif; color: var(--tk-ink); margin-bottom: 2px; display: flex; gap: 8px; align-items: baseline; }
+.tk-flow-n { font: 600 12px Sora, sans-serif; color: var(--tk-mute); }
+.tk-flow-arrow { position: absolute; left: 22px; bottom: -16px; transform: rotate(90deg); color: var(--tk-mute); z-index: 1; }
+.tk .tk-flow-note { font-size: 13.5px; color: var(--tk-mute); margin: 14px 0 0; }
+@media (min-width: 760px) {
+  .tk-flow ol { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 18px; }
+  .tk-flow li { flex-direction: column; }
+  .tk-flow-t { font-size: 13.5px; }
+  .tk-flow-arrow { left: auto; right: -19px; top: 22px; bottom: auto; transform: none; }
+}
+
+/* sources */
+.tk-sources { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 14px; }
+@media (min-width: 640px) { .tk-sources { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tk-sources li { background: var(--tk-panel); border: 1px solid var(--tk-line); border-radius: 16px; padding: 18px; display: flex; flex-direction: column; }
+.tk-sources h3 { margin: 2px 0 4px; font-size: 18px; }
+.tk-src-sector { font: 600 11.5px Sora, sans-serif; letter-spacing: .12em; text-transform: uppercase; color: var(--tk-mute); margin: 0 !important; }
+.tk-src-pub { font-size: 14.5px; color: var(--tk-ink2); margin: 0 0 12px !important; }
+.tk-sources dl { margin: 0 0 12px; display: grid; gap: 6px; }
+.tk-sources dl div { display: grid; grid-template-columns: 104px minmax(0, 1fr); gap: 10px; font-size: 14px; line-height: 1.4; }
+.tk-sources dt { color: var(--tk-mute); }
+.tk-sources dd { margin: 0; color: var(--tk-ink); }
+.tk-src-raw { margin: auto 0 0 !important; padding-top: 10px; border-top: 1px solid var(--tk-line); font-size: 12.5px; color: var(--tk-mute); }
+
+/* score */
+.tk-props { list-style: none; margin: 22px 0; padding: 0; display: grid; gap: 10px; }
+@media (min-width: 640px) { .tk-props { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tk-props li { padding: 14px 16px; border-left: 3px solid var(--tk-red); background: var(--tk-panel); border-radius: 0 12px 12px 0; display: flex; flex-direction: column; font-size: 14.5px; line-height: 1.45; }
+.tk-props b { font: 700 16px Sora, sans-serif; color: var(--tk-ink); margin-bottom: 2px; }
+.tk-scale { margin: 22px 0 8px; }
+.tk-scale svg { display: block; }
+.tk-stop-bad { stop-color: var(--tk-bad); } .tk-stop-watch { stop-color: var(--tk-watch); } .tk-stop-good { stop-color: var(--tk-good); }
+.tk-scale figcaption { display: flex; justify-content: space-between; font: 600 13px Sora, sans-serif; color: var(--tk-ink); margin: -12px 0 6px; }
+.tk-key { display: flex; gap: 18px; flex-wrap: wrap; }
+.tk-key span, .tk-ind li { display: inline-flex; gap: 6px; align-items: center; }
+.tk-dir-ic { flex: none; color: var(--tk-red); }
+.tk-inds { display: grid; gap: 12px; margin: 12px 0 22px; }
+@media (min-width: 640px) { .tk-inds { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tk-ind { background: var(--tk-panel); border: 1px solid var(--tk-line); border-radius: 14px; padding: 14px 16px; }
+.tk-ind h4 { font-size: 15px; margin: 0 0 8px; }
+.tk-ind ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 14.5px; color: var(--tk-ink); }
+.tk-ind ul.is-ctx { color: var(--tk-ink2); }
+.tk-ind-ctx { font-size: 12.5px; color: var(--tk-mute); margin: 10px 0 4px !important; padding-top: 8px; border-top: 1px dashed var(--tk-line); }
+
+/* lists of checks */
+.tk-checks { margin: 0 0 16px; padding: 0; list-style: none; display: grid; gap: 9px; }
+.tk-checks li { position: relative; padding-left: 26px; }
+.tk-checks li::before { content: ""; position: absolute; left: 2px; top: .55em; width: 12px; height: 7px; border-left: 2px solid var(--tk-red); border-bottom: 2px solid var(--tk-red); transform: rotate(-45deg); }
+.tk-two { display: grid; gap: 8px 32px; }
+@media (min-width: 720px) { .tk-two { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.tk-two h3 { margin-top: 4px; }
+.tk-cta { display: flex; flex-wrap: wrap; gap: 10px; margin: 20px 0 12px; }
+
+/* footer */
+.tk-foot { border-top: 1px solid var(--tk-line); text-align: center; padding: 28px 16px calc(32px + env(safe-area-inset-bottom)); font-size: 13.5px; color: var(--tk-mute); }
+.tk-foot p { margin: 3px 0; }
+.tk-foot-name { font: 600 14.5px Sora, sans-serif; color: var(--tk-ink); }
+.tk-foot-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 4px 18px; margin-top: 12px !important; }
+.tk-foot-links a { color: var(--tk-ink2); padding: 8px 2px; display: inline-block; }
+
+@media (prefers-reduced-motion: no-preference) { html:has(.tk) { scroll-behavior: smooth; } }
