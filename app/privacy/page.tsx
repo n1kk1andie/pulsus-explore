@@ -8,7 +8,7 @@ export default function Privacy() {
     <main className="pz pz-xp-page"><div className="pz-main pz-xp-main" style={{ maxWidth: 720 }}>
       <p className="pz-eyebrow"><a className="pz-link-btn" href="/">← Explore</a></p>
       <h1>Privacy</h1>
-      <p className="pz-muted">Last updated 11 November 2026.</p>
+      <p className="pz-muted">Last updated 16 November 2026.</p>
       <h2 className="pz-h3">What Explore collects</h2>
       <p>Nothing, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no analytics or tracking. It does not read your contacts, location or anything else on your device.</p>
       <h2 className="pz-h3">If you subscribe for updates</h2>
@@ -18,7 +18,8 @@ export default function Privacy() {
       <h2 className="pz-h3">What our servers see</h2>
       <p>Like any website, our hosting provider receives standard technical request information (such as IP address and browser type) to deliver the pages and protect the service. We do not use it to identify or profile you.</p>
       <h2 className="pz-h3">The figures</h2>
-      <p>Explore shows aggregated readings of institutions&apos; public financial and operational data, published by regulators and governments. No institution is named and groups too small to keep anonymous are hidden.</p>
+      <p>Explore shows aggregated readings of institutions&apos; public financial and operational data, published by regulators and governments. In these, no institution is named and groups too small to keep anonymous are hidden.</p>
+      <p>Operational Health names banks, credit unions and insurers, using complaints data that their regulators publish by firm under an open licence (see <a className="pz-link-btn" href="/methodology">how it is calculated</a>). It contains counts and percentages only, never any complainant&apos;s details.</p>
       <h2 className="pz-h3">Contact</h2>
       <p>Tumblehill Holdings LLC · <a className="pz-link-btn" href="https://about.pulsus.tech">about.pulsus.tech</a></p>
     </div></main>

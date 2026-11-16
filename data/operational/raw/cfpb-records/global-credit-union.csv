@@ -1,0 +1,85 @@
+complaint_id,date_received,company,product,timely,company_response,submitted_via
+23677667,2026-06-29T18:51:34.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+23534290,2026-06-24T18:33:10.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with monetary relief,Web
+23309084,2026-06-16T15:53:16.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+22949979,2026-06-05T23:33:43.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+22829182,2026-06-02T23:39:11.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+22820400,2026-06-02T19:28:55.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+22761084,2026-06-01T12:43:15.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+22595665,2026-05-26T23:33:37.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with non-monetary relief,Web
+22592454,2026-05-26T21:46:36.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+22588535,2026-05-26T20:29:25.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with monetary relief,Web
+22439392,2026-05-21T18:12:50.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with non-monetary relief,Web
+22413140,2026-05-21T01:15:01.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+22406500,2026-05-20T21:57:10.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+22371098,2026-05-20T01:26:40.000Z,GLOBAL CREDIT UNION,Credit card,Yes,Closed with explanation,Web
+22004064,2026-05-08T04:25:55.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+21874511,2026-05-05T01:23:23.000Z,GLOBAL CREDIT UNION,Credit card,Yes,Closed with non-monetary relief,Web
+21692498,2026-04-29T01:43:27.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with non-monetary relief,Web
+21660866,2026-04-27T19:37:45.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+21572233,2026-04-24T17:01:26.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with non-monetary relief,Web
+21367963,2026-04-18T05:28:07.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with monetary relief,Web
+21104359,2026-04-09T19:35:23.000Z,GLOBAL CREDIT UNION,Credit card,Yes,Closed with non-monetary relief,Web
+21137065,2026-04-09T17:52:06.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Referral
+20820432,2026-03-31T15:40:35.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Referral
+20684668,2026-03-26T17:05:57.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+20515735,2026-03-23T20:07:29.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+20401559,2026-03-19T06:03:03.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with monetary relief,Web
+20170298,2026-03-11T16:50:16.000Z,GLOBAL CREDIT UNION,Credit card,Yes,Closed with non-monetary relief,Web
+20167604,2026-03-11T15:31:24.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with monetary relief,Web
+19844314,2026-02-27T16:33:36.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+19812932,2026-02-26T16:32:44.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with monetary relief,Web
+19777859,2026-02-25T17:13:17.000Z,GLOBAL CREDIT UNION,Debt collection,Yes,Closed with explanation,Web
+19755307,2026-02-24T17:32:03.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+19717038,2026-02-23T20:52:18.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+19680833,2026-02-21T15:46:13.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+19291645,2026-02-06T00:21:09.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with non-monetary relief,Web
+19210056,2026-02-03T14:37:49.000Z,GLOBAL CREDIT UNION,"Money transfer, virtual currency, or money service",Yes,Closed with explanation,Web
+19156098,2026-01-31T14:19:11.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+19116060,2026-01-29T20:33:52.000Z,GLOBAL CREDIT UNION,"Payday loan, title loan, personal loan, or advance loan",Yes,Closed with non-monetary relief,Web
+19008830,2026-01-26T17:06:59.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with non-monetary relief,Web
+18996453,2026-01-26T02:24:50.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+18812403,2026-01-18T05:33:20.000Z,GLOBAL CREDIT UNION,"Money transfer, virtual currency, or money service",Yes,Closed with explanation,Web
+18808071,2026-01-17T20:46:06.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+18807722,2026-01-17T20:09:05.000Z,GLOBAL CREDIT UNION,Debt collection,Yes,Closed with monetary relief,Web
+18719853,2026-01-14T18:03:40.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+18723472,2026-01-14T14:17:06.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+18702087,2026-01-14T01:06:20.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with non-monetary relief,Web
+18701032,2026-01-14T00:14:52.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with non-monetary relief,Web
+18667594,2026-01-12T22:46:12.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Web
+18337876,2025-12-29T11:25:58.000Z,GLOBAL CREDIT UNION,Debt collection,Yes,Closed with explanation,Web
+18263669,2025-12-23T23:32:28.000Z,GLOBAL CREDIT UNION,"Money transfer, virtual currency, or money service",Yes,Closed with non-monetary relief,Web
+18213357,2025-12-22T07:16:13.000Z,GLOBAL CREDIT UNION,Debt collection,Yes,Closed with explanation,Web
+18221100,2025-12-19T23:14:13.000Z,GLOBAL CREDIT UNION,Credit card,Yes,Closed with explanation,Referral
+18073143,2025-12-12T20:35:31.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Referral
+17943366,2025-12-11T02:01:54.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+17931466,2025-12-10T19:52:12.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+17845644,2025-12-08T20:57:50.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Web
+17893317,2025-11-26T21:02:09.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with non-monetary relief,Web
+17892845,2025-11-26T00:24:18.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with monetary relief,Web
+17399697,2025-11-21T06:36:56.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+17356148,2025-11-20T00:57:40.000Z,GLOBAL CREDIT UNION,"Money transfer, virtual currency, or money service",Yes,Closed with explanation,Web
+17322330,2025-11-18T22:23:51.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+17302036,2025-11-17T20:27:12.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Web
+17264278,2025-11-13T18:50:16.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with monetary relief,Referral
+16875956,2025-10-28T14:24:49.000Z,GLOBAL CREDIT UNION,"Money transfer, virtual currency, or money service",Yes,Closed with monetary relief,Referral
+16801332,2025-10-24T18:48:10.000Z,GLOBAL CREDIT UNION,Credit card,Yes,Closed with monetary relief,Phone
+16429620,2025-10-06T20:38:50.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+16334741,2025-10-01T20:01:30.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+16213394,2025-09-26T09:39:41.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+16170292,2025-09-25T22:38:08.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+16060106,2025-09-19T12:57:11.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+15984362,2025-09-16T17:04:49.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Web
+15870589,2025-09-11T20:39:12.000Z,GLOBAL CREDIT UNION,Debt collection,Yes,Closed with explanation,Web
+15669687,2025-09-02T19:59:58.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with explanation,Web
+15431943,2025-08-21T23:42:23.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+15431701,2025-08-21T22:40:04.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+15385544,2025-08-19T13:41:54.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+15186899,2025-08-09T19:10:50.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Web
+15073353,2025-08-04T16:56:57.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+14903540,2025-07-26T19:41:59.000Z,GLOBAL CREDIT UNION,Vehicle loan or lease,Yes,Closed with explanation,Web
+14881359,2025-07-25T16:57:10.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+14691334,2025-07-16T13:34:48.000Z,GLOBAL CREDIT UNION,Checking or savings account,Yes,Closed with explanation,Referral
+14559137,2025-07-09T22:18:33.000Z,GLOBAL CREDIT UNION,Mortgage,Yes,Closed with non-monetary relief,Web
+14473843,2025-07-07T12:00:14.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+14468703,2025-07-04T15:19:02.000Z,GLOBAL CREDIT UNION,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web

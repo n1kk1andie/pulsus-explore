@@ -1,0 +1,61 @@
+complaint_id,date_received,company,product,timely,company_response,submitted_via
+23416632,2026-06-20T16:39:16.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+23248189,2026-06-16T08:34:47.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+23111343,2026-06-10T06:01:52.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+22991229,2026-06-08T15:55:18.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Phone
+22852092,2026-06-02T06:01:20.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+22426727,2026-05-21T13:29:50.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+22371133,2026-05-20T01:24:26.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+22109616,2026-05-12T10:15:17.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+21715121,2026-04-29T17:25:06.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+21443283,2026-04-21T13:18:57.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+21373386,2026-04-18T15:13:54.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+21255390,2026-04-15T05:48:41.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+20927768,2026-04-03T15:58:55.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+20518430,2026-03-23T21:13:16.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+20185348,2026-03-11T22:58:30.000Z,BANK OZK,Credit card,Yes,Closed with explanation,Web
+20052115,2026-03-06T21:09:09.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+19636760,2026-02-19T22:33:33.000Z,BANK OZK,Vehicle loan or lease,Yes,Closed with explanation,Web
+19554350,2026-02-17T14:32:24.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Phone
+19203192,2026-02-03T06:12:47.000Z,BANK OZK,"Money transfer, virtual currency, or money service",Yes,Closed with explanation,Web
+19184667,2026-02-02T17:56:43.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+19110891,2026-01-29T19:44:16.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+19037591,2026-01-27T15:39:08.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+18935257,2026-01-22T20:53:27.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18899200,2026-01-21T19:27:21.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+18873899,2026-01-20T22:16:52.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18790917,2026-01-16T21:24:08.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+18784875,2026-01-16T18:31:01.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18780829,2026-01-16T16:14:02.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Phone
+18694528,2026-01-13T15:58:45.000Z,BANK OZK,Vehicle loan or lease,Yes,Closed with explanation,Referral
+18675465,2026-01-13T08:39:09.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18475208,2026-01-05T19:02:59.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18326101,2025-12-28T08:56:27.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18316827,2025-12-27T12:02:31.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+18042101,2025-12-12T10:15:22.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+17963165,2025-12-11T18:36:21.000Z,BANK OZK,Debt collection,Yes,Closed with explanation,Web
+17912090,2025-12-10T07:53:41.000Z,BANK OZK,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+17800379,2025-12-06T17:38:50.000Z,BANK OZK,Credit reporting or other personal consumer reports,Yes,Closed with explanation,Web
+17760335,2025-12-05T00:27:52.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+17354227,2025-11-18T15:04:38.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+17307045,2025-11-17T14:19:00.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+17311844,2025-11-14T19:32:51.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+17220970,2025-11-13T20:16:09.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+16961935,2025-11-01T20:49:20.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+16840827,2025-10-27T22:00:39.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+16809147,2025-10-24T12:43:24.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+16603594,2025-10-15T15:45:58.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+16491014,2025-10-10T21:22:54.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+16157674,2025-09-24T15:44:04.000Z,BANK OZK,Vehicle loan or lease,Yes,Closed with explanation,Web
+16212663,2025-09-23T19:41:01.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Referral
+15933317,2025-09-14T02:43:01.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+15811800,2025-09-09T13:06:13.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+15701554,2025-09-03T13:34:08.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+15666449,2025-09-02T21:00:56.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Phone
+15327195,2025-08-16T22:28:23.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+15330396,2025-08-16T13:22:04.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+15215811,2025-08-11T12:55:13.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web
+15010182,2025-07-30T11:24:38.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+14795640,2025-07-22T23:59:35.000Z,BANK OZK,Mortgage,Yes,Closed with explanation,Web
+14696788,2025-07-15T15:24:58.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Referral
+14482414,2025-07-05T13:32:27.000Z,BANK OZK,Checking or savings account,Yes,Closed with explanation,Web

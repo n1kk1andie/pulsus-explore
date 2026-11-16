@@ -18,8 +18,14 @@ subscribers appear in the operator console under Leads.
 - **In:** the Explore screens, the sector catalogue, and the finished,
   anonymous figures in `lib/atlas/data/*.json` (medians, counts and the
   Stable / Steady / Fragile split by country, state and size).
+- **Also in, by design:** Operational Health (`lib/atlas/operational.ts`,
+  `lib/atlas/data/operational.json`): named banks, credit unions and insurers,
+  from complaints data their regulators publish by firm under an open licence
+  (US CFPB, UK FCA), scored by a public formula. It is built here, from the
+  publishers' raw files in `data/operational/raw`, and documented at
+  `/methodology`.
 - **Not in, ever:** the Pulsus engine, its method or weights, any institution's
-  name or figures, or any Pulsus Platform code. `npm test` checks this.
+  financial figures by name, or any Pulsus Platform code. `npm test` checks this.
 
 ## Run it
 
@@ -42,6 +48,23 @@ The figures are built from public data in the Pulsus Ops repo
 npm run sync-data -- ../ops
 npm test && npm run build
 ```
+
+## Refreshing Operational Health (each half-year)
+
+```
+node --experimental-strip-types --no-warnings scripts/operational/build.mjs ../ops --fetch
+npm test && npm run build
+```
+
+`--fetch` downloads only what is missing in `data/operational/raw` (delete a
+file there to refresh it; change the periods at the top of the script for a new
+half-year). Without it, the build reads only the raw files already there, so
+they always give the same output. `../ops` supplies the named tables of the
+banks and credit unions Explore reads (identifiers and total assets). Before a
+refresh, check each source's licence page again (they are listed in
+`lib/atlas/operational.ts`); the FCA's terms of use ask for consent to
+automated downloads, so its file can instead be saved by hand into
+`data/operational/raw`.
 
 ## Deploying
 

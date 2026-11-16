@@ -3,7 +3,7 @@ import "./explore.css";
 
 export const metadata: Metadata = {
   title: "Pulsus Platform · Explore",
-  description: "A free window on the world's sectors: the health of banks, credit unions, insurers and government agencies, read from public data. Aggregated; no institution is named.",
+  description: "A free window on the world's sectors: the health of banks, credit unions, insurers and government agencies, read from public data. Financial condition by place; Operational Health for named institutions, from regulators' published complaints data.",
   applicationName: "Pulsus Platform",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Pulsus" },
