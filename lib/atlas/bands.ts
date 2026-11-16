@@ -6,8 +6,12 @@
 //
 //   1–9    no average: only the count ("6 banks — too few for an average")
 //   10–19  the average, as a limited sample: never ranked or compared
-//   20–49  the average, moderate confidence
-//   50+    the average, broader coverage
+//   20–49  the average, a moderate sample
+//   50+    the average, a broad sample
+//
+// The bands describe how many institutions an average is drawn from, nothing
+// more: they are not confidence levels, and 20 is a practical floor for ranking,
+// not a statistical test.
 //
 // Rankings, movers, areas to watch, peer comparisons and "highest/lowest
 // first" orderings need RANK_MIN or more. No group below SHOW_MIN ever shows a
@@ -17,15 +21,15 @@
 export const SHOW_MIN = 10;
 /** The fewest for a group to be ranked or compared with others. */
 export const RANK_MIN = 20;
-/** The fewest for "broader coverage". */
+/** The fewest for a "broad sample". */
 export const BROAD_MIN = 50;
 
 export type Band = "insufficient" | "limited" | "moderate" | "broad";
 export const BAND_LABEL: Record<Band, string> = {
   insufficient: "Insufficient data",
   limited: "Limited sample",
-  moderate: "Moderate confidence",
-  broad: "Broader coverage",
+  moderate: "Moderate sample",
+  broad: "Broad sample",
 };
 
 export const bandOf = (n: number): Band => (n >= BROAD_MIN ? "broad" : n >= RANK_MIN ? "moderate" : n >= SHOW_MIN ? "limited" : "insufficient");

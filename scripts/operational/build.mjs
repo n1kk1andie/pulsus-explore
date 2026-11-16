@@ -20,7 +20,7 @@ import { join } from "node:path";
 import { gunzipSync } from "node:zlib";
 import { readXlsx } from "./xlsx.mjs";
 register("../../tests/helpers/resolve-ts.mjs", import.meta.url);
-const { cfpbIndicators, fcaIndicators, scoreOf, opsGroup, MIN_COMPLAINTS } = await import("../../lib/atlas/operational.ts");
+const { cfpbIndicators, fcaIndicators, scoreOf, opsGroup, MIN_COMPLAINTS, US_TIMELY_RANGE, US_TIMELY_PERCENTILES } = await import("../../lib/atlas/operational.ts");
 
 const ROOT = new URL("../../", import.meta.url).pathname;
 const RAW = join(ROOT, "data/operational/raw");
@@ -212,7 +212,8 @@ for (const [firm, r] of opened.by) {
   const sector = INSURER.test(firm) && insShare >= 0.5 ? "insurance" : (BANK.test(firm) || BANK_ALSO.includes(firm)) && !INSURER.test(firm) ? "banks" : null;
   if (!sector) continue;
   const per1000 = Object.fromEntries(PRODUCTS.map((p) => [p, at(prov, firm, p)]).filter(([, v]) => v !== null && v > 0));
-  const ind = fcaIndicators({ totalOpened: total, within3: at(w3, firm, "Grand Total"), after3within8: at(w8, firm, "Grand Total"), upheld: at(up, firm, "Grand Total"), per1000, opened: o });
+  // The upheld rate is kept beside the score, for information only: not one of its indicators.
+  const { upheld, ...ind } = fcaIndicators({ totalOpened: total, within3: at(w3, firm, "Grand Total"), after3within8: at(w8, firm, "Grand Total"), upheld: at(up, firm, "Grand Total"), per1000, opened: o });
   const id = frn.get(firm.toUpperCase());
   const closedN = at(closed, firm, "Grand Total");
   const w3v = at(w3, firm, "Grand Total");
@@ -222,6 +223,7 @@ for (const [firm, r] of opened.by) {
     source: "fca", period: `Reporting period ${String(r[3]).replace(" to ", " to ")}`, complaints: total,
     ...(Object.keys(per1000).length ? { size: { label: "accounts or policies, as implied by the FCA’s context data", value: Math.round((Object.entries(per1000).reduce((t, [p, v]) => t + (o[p] / v) * 1000, 0))), unit: "accounts", source: "FCA, 2026 H1" } } : {}),
     ind: Object.fromEntries(Object.entries(ind).filter(([, v]) => v !== undefined)),
+    ...(upheld !== undefined ? { upheld } : {}),
     context: [
       { label: "Complaints opened", value: total.toLocaleString("en-US") },
       ...(closedN !== null ? [{ label: "Complaints closed", value: closedN.toLocaleString("en-US") }] : []),
@@ -239,6 +241,11 @@ const out = { built: new Date().toISOString().slice(0, 10), cfpbWindow: [CFPB_FR
 writeFileSync(join(ROOT, "lib/atlas/data/operational.json"), JSON.stringify(out));
 const scored = institutions.filter((i) => scoreOf(i).score !== null);
 console.log(`operational: ${institutions.length} institutions (${scored.length} scored; fewer than ${MIN_COMPLAINTS} complaints or 2 measures leave the rest unscored) · ${(JSON.stringify(out).length / 1024).toFixed(0)} KB`);
+// The yearly review of the US timeliness range (lib/atlas/operational.ts, US_TIMELY_RANGE):
+// the percentiles it is derived from, in this build's data, beside the fixed range in use.
+const pctile = (xs, p) => { const v = [...xs].sort((a, b) => a - b), h = (v.length - 1) * p, lo = Math.floor(h); return v[lo] + (v[Math.min(lo + 1, v.length - 1)] - v[lo]) * (h - lo); };
+const usTimely = institutions.filter((i) => i.source === "cfpb" && i.complaints >= MIN_COMPLAINTS && Number.isFinite(i.ind.timely)).map((i) => i.ind.timely);
+console.log(`  US timeliness range in use ${US_TIMELY_RANGE.zero}%–${US_TIMELY_RANGE.full}%; this data: ${US_TIMELY_PERCENTILES.map((p) => `${p}th percentile ${pctile(usTimely, p / 100).toFixed(1)}%`).join(", ")} (${usTimely.length} institutions)`);
 for (const [c, s] of [["840", "banks"], ["840", "credit-unions"], ["826", "banks"], ["826", "insurance"], ["840", null], ["826", null]]) {
-  const g = opsGroup(institutions, c, s); console.log(`  ${c} ${s ?? "all"}: ${g.n} scored of ${g.listed}${g.hidden ? " (fewer than 20: no median)" : ` · median ${g.median}`}`);
+  const g = opsGroup(institutions, c, s); console.log(`  ${c} ${s ?? "all"}: ${g.n} scored of ${g.listed}${g.hidden ? " (fewer than 10: no median)" : ` · median ${g.median}`}`);
 }

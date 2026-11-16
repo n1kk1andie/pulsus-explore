@@ -82,15 +82,16 @@ test("FCA: the indicators rebuild from the raw file and equal the built data", (
   for (const firm of FIRMS) {
     const opened = Object.fromEntries(PRODUCTS.map((p) => [p, cell(S.opened, firm, p) ?? 0]));
     const per1000 = Object.fromEntries(PRODUCTS.map((p) => [p, cell(S.prov, firm, p)]).filter(([, v]) => v !== null && v > 0));
-    const raw = fcaIndicators({ totalOpened: cell(S.opened, firm, "Grand Total"), within3: cell(S.w3, firm, "Grand Total"), after3within8: cell(S.w8, firm, "Grand Total"), upheld: cell(S.up, firm, "Grand Total"), per1000, opened });
+    const { upheld, ...raw } = fcaIndicators({ totalOpened: cell(S.opened, firm, "Grand Total"), within3: cell(S.w3, firm, "Grand Total"), after3within8: cell(S.w8, firm, "Grand Total"), upheld: cell(S.up, firm, "Grand Total"), per1000, opened });
     const i = byName(firm);
     assert.deepEqual(i.ind, Object.fromEntries(Object.entries(raw).filter(([, v]) => v !== undefined)), firm);
+    assert.equal(i.upheld, upheld, `${firm}: the upheld rate, kept beside the score`);
     assert.equal(i.complaints, cell(S.opened, firm, "Grand Total"));
   }
   // Worked by hand from the FCA's published Grand Totals: Nationwide closed 52.98% within 3 days and
   // 46.47% after 3 days but within 8 weeks, so 99.45%, shown 99.5%; it upheld 55.20%.
   const n = byName("Nationwide Building Society");
-  assert.equal(n.ind.timely, 99.5); assert.equal(n.ind.upheld, 55.2);
+  assert.equal(n.ind.timely, 99.5); assert.equal(n.upheld, 55.2);
   // A single-product firm's rate is the FCA's own context figure: Revolut Bank UK, 0.31 per 1,000.
   assert.equal(byName("Revolut Bank UK Ltd").ind.rate, 0.31);
 });
@@ -99,13 +100,35 @@ test("FCA: the indicators rebuild from the raw file and equal the built data", (
 test("the score: weights add to 100, readings follow the fixed ranges, worked examples", () => {
   assert.equal(INDICATORS.reduce((t, d) => t + d.weight, 0), 100);
   assert.equal(subScore("cfpb", "rate", 1), 100); assert.equal(subScore("cfpb", "rate", 10), 50); assert.equal(subScore("cfpb", "rate", 100), 0);
-  assert.equal(subScore("fca", "rate", 5), 50); assert.equal(subScore("cfpb", "timely", 95), 50); assert.equal(subScore("fca", "timely", 75), 50);
-  // US: rate 10 (50) and timely 100% (100), weights 40:30 → (50×40 + 100×30) / 70 = 71.4 → 71.
+  assert.equal(subScore("fca", "rate", 5), 50); assert.equal(subScore("fca", "timely", 75), 50);
+  // US timeliness: 90% reads 0, 95% 50, 100% 100 (US_TIMELY_RANGE, checked against the data).
+  assert.equal(subScore("cfpb", "timely", 90), 0); assert.equal(subScore("cfpb", "timely", 95), 50); assert.equal(subScore("cfpb", "timely", 100), 100);
+  assert.equal(subScore("cfpb", "timely", 85), 0);
+  // US: rate 10 (50) and timely 100% (100), weights 50:37.5 → (50×50 + 100×37.5) / 87.5 = 71.4 → 71.
   assert.equal(scoreOf({ source: "cfpb", complaints: 100, ind: { rate: 10, timely: 100 } }).score, 71);
-  // UK: every reading 50 → 50.
-  assert.equal(scoreOf({ source: "fca", complaints: 600, ind: { rate: 5, timely: 75, upheld: 50 } }).score, 50);
-  assert.equal(scoreOf({ source: "fca", complaints: 600, ind: { upheld: 50 } }).score, null);
+  // UK: every reading 50 → 50; the same two parts as the US, in the same 57 : 43 balance.
+  assert.equal(scoreOf({ source: "fca", complaints: 600, ind: { rate: 5, timely: 75 } }).score, 50);
+  assert.deepEqual(scoreOf({ source: "fca", complaints: 600, ind: { rate: 5, timely: 75 } }).parts.map((p) => [p.id, p.weight]), [["rate", 57.1], ["timely", 42.9]]);
+  assert.deepEqual(scoreOf({ source: "cfpb", complaints: 600, ind: { rate: 5, timely: 99 } }).parts.map((p) => [p.id, p.weight]), [["rate", 57.1], ["timely", 42.9]]);
   assert.equal(scoreOf({ source: "cfpb", complaints: MIN_COMPLAINTS - 1, ind: { rate: 1, timely: 100 } }).score, null);
+});
+
+test("complaints upheld is not scored: it is shown beside the score, for information only", () => {
+  assert.ok(!INDICATORS.some((d) => d.id === "upheld"));
+  // A firm that upholds fewer complaints scores no higher than one that upholds more.
+  const a = { source: "fca", complaints: 600, ind: { rate: 2, timely: 95 } };
+  assert.equal(scoreOf({ ...a, upheld: 5 }).score, scoreOf({ ...a, upheld: 90 }).score);
+  for (const i of ops.institutions) assert.equal(i.ind.upheld, undefined, i.name);
+  assert.ok(ops.institutions.filter((i) => i.source === "fca" && Number.isFinite(i.upheld)).length > 50);
+  const app = readFileSync(new URL("components/Ops.tsx", root), "utf8");
+  assert.match(app, /Shown for information, not scored/);
+});
+
+test("scores compare institutions within the same country only", () => {
+  assert.throws(() => opsGroup(ops.institutions, null, null), /one country only/);
+  for (const f of ["components/Ops.tsx", "app/methodology/page.tsx"]) assert.match(readFileSync(new URL(f, root), "utf8"), /Scores compare institutions within the same country only\./, f);
+  // The directory's score orderings group by country before sorting by score.
+  assert.match(readFileSync(new URL("components/MapApp.tsx", root), "utf8"), /byCountry\(a, b\) \|\| by\(a, b\)/);
 });
 
 test("every built score is the formula applied to the built indicators, and each institution is traceable", () => {

@@ -2,13 +2,16 @@
 // institutions, from complaints data their regulators publish by name. Unlike
 // Organisational Health (financial condition, read through the Pulsus engine),
 // every step here is public: the indicators, where each comes from, the fixed
-// ranges each is read against, and the weights. Pure, so the build
+// ranges each is read against, and the weights. Scores compare institutions
+// within the same country only: the US and UK sources measure different things
+// over different periods, so a US score and a UK score are never ranked together.
+// Pure, so the build
 // (scripts/operational), the tests and the app all use this one definition.
 
 import { RANK_MIN, SHOW_MIN } from "./bands";
 
 /** The measures the score can use. Each is read against a fixed range, the same for every institution. */
-export type IndicatorId = "rate" | "timely" | "upheld" | "scam";
+export type IndicatorId = "rate" | "timely" | "scam";
 
 export interface IndicatorDef {
   id: IndicatorId;
@@ -19,15 +22,18 @@ export interface IndicatorDef {
   reads: string;
 }
 
-/** The weights: complaint rate 40, timeliness 30, upheld 20, scam reimbursement 10. */
+/** The weights: complaint rate 50, timeliness 37.5, scam reimbursement 12.5 (not used yet).
+ *  "Complaints upheld by the firm" was removed from the score: a firm that rejects more
+ *  complaints would score higher for it. Its 20 was shared among the other three in
+ *  proportion to their earlier weights (40 : 30 : 10), so complaint rate and timeliness
+ *  keep the same 4 : 3 balance. The upheld rate is still shown, for information only
+ *  (OpsInstitution.upheld). */
 export const INDICATORS: IndicatorDef[] = [
-  { id: "rate", label: "Complaints received, relative to size", weight: 40, better: "lower",
+  { id: "rate", label: "Complaints received, relative to size", weight: 50, better: "lower",
     reads: "On a log scale: 100 at the low end of the range, 50 ten times higher, 0 a hundred times higher. US: 1, 10 and 100 complaints a year per $1bn of total assets. UK: 0.5, 5 and 50 complaints per 1,000 accounts or policies, per half-year." },
-  { id: "timely", label: "Complaints handled in time", weight: 30, better: "higher",
-    reads: "A straight line. US (share of complaints with a timely company response): 90% scores 0, 100% scores 100. UK (share of complaints closed within 8 weeks): 50% scores 0, 100% scores 100." },
-  { id: "upheld", label: "Complaints upheld by the firm", weight: 20, better: "lower",
-    reads: "100 minus the share upheld: 0% upheld scores 100, 100% upheld scores 0." },
-  { id: "scam", label: "Scam losses reimbursed", weight: 10, better: "higher",
+  { id: "timely", label: "Complaints handled in time", weight: 37.5, better: "higher",
+    reads: "A straight line. US (share of complaints with a timely company response): 95% scores 0, 100% scores 100, a range set from the spread of US institutions' own rates (reviewed each year). UK (share of complaints closed within 8 weeks): 50% scores 0, 100% scores 100." },
+  { id: "scam", label: "Scam losses reimbursed", weight: 12.5, better: "higher",
     reads: "Not used yet: no per-firm source is free to reuse (see Sources). Its weight is shared among the others." },
 ];
 
@@ -39,9 +45,22 @@ export const MIN_INDICATORS = 2;
  *  A median is shown from SHOW_MIN, with its sample band (lib/atlas/bands.ts). */
 export const OPS_MIN_GROUP = RANK_MIN;
 
+/** US timeliness range: the share of complaints with a timely company response that
+ *  reads 0, and the share that reads 100. A documented judgment, checked against the
+ *  data: from the scored US institutions (50 or more complaints) in the CFPB complaints
+ *  received 1 July 2025 to 30 June 2026, the 5th percentile of the timely-response rate
+ *  was 96.9% and the 95th 100.0% (82 institutions; the build prints both). Setting the
+ *  low end at that spread (95%) would make one point below 100% cost 20 points; the
+ *  range is kept wider, from 90%, so one point costs 10 and the whole observed spread
+ *  sits inside it. Fixed, so every institution is read against the same range, and
+ *  reviewed once a year, when the period moves on. */
+export const US_TIMELY_RANGE = { zero: 90, full: 100 } as const;
+/** The percentiles US_TIMELY_RANGE is derived from, for the yearly review. */
+export const US_TIMELY_PERCENTILES = [5, 95] as const;
+
 /** Fixed ranges, per source. */
 export const RANGES = {
-  cfpb: { rate: { best: 1, unit: "complaints a year per $1bn of total assets" }, timely: { zero: 90, full: 100 } },
+  cfpb: { rate: { best: 1, unit: "complaints a year per $1bn of total assets" }, timely: US_TIMELY_RANGE },
   fca: { rate: { best: 0.5, unit: "complaints per 1,000 accounts or policies, per half-year" }, timely: { zero: 50, full: 100 } },
 } as const;
 export type SourceId = keyof typeof RANGES;
@@ -53,7 +72,6 @@ const r1 = (x: number) => Math.round(x * 10) / 10;
 export function subScore(source: SourceId, id: IndicatorId, v: number): number {
   if (id === "rate") return clamp(100 - 50 * Math.log10(Math.max(v, 1e-9) / RANGES[source].rate.best));
   if (id === "timely") { const t = RANGES[source].timely; return clamp(((v - t.zero) / (t.full - t.zero)) * 100); }
-  if (id === "upheld") return clamp(100 - v);
   return clamp(v); // scam: share reimbursed, %
 }
 
@@ -72,6 +90,9 @@ export interface OpsInstitution {
   size?: { label: string; value: number; unit: string; source: string };
   /** The indicators' values, as percentages or rates, before they are read against the ranges. */
   ind: Partial<Record<IndicatorId, number>>;
+  /** Share of complaints the firm upheld, %, where the source publishes it (the FCA does,
+   *  the CFPB does not). Shown beside the score for information only: not part of it. */
+  upheld?: number;
   /** Shown beside the score, not part of it. */
   context?: { label: string; value: string }[];
 }
@@ -99,11 +120,13 @@ const medianOf = (xs: number[]) => {
   return n ? (n % 2 ? s[(n - 1) / 2] : (s[n / 2 - 1] + s[n / 2]) / 2) : null;
 };
 
-export interface OpsGroup { n: number; listed: number; hidden: boolean; median?: number; ind?: Partial<Record<IndicatorId, number>> }
+export interface OpsGroup { n: number; listed: number; hidden: boolean; median?: number; ind?: Partial<Record<IndicatorId, number>>; /** Median upheld rate, %, for information only (not scored). */ upheld?: number }
 
 /** A group's Operational Health: the median of its scored institutions, only with at least SHOW_MIN of them
  *  (10–19: a limited sample, never compared; lib/atlas/bands.ts). */
 export function opsGroup(all: OpsInstitution[], country: string | null, sector: string | null): OpsGroup {
+  // Never across countries: a group with no country is only ever one country's (see the header).
+  if (!country && new Set(all.map((i) => i.country)).size > 1) throw new Error("opsGroup: scores compare institutions within one country only");
   const rows = all.filter((i) => (!country || i.country === country) && (!sector || sector === "all" || i.sector === sector));
   const scored = rows.map((i) => ({ i, s: scoreOf(i) })).filter((x) => x.s.score !== null);
   if (scored.length < SHOW_MIN) return { n: scored.length, listed: rows.length, hidden: true };
@@ -111,7 +134,8 @@ export function opsGroup(all: OpsInstitution[], country: string | null, sector: 
   const sources = new Set(scored.map((x) => x.i.source));
   const ind: Partial<Record<IndicatorId, number>> = {};
   if (sources.size === 1) for (const d of INDICATORS) { const m = medianOf(scored.map((x) => x.i.ind[d.id] as number)); if (m !== null) ind[d.id] = r1(m); }
-  return { n: scored.length, listed: rows.length, hidden: false, median: Math.round(medianOf(scored.map((x) => x.s.score as number))!), ind };
+  const up = sources.size === 1 ? medianOf(scored.map((x) => x.i.upheld as number)) : null;
+  return { n: scored.length, listed: rows.length, hidden: false, median: Math.round(medianOf(scored.map((x) => x.s.score as number))!), ind, ...(up !== null ? { upheld: r1(up) } : {}) };
 }
 
 // ── the building blocks the build uses, kept here so the tests rebuild from raw the same way ──
@@ -127,7 +151,8 @@ export function cfpbIndicators(c: { total: number; timelyYes: number; timelyNo: 
 
 /** FCA: one firm's row of the firm-level file (products: per-product values; total: the Grand Total column). */
 export interface FcaRow { opened: Record<string, number>; closed: Record<string, number>; within3: Record<string, number>; after3within8: Record<string, number>; upheld: Record<string, number>; per1000: Record<string, number> }
-/** Closed within 8 weeks = closed within 3 days + closed after 3 days but within 8 weeks (the FCA publishes both). */
+/** Closed within 8 weeks = closed within 3 days + closed after 3 days but within 8 weeks (the FCA publishes both).
+ *  `upheld` is returned for information only: the build keeps it out of `ind`, so it is not scored. */
 export function fcaIndicators(f: { totalOpened: number; within3: number | null; after3within8: number | null; upheld: number | null; per1000: Record<string, number>; opened: Record<string, number> }) {
   // Complaints per 1,000 accounts across the firm's products: each product's accounts are
   // backed out of its own rate (opened ÷ rate × 1,000), then all opened ÷ all accounts × 1,000.
