@@ -1208,7 +1208,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       )}
     </div>
     <nav className="xa-tabs-bar" aria-label="Views">
-      {([["overview", "Overview", I_HOME], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["settings", "Settings", I_GEAR]] as [View, string, string][]).map(([k, w, d]) => (
+      {([["overview", "Pulse", I_HOME], ["directory", "Directory", I_LIST], ["map", "Map", I_MAP], ["settings", "Settings", I_GEAR]] as [View, string, string][]).map(([k, w, d]) => (
         <button key={k} className={view === k ? "on" : ""} aria-current={view === k ? "page" : undefined} onClick={() => { setSheet(""); setView(k); }}><Ico d={d} size={22} /><span>{w}</span></button>
       ))}
     </nav>
