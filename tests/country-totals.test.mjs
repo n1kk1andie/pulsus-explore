@@ -105,3 +105,20 @@ test("the grid, map and cards label it, and the grid no longer calls the box emp
   assert.match(app, /const ls = medianLayers\(realDefs\.filter\(\(d\) => d\.sector === x\.id\)/);
   assert.match(app, /rankedFirst\(out, \(r\) => rankCount\(r\.g\)/);
 });
+
+test("each reading is the average of the last four quarters, and carries no year-on-year arrow", () => {
+  assert.deepEqual(eu.smoothing, { quarters: 4, from: eu.national.trend[0].period });
+  for (const g of [eu.national, ...Object.values(eu.regions)]) {
+    const t = g.trend.map((x) => x.ohi);
+    assert.equal(t[t.length - 1], g.ohi, "the latest figure is the last point of the (averaged) trend");
+    // From the fourth quarter on, each point averages four quarters (before it, fewer: the start of the series).
+    for (let i = 4; i < t.length; i++) assert.ok(Math.abs(t[i] - t[i - 1]) <= 15, `a four-quarter average moves gently: ${t[i - 1]} → ${t[i]}`);
+  }
+  const grid = src("components/PulseOverview.tsx"), app = src("components/MapApp.tsx"), tech = src("app/technology/page.tsx");
+  assert.match(grid, /average of the last four quarters/);
+  assert.match(grid, /<b>\{c\.v\}<\/b><em className="xa-mx-tag">/, "the grid's country-totals tile has no arrow");
+  assert.match(app, /change: null, totals:/);
+  assert.match(app, /!r\.g\.totals && r\.ch !== null/, "no arrow on a directory row");
+  assert.match(app, /average of the last four quarters/);
+  assert.match(tech, /average of the last four quarters/);
+});

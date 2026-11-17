@@ -134,7 +134,7 @@ export function Shapes({ rows, shade, icon, onPick }: { rows: ShapeRow[]; shade:
  *  totals sum. Drawn apart (dashed, hatched, tagged) and never part of a row's or column's total. */
 export interface Cell { v: number | null; n: number; change: number | null; totals?: { undertakings: number | null } }
 /** The words a country-totals tile is described by: its tooltip and the start of its label. */
-export const TOTALS_TIP = "From country totals, not a median of insurers";
+export const TOTALS_TIP = "From country totals, not a median of insurers; average of the last four quarters";
 export interface MatrixData {
   /** Every continent, covered or not: an empty one says so rather than being left out. */
   rows: { id: string; label: string; sub: string; globe: string; total: Cell | null }[];
@@ -157,8 +157,9 @@ export function Matrix({ m, shade, icon, onPick }: { m: MatrixData; shade: Shade
       // A country-level reading: dashed and hatched, tagged, and counted in countries (and undertakings), not institutions.
       const cn = `${c.n.toLocaleString("en-US")} ${c.n === 1 ? "country" : "countries"}`;
       const un = c.totals.undertakings ? ` · ${c.totals.undertakings.toLocaleString("en-US")} undertakings` : "";
-      const aria = `${label}: country-level reading ${c.v}, ${TOTALS_TIP.toLowerCase()}; ${cn}${un}${ch}`;
-      const inner = <><b>{c.v}</b>{arrow(c.change)}<em className="xa-mx-tag">country totals</em><small>{cn}{un}</small></>;
+      // No year-on-year arrow: a country-level reading shows its trend line on its card, not a change badge.
+      const aria = `${label}: country-level reading ${c.v}, ${TOTALS_TIP.toLowerCase()}; ${cn}${un}`;
+      const inner = <><b>{c.v}</b><em className="xa-mx-tag">country totals</em><small>{cn}{un}</small></>;
       return pick
         ? <button key={key} type="button" role="cell" className="xa-mx-c is-ctotals" style={style} onClick={pick} title={TOTALS_TIP} aria-label={`${aria}. Open on the map`}>{inner}</button>
         : <span key={key} role="cell" className="xa-mx-c is-ctotals" style={style} title={TOTALS_TIP} aria-label={aria}>{inner}</span>;
