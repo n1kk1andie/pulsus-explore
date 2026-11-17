@@ -21,8 +21,8 @@
   background:linear-gradient(#0a0f2ccc,#0a0f2c00)}
 .xa-top>*{pointer-events:auto}
 .xa-brand{display:flex;align-items:center;gap:8px}
-.xa-brand img{height:40px;width:auto;display:block}
-.xa.is-wide .xa-brand img{height:48px}
+.xa-brand img{height:46px;width:auto;display:block}
+.xa.is-wide .xa-brand img{height:56px}
 .xa .xa-you{margin-left:auto;background:var(--accent);border:0;border-radius:999px;padding:7px 13px;font-weight:600;font-size:13px;color:#fff}
 .xa-search{display:flex;align-items:center;gap:8px;width:100%;max-width:520px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:10px 16px;text-align:left;color:var(--mute);box-shadow:0 6px 20px #0006}
 .xa-chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}

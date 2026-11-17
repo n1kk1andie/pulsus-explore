@@ -111,8 +111,8 @@ export default function Technology() {
       <a className="tk-skip" href="#main">Skip to content</a>
       <header className="tk-top">
         <a className="tk-logo" href="/" aria-label="Pulsus Explore: open the map">
-          <img className="tk-logo-day" src="/pulsus-explore-logo.png" alt="Pulsus Explore" width={588} height={160} />
-          <img className="tk-logo-night" src="/pulsus-explore-logo-night.png" alt="Pulsus Explore" width={588} height={160} />
+          <img className="tk-logo-day" src="/pulsus-explore-lockup.png" alt="Pulsus Explore — Live. Signal. Clarity." width={777} height={242} />
+          <img className="tk-logo-night" src="/pulsus-explore-lockup-night.png" alt="Pulsus Explore — Live. Signal. Clarity." width={777} height={242} />
         </a>
         <nav className="tk-top-nav" aria-label="Explore">
           <a className="tk-btn ghost" href="/">Open Explore</a>
