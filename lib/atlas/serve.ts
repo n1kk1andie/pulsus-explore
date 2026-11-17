@@ -12,6 +12,7 @@ import brBanks from "./data/br-banks.json";
 import brCreditCoops from "./data/br-credit-coops.json";
 import usCreditUnions from "./data/us-credit-unions.json";
 import coInsurers from "./data/co-insurers.json";
+import euInsurers from "./data/eu-insurers.json";
 import usGovernment from "./data/us-government.json";
 import usHospitals from "./data/us-hospitals.json";
 import operational from "./data/operational.json";
@@ -22,7 +23,7 @@ import { exploreAt, type ExploreData } from "./explore";
 
 const BY_ID: Record<string, unknown> = {
   "us-banks": usBanks, "eu-banks": euBanks, "co-banks": coBanks, "br-banks": brBanks, "br-credit-coops": brCreditCoops,
-  "us-credit-unions": usCreditUnions, "co-insurers": coInsurers, "us-government": usGovernment, "us-hospitals": usHospitals,
+  "us-credit-unions": usCreditUnions, "co-insurers": coInsurers, "eu-insurers": euInsurers, "us-government": usGovernment, "us-hospitals": usHospitals,
 };
 
 // Groups of 10–19 are opened here, on the server, as limited samples; 1–9 keep only their count.

@@ -129,7 +129,12 @@ export function Shapes({ rows, shade, icon, onPick }: { rows: ShapeRow[]; shade:
 
 // ── Matrix ───────────────────────────────────────────────────────────────────
 
-export interface Cell { v: number | null; n: number; change: number | null }
+/** `totals`: a country-level reading from published country totals (EIOPA's insurance), not a
+ *  median of institutions: `n` is its number of countries, `undertakings` the undertakings their
+ *  totals sum. Drawn apart (dashed, hatched, tagged) and never part of a row's or column's total. */
+export interface Cell { v: number | null; n: number; change: number | null; totals?: { undertakings: number | null } }
+/** The words a country-totals tile is described by: its tooltip and the start of its label. */
+export const TOTALS_TIP = "From country totals, not a median of insurers";
 export interface MatrixData {
   /** Every continent, covered or not: an empty one says so rather than being left out. */
   rows: { id: string; label: string; sub: string; globe: string; total: Cell | null }[];
@@ -146,9 +151,20 @@ export function Matrix({ m, shade, icon, onPick }: { m: MatrixData; shade: Shade
   const [ref, seen] = useSeen<HTMLDivElement>();
   const tile = (c: Cell | null, key: string, label: string, pick?: () => void, strong = false, reason?: string) => {
     if (!c || c.v === null) { const why = reason || "No public data yet"; return <span key={key} role="cell" className="xa-mx-c is-none" title={why} aria-label={`${label}: ${why}`}><small>{why}</small></span>; }
-    const body = <><b>{c.v}</b>{arrow(c.change)}<small>{c.n.toLocaleString("en-US")}</small></>;
     const style = { "--c": shade(c.v) } as React.CSSProperties;
-    const aria = `${label}: median ${c.v} of ${c.n.toLocaleString("en-US")}${c.change ? `, ${c.change > 0 ? "up" : "down"} ${Math.abs(c.change)} on a year ago` : ""}`;
+    const ch = c.change ? `, ${c.change > 0 ? "up" : "down"} ${Math.abs(c.change)} on a year ago` : "";
+    if (c.totals) {
+      // A country-level reading: dashed and hatched, tagged, and counted in countries (and undertakings), not institutions.
+      const cn = `${c.n.toLocaleString("en-US")} ${c.n === 1 ? "country" : "countries"}`;
+      const un = c.totals.undertakings ? ` · ${c.totals.undertakings.toLocaleString("en-US")} undertakings` : "";
+      const aria = `${label}: country-level reading ${c.v}, ${TOTALS_TIP.toLowerCase()}; ${cn}${un}${ch}`;
+      const inner = <><b>{c.v}</b>{arrow(c.change)}<em className="xa-mx-tag">country totals</em><small>{cn}{un}</small></>;
+      return pick
+        ? <button key={key} type="button" role="cell" className="xa-mx-c is-ctotals" style={style} onClick={pick} title={TOTALS_TIP} aria-label={`${aria}. Open on the map`}>{inner}</button>
+        : <span key={key} role="cell" className="xa-mx-c is-ctotals" style={style} title={TOTALS_TIP} aria-label={aria}>{inner}</span>;
+    }
+    const body = <><b>{c.v}</b>{arrow(c.change)}<small>{c.n.toLocaleString("en-US")}</small></>;
+    const aria = `${label}: median ${c.v} of ${c.n.toLocaleString("en-US")}${ch}`;
     return pick
       ? <button key={key} type="button" role="cell" className={`xa-mx-c${strong ? " is-total" : ""}`} style={style} onClick={pick} aria-label={`${aria}. Open on the map`}>{body}</button>
       : <span key={key} role="cell" className={`xa-mx-c${strong ? " is-total" : ""}`} style={style} aria-label={aria}>{body}</span>;

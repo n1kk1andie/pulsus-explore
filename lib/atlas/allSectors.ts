@@ -5,14 +5,16 @@
 
 import type { LayerDef, SectorId } from "./catalog";
 import type { AtlasGroup, AtlasLayer } from "./layers";
-import { countryGroup } from "./layers";
+import { countryGroup, medianLayers } from "./layers";
 import { canShow } from "./bands";
 
 export type Measure = "ohi" | "oh";
 
 /** A group's reading at a period: its latest point at or before it, or now. */
 export function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null): number | undefined {
-  if (!g || g.hidden || !canShow(g.n)) return undefined;   // 1–9: never a figure (lib/atlas/bands.ts)
+  // 1–9 institutions: never a figure (lib/atlas/bands.ts). A country-totals reading
+  // (g.totals) counts countries, not institutions: it is one country's published totals.
+  if (!g || g.hidden || (!g.totals && !canShow(g.n))) return undefined;
   if (!at) return g[k];
   const t = (g.trend || []).filter((p) => p.period <= at && p[k] !== null);
   return t.length ? (t[t.length - 1][k] as number) : undefined;
@@ -23,7 +25,9 @@ export function valueAt(g: AtlasGroup | undefined, k: Measure, at: string | null
  *  are each sector's median weighted by its size (labelled as such). */
 export const ALL = "all-sectors";
 export const ALL_DEF: LayerDef = { id: ALL, sector: "all" as SectorId, title: "All sectors", publisher: "Every source in Explore", asOf: "", evidence: "financial" };
-export function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
+export function combine(gs0: AtlasGroup[], periods: string[]): AtlasGroup {
+  // Country-totals readings are never combined into a median: they describe no institutions.
+  const gs = gs0.filter((g) => !g.totals);
   const vis = gs.filter((g) => !g.hidden);
   const n = gs.reduce((t, g) => t + g.n, 0);
   if (!vis.length) return { n, hidden: true };
@@ -39,7 +43,9 @@ export function combine(gs: AtlasGroup[], periods: string[]): AtlasGroup {
     ...(vis.length === 1 && vis[0].area ? { area: vis[0].area, members: vis[0].members } : {}),
   };
 }
-export function allSectors(ls: AtlasLayer[], id: string = ALL, sector: string = "all"): AtlasLayer {
+export function allSectors(ls0: AtlasLayer[], id: string = ALL, sector: string = "all"): AtlasLayer {
+  // Only medians of institutions are combined: a country-totals layer (EIOPA's insurance) stays apart.
+  const ls = medianLayers(ls0);
   // The timeline follows the quarterly sources; yearly ones carry their latest year.
   const periods = [...new Set(ls.filter((l) => l.cadence !== "yearly").flatMap((l) => (l.national.trend || []).map((t) => t.period)))].sort();
   const countries = [...new Set(ls.flatMap((l) => l.countries))];
@@ -50,7 +56,8 @@ export function allSectors(ls: AtlasLayer[], id: string = ALL, sector: string = 
   const byState = ls.filter((l) => l.regionKind === "state" && l.countries.includes("840"));
   for (const code of new Set(byState.flatMap((l) => Object.keys(l.regions)))) regions[`US-${code}`] = combine(byState.map((l) => l.regions[code]).filter((g): g is AtlasGroup => !!g), periods);
   const latest = ls.map((l) => l.asOf).sort().pop() || "";
-  return { ...ls[0], layer: id, sector, scope: sector, regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
+  const { kind: _k, terms: _t, note: _n, ...base } = ls[0] || ({} as AtlasLayer);
+  return { ...base, layer: id, sector, scope: sector, regionKind: "country", countries, source: "", asOf: latest, cadence: "quarterly", national: combine(ls.map((l) => l.national), periods), regions, peers: {} };
 }
 /** The layers the map reads for a sector. "All sectors" is the combined layer
  *  (`layers[ALL]`): without it, nothing but the US grid would be coloured. */

@@ -54,10 +54,12 @@ test("the Technology page's figures are the data's own", async () => {
   const { factsOf } = await import("../lib/atlas/facts.ts");
   const { SECTORS } = await import("../lib/atlas/catalog.ts");
   const f = factsOf(layers, LAYERS, SECTORS);
-  assert.equal(f.organisations, layers.reduce((t, l) => t + l.national.n, 0));
+  // A country-totals layer (EIOPA) counts countries, not organisations: it adds none.
+  assert.equal(f.organisations, layers.filter((l) => l.kind !== "country-totals").reduce((t, l) => t + l.national.n, 0));
   assert.equal(f.sources.length, layers.length);
   assert.equal(f.sectorsLive, new Set(layers.map((l) => LAYERS.find((d) => d.id === l.layer).sector)).size);
   for (const s of f.sources) assert.ok(s.indicators.length > 0 && s.points > 0, s.id);
-  for (const l of layers) assert.ok(l.minGroup === f.minGroup || f.exceptions.some((e) => e.minGroup === l.minGroup), l.layer);
+  for (const l of layers) if (l.kind !== "country-totals") assert.ok(l.minGroup === f.minGroup || f.exceptions.some((e) => e.minGroup === l.minGroup), l.layer);
+  assert.ok(f.exceptions.every((e) => !/country totals/i.test(e.title)), "a country-totals layer is no floor exception");
   assert.equal(f.insightMin, 20);
 });
