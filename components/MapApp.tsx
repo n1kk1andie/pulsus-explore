@@ -138,6 +138,12 @@ const I_HOSP = "M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M3 21h18M12 7v6M9 10h6"
 const I_UNI = "M22 10 12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5";
 const SECTOR_ICON: Record<string, string> = { banks: "M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M12 3l9 5H3z", "credit-unions": I_CU, insurance: I_SHIELD, government: I_GOV, hospitals: I_HOSP, universities: I_UNI };
 /** Why a region has no figures in Explore yet: shown under the grid instead of empty rows. */
+/** Why a box in the Sector by region grid is empty, in a few words. Only what has been checked. */
+const EMPTY_WHY: Record<string, Record<string, string>> = {
+  na: { insurance: "Not free: sold, not published openly" },
+  lac: { government: "No source checked yet", hospitals: "No source checked yet" },
+  eu: { "credit-unions": "No EU-wide source", insurance: "Country totals only", government: "No EU-wide source", hospitals: "No EU-wide source" },
+};
 const NOT_COVERED: Record<string, string> = {
   af: "South Africa's central bank requires written consent to reuse its data and publishes no profit or capital figures for each bank; other countries not yet checked",
   me: "no source checked yet",
@@ -816,6 +822,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   // Sector by region: every continent, so a reader sees what is covered and what is not yet.
   const continentOf = (l: AtlasLayer) => (l.countries.length === 1 ? CONTINENT_OF[l.countries[0]] : /europe/i.test(l.scope) ? "eu" : CONTINENT_OF[l.countries[0]]) || "other";
   const matrix: MatrixData = {
+    why: EMPTY_WHY,
     rows: CONTINENTS.filter((ct) => realDefs.some((d) => continentOf(real[d.id]) === ct.id)).map((ct) => {
       const ls = realDefs.map((d) => real[d.id]).filter((l) => continentOf(l) === ct.id);
       const sub = ls.length ? [...new Set(ls.map((l) => (l.countries.length === 1 ? (l.countries[0] === "840" ? "United States" : cname(l.countries[0])) : `${l.countries.length} countries`)))].join(", ") : "Not covered yet";
