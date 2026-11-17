@@ -194,8 +194,8 @@ export default function Technology() {
 
               <h3>Who is included</h3>
               <p>
-                {usBanks && <>US banks are every bank that files quarterly figures with the FDIC and has a report in each of the {usBanks.points} quarters, with every indicator for the latest. Most are FDIC-insured; a few are uninsured trust companies, so the total is not the FDIC’s own count of insured institutions; </>}
-                {usCU && <>US credit unions, every federally insured credit union with all {usCU.points} quarters; </>}
+                {usBanks && <>US banks are every FDIC-insured institution, as the FDIC counts them (insured by its Deposit Insurance Fund at the latest quarter, so no uninsured trust companies and no US branches of foreign banks), that has a report in each of the {usBanks.points} quarters, with every indicator for the latest, so the total is a little below the FDIC’s own count of insured institutions; </>}
+                {usCU && <>US credit unions, every credit union that files the NCUA’s quarterly call report with all {usCU.points} quarters: almost all are federally insured, and about 2% are state-chartered credit unions insured privately; </>}
                 {usHosp && <>US hospitals, general short-term acute-care hospitals, so that like is compared with like; </>}
                 {eu && <>Europe’s banks, the {n0(eu.n)} of the {EBA_BANKS} banks in the European Banking Authority’s 2025 EU-wide transparency exercise that publish every indicator needed (the rest publish no profit or cost figures, or only half-yearly ones); </>}
                 {src("co-banks") && <>Colombia’s banks and insurers, from the supervisory accounts they file with the Superintendencia Financiera de Colombia; </>}

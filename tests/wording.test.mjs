@@ -26,3 +26,12 @@ test("the scores are still said not to be official regulatory ratings", () => {
     assert.match(readFileSync(join(root, f), "utf8"), /They are not official regulatory ratings\./, f);
   }
 });
+
+test("the Technology page says who is included accurately: insured banks only; credit unions as the NCUA's data has them", () => {
+  const src = readFileSync(join(root, "app/technology/page.tsx"), "utf8");
+  assert.match(src, /every FDIC-insured institution, as the FDIC counts them/);
+  assert.match(src, /no uninsured trust companies and no US branches of foreign banks/);
+  assert.doesNotMatch(src, /a few are uninsured trust companies/);
+  assert.doesNotMatch(src, /every federally insured credit union/, "the NCUA's call report data also holds privately insured credit unions");
+  assert.match(src, /insured privately/);
+});
