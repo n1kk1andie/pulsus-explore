@@ -756,7 +756,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       ))}
     </div>
   );
-  const logo = <a href="/"><img src={theme === "light" ? "/pulsus-explore-logo.png" : "/pulsus-explore-logo-night.png"} alt="Pulsus Explore" width={588} height={160} /></a>;
+  const logo = <a href="/"><img src={theme === "light" ? "/pulsus-explore-lockup.png" : "/pulsus-explore-lockup-night.png"} alt="Pulsus Explore — Live. Signal. Clarity." width={777} height={242} /></a>;
   const you = <button className="xa-you" onClick={() => setSheet(sheet === "you" ? "" : "you")}>Compare your organisation →</button>;
   const brand = <div className="xa-brand">{logo}{you}</div>;
   /** Open a place on the map, with its card. */
