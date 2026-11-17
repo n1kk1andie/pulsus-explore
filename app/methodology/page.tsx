@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import operational from "../../lib/atlas/data/operational.json";
 import { INDICATORS, MIN_COMPLAINTS, MIN_INDICATORS, OPS_SOURCES, RANGES, US_TIMELY_PERCENTILES, opsGroup, type OpsInstitution } from "../../lib/atlas/operational";
+import brBanks from "../../lib/atlas/data/br-banks.json";
 import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN, bandOf, sampleText } from "../../lib/atlas/bands";
 
 export const metadata: Metadata = { title: "Operational Health: method and sources · Pulsus Platform · Explore" };
 export const dynamic = "force-static";
 
 const insts = operational.institutions as OpsInstitution[];
+const BR_ATTRIBUTION = brBanks.licence.attribution;
 const RED = { color: "#d0284a" };
 const th = { textAlign: "left" as const, padding: "6px 8px", borderBottom: "1px solid var(--pz-line, #d6dcec)", fontSize: 13 };
 const h2 = { marginTop: 26 };
@@ -80,6 +82,7 @@ export default function Methodology() {
         </div>
       ))}
       <p>The size measures for US institutions come from the FDIC (BankFind Suite) and the NCUA (call reports), public US government data, as used throughout Explore.</p>
+      <p>Organisational Health in Brazil (financial figures, not Operational Health): {BR_ATTRIBUTION} The Brazil layer data published by Explore is made available under the <a className="pz-link-btn" href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License (ODbL) 1.0</a>; <a className="pz-link-btn" href="/data/brazil">download it</a>. <a className="pz-link-btn" href="/technology#licences">More on the sources →</a></p>
 
       <h2 className="pz-h3" style={h2}>Reproducible from the raw files</h2>
       <p>The publishers&apos; files are kept as served, with their SHA-256 fingerprints, and the build reads only them. Tests rebuild several institutions&apos; indicators from those files (the CFPB&apos;s complaint records, and the FCA&apos;s per-product figures) and check them against the publishers&apos; own totals.</p>

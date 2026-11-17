@@ -2,9 +2,10 @@
 // layers themselves, so the page stays true each time the data is refreshed
 // (npm run sync-data). Pure: tested in tests/explore.test.mjs.
 
-import type { AtlasLayer } from "./layers";
+import type { AtlasLayer, AtlasLicence } from "./layers";
 import type { LayerDef, SectorDef } from "./catalog";
 import { INSIGHT_MIN } from "./explore";
+import { canShow } from "./bands";
 
 /** A period as Explore writes it: "Q2 2026", or "FY2024" for a yearly source. */
 export const periodLabel = (cadence: string | undefined, p: string) =>
@@ -17,6 +18,8 @@ export interface SourceFact {
   /** How the layer is broken down into places, in words. */
   places: string;
   indicators: { label: string; better: "higher" | "lower"; context: boolean }[];
+  /** The source's open-database licence and notice, when it has one (Brazil: ODbL). */
+  licence?: AtlasLicence;
 }
 
 export interface Facts {
@@ -39,7 +42,11 @@ export function factsOf(layers: AtlasLayer[], defs: LayerDef[], sectors: SectorD
     const shown = regions.filter(([, g]) => !g.hidden);
     let places: string;
     if (l.regionKind === "state") places = `${shown.length} of ${regions.length} states and territories shown on their own`;
-    else if (l.countries.length === 1) places = "Read for the country as a whole";
+    else if (l.countries.length === 1 && l.states) {
+      // By count, as built: the layers Explore serves have their limited samples opened (withLimited).
+      const st = Object.values(l.states), on = st.filter((g) => g.n >= l.minGroup).length, lim = st.filter((g) => canShow(g.n) && g.n < l.minGroup).length;
+      places = `Read for the country as a whole; by head-office state, ${on} shown${lim ? ` and ${lim} as limited samples` : ""}`;
+    } else if (l.countries.length === 1) places = "Read for the country as a whole";
     else {
       const areas = shown.filter(([, g]) => g.area);
       places = `${count(shown.length - areas.length, "country", "countries")} shown on their own; the rest read together in ${count(areas.length, "area", "areas")}`;
@@ -49,6 +56,7 @@ export function factsOf(layers: AtlasLayer[], defs: LayerDef[], sectors: SectorD
       n: l.national.n, cadence: l.cadence === "yearly" ? "yearly" : "quarterly",
       from: t.length ? t[0].period : l.asOf, to: l.asOf, points: t.length, minGroup: l.minGroup, regionKind: l.regionKind, places,
       indicators: (l.indicators || []).map((i) => ({ label: i.label, better: i.better, context: !!i.context })),
+      ...(l.licence ? { licence: l.licence } : {}),
     };
   });
   const mins = live.map((d) => byId[d.id].minGroup);

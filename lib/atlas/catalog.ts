@@ -14,8 +14,8 @@ export type SectorId = "banks" | "credit-unions" | "insurance" | "government" | 
 
 export interface SectorDef { id: SectorId; label: string; status: LayerStatus; where: string }
 export const SECTORS: SectorDef[] = [
-  { id: "banks", label: "Banks", status: "live", where: "US, Europe, Colombia" },
-  { id: "credit-unions", label: "Credit unions", status: "live", where: "United States" },
+  { id: "banks", label: "Banks", status: "live", where: "US, Europe, Colombia, Brazil" },
+  { id: "credit-unions", label: "Credit unions", status: "live", where: "United States, Brazil" },
   { id: "insurance", label: "Insurance", status: "live", where: "Colombia" },
   { id: "government", label: "Government", status: "live", where: "US federal agencies" },
   { id: "hospitals", label: "Hospitals", status: "live", where: "United States" },
@@ -39,7 +39,9 @@ export const LAYERS: LayerDef[] = [
   { id: "us-banks", sector: "banks", title: "US banks", publisher: "FDIC (US bank regulator)", asOf: "2026-06", evidence: "financial" },
   { id: "eu-banks", sector: "banks", title: "Europe's largest banks", publisher: "European Banking Authority", asOf: "2025-06", evidence: "financial" },
   { id: "co-banks", sector: "banks", title: "Colombian banks", publisher: "Superintendencia Financiera de Colombia", asOf: "2026-06", evidence: "financial" },
+  { id: "br-banks", sector: "banks", title: "Brazilian banks", publisher: "Banco Central do Brasil (IF.data, ODbL)", asOf: "2026-06", evidence: "financial" },
   { id: "us-credit-unions", sector: "credit-unions", title: "US credit unions", publisher: "NCUA (US credit union regulator)", asOf: "2026-06", evidence: "financial" },
+  { id: "br-credit-coops", sector: "credit-unions", title: "Brazilian credit cooperatives", publisher: "Banco Central do Brasil (IF.data, ODbL)", asOf: "2026-06", evidence: "financial" },
   { id: "co-insurers", sector: "insurance", title: "Colombian insurers", publisher: "Superintendencia Financiera de Colombia", asOf: "2026-06", evidence: "financial" },
   { id: "us-hospitals", sector: "hospitals", title: "US hospitals", publisher: "CMS (Medicare cost reports)", asOf: "2024-12", evidence: "financial" },
   { id: "us-government", sector: "government", title: "US federal agencies", publisher: "USAspending.gov (US Treasury) and FOIA.gov (US Justice Department)", asOf: "2025-09", evidence: "operational-limited" },
@@ -50,7 +52,6 @@ export const LAYERS: LayerDef[] = [
 export const NEXT: Record<string, string> = {
   "124": "Next: banks and credit unions, from the national regulators' institution-level returns.",
   "036": "Next: banks and credit unions, from the prudential regulator's institution-level statistics.",
-  "076": "Next: banks, from the central bank's institution-level data (its service is unavailable at the moment).",
   "356": "Next: banks, from the central bank's bank-wise statistics.",
   "826": "Operational Health is live for named UK banks, building societies and insurers, from the FCA's firm-level complaints data. Next: their financial condition, from published regulatory disclosures; universities.",
   "484": "Next: banks, from the banking supervisor's published institution data.",

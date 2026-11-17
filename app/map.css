@@ -198,6 +198,7 @@
 /* all sectors: each sector of the chosen country */
 .xa-by{margin-top:12px}
 .xa-by button{display:flex;width:100%;justify-content:space-between;align-items:center;gap:10px;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--line);padding:9px 2px}
+.xa-by-row{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid var(--line);padding:9px 2px}
 .xa-by small{display:block;color:var(--mute);font-size:12px}
 .xa-by em{font:700 16px Sora,sans-serif;font-style:normal;flex:none}
 

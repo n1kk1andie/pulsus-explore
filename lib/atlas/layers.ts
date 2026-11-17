@@ -18,7 +18,13 @@ export interface AtlasLayer {
   indicators?: AtlasIndicator[];
   /** A country read as part of an area: country → the area's key in `regions`. */
   areas?: Record<string, string>;
+  /** States within a one-country layer (Brazil: each institution's head office), under the same floors as `regions`. */
+  stateKind?: string; states?: Record<string, AtlasGroup>;
+  /** The source's licence, carried with its data (Brazil: the Open Database License). */
+  licence?: AtlasLicence;
 }
+/** An open-database licence and the notice it asks for (ODbL 4.2–4.3). */
+export interface AtlasLicence { id: string; url: string; attribution: string; database?: string; notice?: string }
 
 /** A layer's reading for one country: the whole layer when it covers just that
  *  country by states, else that country's group. */
@@ -47,4 +53,5 @@ export function shownGroup(g: AtlasGroup): AtlasGroup {
 /** A layer with its limited samples opened (shownGroup), for Explore. */
 export const withLimited = (l: AtlasLayer): AtlasLayer => ({
   ...l, national: shownGroup(l.national), regions: Object.fromEntries(Object.entries(l.regions).map(([k, g]) => [k, shownGroup(g)])),
+  ...(l.states ? { states: Object.fromEntries(Object.entries(l.states).map(([k, g]) => [k, shownGroup(g)])) } : {}),
 });
