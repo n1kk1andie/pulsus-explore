@@ -133,7 +133,7 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
 
 /** A country-level reading, as its card shows it: what it is, and what it is not. */
 const TOTALS_LABEL = "Country-level reading (EIOPA totals)";
-const TOTALS_WHY = "Read from the totals EIOPA publishes for all of a country's reporting insurance and reinsurance undertakings, through the same engine and fixed levels as every other score. It is not a median of insurers: there is no spread of institutions behind it, so it is never ranked, compared, counted in a sector's or region's median, or listed among the movers.";
+const TOTALS_WHY = "Read from the totals EIOPA publishes for all of a country's reporting insurance and reinsurance undertakings, through the same engine and fixed levels as every other score, shown as the average of the last four quarters. It is not a median of insurers: there is no spread of institutions behind it, so it is never ranked, compared, counted in a sector's or region's median, or listed among the movers.";
 /** EIOPA's reuse terms, as its legal notice asks: the acknowledgement, the twofold disclaimer, and where the original is free. */
 function Terms({ t }: { t: NonNullable<AtlasLayer["terms"]> }) {
   return (
@@ -159,7 +159,7 @@ function TotalsIndicators({ l, g }: { l: AtlasLayer; g: AtlasGroup }) {
       <details className="xa-how">
         <summary>How this reading was calculated</summary>
         <p>EIOPA publishes, for each country, the totals of every insurance and reinsurance undertaking that reports to its supervisor, and its own ratios of them. The SCR and MCR coverage ratios are EIOPA&apos;s; the excess of assets over liabilities to total assets is calculated from its balance sheet totals; the non-life combined and expense ratios are calculated as EIOPA defines them (claims and expenses incurred over premiums earned, net of reinsurance), over the trailing four quarters, from its year-to-date figures, so they do not swing with the season.</p>
-        <p>{higher.length ? `Higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; lower" : "Lower"} is stronger for ${lower.join(", ")}` : ""}. Each is measured against its own fixed levels over up to three years, and the Pulsus engine combines them into one score out of 100, as for every other place.</p>
+        <p>{higher.length ? `Higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; lower" : "Lower"} is stronger for ${lower.join(", ")}` : ""}. Each is measured against its own fixed levels over up to three years, and the Pulsus engine combines them into one score out of 100, as for every other place. As one country&apos;s totals are a single reading, not a median of many, each figure shown (the latest, the trend line and the map&apos;s colour) is the average of the last four quarters (of fewer for the first three quarters of the series).</p>
         <p>Its limits: a country&apos;s totals are dominated by its largest undertakings, and a country with a few very strong and many weak insurers can read well. It says nothing about how the insurers in between are doing. Undertakings exempted from quarterly reporting are not in the quarterly totals.</p>
         <p><a href="/technology#totals">Country-level readings, and their limits →</a></p>
       </details>
@@ -774,7 +774,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
             {g.undertakings ? <div><small>undertakings in the totals</small><b>{n0(g.undertakings)}</b></div> : null}
           </div>
           <dl className="xa-measures">
-            <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>{whole ? "The EEA's" : "The country's"} published insurance totals, scored out of 100 by the same fixed levels as every other score. A country-level reading, not a median of insurers.</p></div>
+            <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>{whole ? "The EEA's" : "The country's"} published insurance totals, scored out of 100 by the same fixed levels as every other score: the average of the last four quarters. A country-level reading, not a median of insurers.</p></div>
           </dl>
           {tr.length > 1 && (
             <>
@@ -929,7 +929,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       if (ls.length) return [x.id, cellOf(ls.length === 1 ? ls[0] : allSectors(ls))];
       // No medians here, but a country-level reading (EIOPA's European insurance): its own, distinct tile.
       const tot = here.find(isCountryTotals);
-      return [x.id, tot ? { ...cellOf(tot), totals: { undertakings: tot.national.undertakings ?? null } } : null];
+      return [x.id, tot ? { ...cellOf(tot), change: null, totals: { undertakings: tot.national.undertakings ?? null } } : null];
     }))])),
     all: cellOf(allL),
   };
@@ -1092,7 +1092,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
               <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b>{r.g.totals
                 ? <small title={TOTALS_TIP}>{r.region === null ? `${n0(r.g.n)} countries · ` : ""}{r.g.undertakings ? `${n0(r.g.undertakings)} undertakings · ` : ""}<span className="xa-band is-limited">{TOTALS_LABEL}{dirSort !== "az" ? " · not ranked" : ""}</span> · {when(r.l, r.l.asOf)}</small>
                 : <small>{n0(r.g.n)} {NOUN[r.def.sector]} · <span className={`xa-band is-${bandOf(r.g.n)}`}>{band(r.g.n)}{!canRank(r.g.n) && dirSort !== "az" ? " · not ranked" : ""}</span> · {when(r.l, r.l.asOf)}</small>}</span>
-              <span className="xa-dir-v"><strong>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}><Delta n={r.ch} /></small>}</span>
+              <span className="xa-dir-v"><strong>{r.v ?? "—"}</strong>{!r.g.totals && r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}><Delta n={r.ch} /></small>}</span>
             </button>
           </li>
         ))}
