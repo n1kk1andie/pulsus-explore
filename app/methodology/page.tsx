@@ -50,15 +50,15 @@ export default function Methodology() {
       <h2 className="pz-h3" style={h2}>Who gets a score</h2>
       <p>An institution is scored only with at least {MIN_COMPLAINTS} complaints in the period and at least {MIN_INDICATORS} indicators. Otherwise Explore shows “—” with the reason.</p>
 
-      <h2 className="pz-h3" style={h2} id="sample">How many institutions stand behind an average</h2>
-      <p>Every average in Explore, for Operational Health and Organisational Health alike, is labelled with how many institutions it describes, in four bands. The bands describe sample size only; they are not confidence levels or a statistical test.</p>
+      <h2 className="pz-h3" style={h2} id="sample">How many institutions stand behind a median</h2>
+      <p>Every median in Explore, for Operational Health and Organisational Health alike, is labelled with how many institutions it describes, in four bands. (In the All sectors view, a place&apos;s figure is each sector&apos;s median weighted by its number of organisations, with the same count.) The bands describe sample size only; they are not confidence levels or a statistical test.</p>
       <ul>
-        <li><b>{BAND_LABEL.insufficient}</b>: 1 to {SHOW_MIN - 1}. No average is shown, only the count (for example, “6 institutions — too few for an average”). Too few for a fair average, and too few to be sure no single institution could be picked out.</li>
-        <li><b>{BAND_LABEL.limited}</b>: {SHOW_MIN} to {RANK_MIN - 1}. The average is shown, labelled, and drawn lighter on the map. It is not ranked, put in order of highest or lowest, or compared with other groups or with a single institution: one institution can still move it a long way.</li>
-        <li><b>{BAND_LABEL.moderate}</b>: {RANK_MIN} to {BROAD_MIN - 1}. The average is shown, ranked and compared. {RANK_MIN} is a practical floor for ranking, chosen so one institution moves a median less; it is not a point of statistical validity.</li>
+        <li><b>{BAND_LABEL.insufficient}</b>: 1 to {SHOW_MIN - 1}. No median is shown, only the count (for example, “6 institutions — too few for an average”). Too few for a fair median, and too few to be sure no single institution could be picked out.</li>
+        <li><b>{BAND_LABEL.limited}</b>: {SHOW_MIN} to {RANK_MIN - 1}. The median is shown, labelled, and drawn lighter on the map. It is not ranked, put in order of highest or lowest, or compared with other groups or with a single institution: one institution can still move it a long way.</li>
+        <li><b>{BAND_LABEL.moderate}</b>: {RANK_MIN} to {BROAD_MIN - 1}. The median is shown, ranked and compared. {RANK_MIN} is a practical floor for ranking, chosen so one institution moves a median less; it is not a point of statistical validity.</li>
         <li><b>{BAND_LABEL.broad}</b>: {BROAD_MIN} or more.</li>
       </ul>
-      <p>Organisational Health&apos;s financial figures are always anonymous: a group&apos;s figures are medians, and no group of fewer than {SHOW_MIN} shows a figure, so no institution can be identified from them.</p>
+      <p>Organisational Health&apos;s financial figures name no institution: a group&apos;s figures are medians, and no group of fewer than {SHOW_MIN} shows a figure. That lowers the risk that one institution&apos;s figures can be worked out, but it does not guarantee anonymity: many of these institutions are well known, and their regulators publish their figures by name.</p>
       <p>Where a place&apos;s Operational Health is shown, it is the median of the institutions there with a score, and is labelled with that count:</p>
       <ul>{groups.map(([name, c, s]) => { const g = opsGroup(insts, c, s); return <li key={name}>{name}: {g.n} scored of {g.listed} named · {g.hidden ? sampleText(g.n, "scored") : `${BAND_LABEL[bandOf(g.n)]}; ${median(g.n)}: ${g.median}`}.</li>; })}</ul>
       <p>UK coverage is limited: the FCA publishes firm-level figures only for firms above its reporting threshold (500 or more complaints in the six months), so smaller UK firms are not included, and some groups report their firms&apos; complaints together in one return, so a named firm&apos;s figures can include others in its group.</p>
