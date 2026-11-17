@@ -38,7 +38,7 @@ test("names match without case or accents, and keep their article", () => {
 test("a country on the coming-next list says coming next", () => {
   const s = say("Canada", "banks");
   assert.equal(s.text, "Canada is coming next. Explore covers the United States, Europe and Colombia today.");
-  assert.match(say("Brasil", null).text, /^Brazil is coming next/);
+  assert.match(say("Mexico", null).text, /^Mexico is coming next/);
 });
 
 test("a covered place with nothing in the sector offers all sectors", () => {
@@ -66,7 +66,10 @@ test("the longest name wins, and states before countries of the same name", () =
 });
 
 test("a region read only in part names what is there", () => {
-  assert.equal(say("South America", null).text, "In South America, Explore covers Colombia so far.");
+  assert.equal(say("South America", null).text, "In South America, Explore covers Brazil and Colombia so far.");
+  // Brazil, by its own name too: covered for banks and credit cooperatives, so a search finds it.
+  assert.equal(explainEmpty("Brasil", "banks", ohi, NEXT, ops), null);
+  assert.equal(explainEmpty("Brazil", "credit-unions", ohi, NEXT, ops), null);
   assert.match(say("Africa", null).text, /^Africa isn't covered yet\./);
 });
 

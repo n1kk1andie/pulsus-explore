@@ -106,6 +106,7 @@ export default function Technology() {
   const NOUN: Record<string, string> = { banks: "banks", "credit-unions": "credit unions", insurance: "insurers", hospitals: "hospitals", government: "government agencies" };
   const liveSectors = SECTORS.filter((s) => s.status === "live").map((s) => NOUN[s.id] ?? lower(s.label));
   const nextSectors = f.sectorsNext.map((s) => `${lower(s.label)} (${s.where})`);
+  const brBanks = src("br-banks"), licensed = f.sources.filter((s) => s.licence);
   const usBanks = src("us-banks"), usCU = src("us-credit-unions"), usHosp = src("us-hospitals"), eu = src("eu-banks"), gov = src("us-government");
   const withContext = f.sources.filter((s) => s.indicators.some((i) => i.context));
   const quarterly = f.sources.filter((s) => s.cadence === "quarterly" && s.id !== "eu-banks"), yearly = f.sources.filter((s) => s.cadence === "yearly");
@@ -188,6 +189,7 @@ export default function Technology() {
                       <div><dt>Places</dt><dd>{s.places}</dd></div>
                     </dl>
                     <p className="tk-src-raw">{s.source}</p>
+                    {s.licence && <p className="tk-src-raw">{s.licence.attribution} Licence: <a href={s.licence.url}>Open Database License (ODbL) 1.0</a>.</p>}
                   </li>
                 ))}
               </ul>
@@ -199,8 +201,17 @@ export default function Technology() {
                 {usHosp && <>US hospitals, general short-term acute-care hospitals, so that like is compared with like; </>}
                 {eu && <>Europe’s banks, the {n0(eu.n)} of the {EBA_BANKS} banks in the European Banking Authority’s 2025 EU-wide transparency exercise that publish every indicator needed (the rest publish no profit or cost figures, or only half-yearly ones); </>}
                 {src("co-banks") && <>Colombia’s banks and insurers, from the supervisory accounts they file with the Superintendencia Financiera de Colombia; </>}
+                {brBanks && <>Brazil’s banks (commercial, multiple, investment and development banks, each banking group read once, as its capital is supervised) and its single credit cooperatives, from the Banco Central do Brasil’s IF.data, read from {periodLabel(brBanks.cadence, brBanks.from)}, the first quarter after the accounting change of Resolução CMN nº 4.966; the card for each also gives the medians by the state of each institution’s head office; </>}
                 {gov && <>and US federal agencies, from their published budget, reporting and FOIA figures.</>}
               </p>
+
+              {licensed.length > 0 && (
+                <>
+                  <h3 id="licences">Open-database licences</h3>
+                  {licensed.map((s) => <p key={s.id}>{s.title}: {s.licence!.attribution}</p>)}
+                  <p>The Brazil layer data published by Explore is made available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License (ODbL) 1.0</a>, and can be <a href="/data/brazil">downloaded in full</a>, with how it is derived.</p>
+                </>
+              )}
 
               <h3 id="sample">How many organisations stand behind a median</h3>
               <p>Every median in Explore says how many organisations it describes, in four bands. (In the All sectors view, a place’s figure is its sectors’ medians weighted by size, labelled with their total count.)</p>

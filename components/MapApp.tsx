@@ -92,6 +92,14 @@ function Measures({ v, ops, onOps }: { v: number | undefined; ops?: { g: OpsGrou
   );
 }
 
+/** Brazil's states and the Federal District, by the code IF.data gives each head office. */
+const BR_STATE: Record<string, string> = { AC: "Acre", AL: "Alagoas", AP: "Amapá", AM: "Amazonas", BA: "Bahia", CE: "Ceará", DF: "Federal District", ES: "Espírito Santo", GO: "Goiás", MA: "Maranhão", MT: "Mato Grosso", MS: "Mato Grosso do Sul", MG: "Minas Gerais", PA: "Pará", PB: "Paraíba", PR: "Paraná", PE: "Pernambuco", PI: "Piauí", RJ: "Rio de Janeiro", RN: "Rio Grande do Norte", RS: "Rio Grande do Sul", RO: "Rondônia", RR: "Roraima", SC: "Santa Catarina", SP: "São Paulo", SE: "Sergipe", TO: "Tocantins" };
+
+/** An open-database source's notice (ODbL 4.3): what it contains, from where, under which licence. */
+function Licence({ l }: { l: NonNullable<AtlasLayer["licence"]> }) {
+  return <p className="xa-src-line">{l.attribution} The figures Explore publishes from it are made available under the <a href={l.url}>Open Database License (ODbL) 1.0</a>; <a href="/data/brazil">download them</a>.</p>;
+}
+
 function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publisher: string }) {
   const all = l.indicators || [];
   const ind = all.filter((i) => !i.context), ctx = all.filter((i) => i.context);
@@ -110,6 +118,7 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
         </>
       )}
       <p className="xa-src-line">Source: {publisher}, {when(l, l.asOf)}{ctx.length ? " · risk measures calculated by Pulsus from the same filings" : ""} · Pulsus independent analysis</p>
+      {l.licence && <Licence l={l.licence} />}
       <details className="xa-how">
         <summary>How this score was calculated</summary>
         <p>Each institution is scored out of 100 from the figures its regulator publishes, the indicators above, each measured against its own fixed levels over up to three years. A place&apos;s score is the median of its institutions.</p>
@@ -705,13 +714,27 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
             </div>
             <Sample n={g.n} many={NOUN[def.sector]} />
             <Measures v={valueAt(g, "ohi", at)} ops={opsForLayer(l, sel.region)} onOps={() => openOps("840")} />
-            {(g.trend || []).length > 1 && (
+            {(() => { const tr = (g.trend || []).filter((t) => t[measure] !== null);   // from its first reading: Brazil's starts in 2025
+              return tr.length > 1 && (
               <>
-                <Spark values={(g.trend || []).map((t) => t[measure])} color={lineShade((g.trend || []).map((t) => t[measure]))} />
-                <p className="xa-axis"><span>{when(l, g.trend![0].period)}</span><span>{WORD[measure]}</span><span>{when(l, g.trend![g.trend!.length - 1].period)}</span></p>
+                <Spark values={tr.map((t) => t[measure])} color={lineShade(tr.map((t) => t[measure]))} />
+                <p className="xa-axis"><span>{when(l, tr[0].period)}</span><span>{WORD[measure]}</span><span>{when(l, tr[tr.length - 1].period)}</span></p>
               </>
-            )}
+            ); })()}
             {l.indicators && g.ind && <Indicators l={l} g={g} publisher={def.publisher} />}
+            {l.states && sel.region === null && (
+              <div className="xa-by">
+                <p className="xa-label">By state of head office</p>
+                {Object.entries(l.states).sort((a, b) => b[1].n - a[1].n || a[0].localeCompare(b[0])).map(([uf, sg]) => { const sv = valueAt(sg, measure, at);
+                  return (
+                    <div key={uf} className="xa-by-row">
+                      <span><b>{BR_STATE[uf] || uf}</b><small>{n0(sg.n)} {sg.n === 1 ? NOUN[def.sector].replace(/ies$/, "y").replace(/s$/, "") : NOUN[def.sector]} · {sg.hidden || !canShow(sg.n) ? "too few for an average" : band(sg.n)}</small></span>
+                      <em>{sg.hidden || !canShow(sg.n) ? "few" : sv ?? "—"}</em>
+                    </div>
+                  ); })}
+                <p className="xa-note">Where each institution has its head office, not where it lends. Limited samples are never ranked or compared.</p>
+              </div>
+            )}
           </>
         )}
         {def.id === ALL && sel.region && (
@@ -1019,7 +1042,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <div className="xa-sub-sec">
           <h3>Data streams (sources)</h3>
           <p className="xa-label">Organisational Health</p>
-          <ul className="xa-src">{realDefs.map((d) => <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small></li>)}</ul>
+          <ul className="xa-src">{realDefs.map((d) => { const lc = layers[d.id].licence; return <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small>{lc && <><small>Licence: <a href={lc.url}>Open Database License (ODbL) 1.0</a> · <a href="/data/brazil">the data, to download</a></small><small>{lc.attribution} The figures Explore publishes from it are made available under the ODbL.</small></>}</li>; })}</ul>
           <p className="xa-label">Operational Health</p>
           <ul className="xa-src">{OPS_SOURCES.filter((s) => s.used).map((s) => <li key={s.id}><b>{s.dataset}</b><small>{s.publisher} · {s.period}</small><small>Licence: <a href={s.licenceUrl}>{s.licence}</a></small><small>{s.attribution}</small></li>)}</ul>
           <p className="xa-muted small">Checked and not used, because they are not free to reuse: {OPS_SOURCES.filter((s) => !s.used).map((s) => s.publisher).join("; ")}. <a href="/methodology#sources">Why, and the full method →</a></p>
@@ -1281,8 +1304,9 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
               </ul>
               <p>Scores are calculated by Pulsus from published regulatory data. They are not official regulatory ratings. No institution is named in the financial figures.</p>
               <p className="xa-label">Data streams (sources)</p>
-              <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</li>)}
+              <ul>{realDefs.map((d) => <li key={d.id}><b>{d.title}</b> · {d.publisher} · {when(layers[d.id], layers[d.id].asOf)}{layers[d.id].licence && <> · <a href={layers[d.id].licence!.url}>ODbL</a></>}</li>)}
                 {OPS_SOURCES.filter((s) => s.used).map((s) => <li key={s.id}><b>Operational Health</b> · {s.publisher}, {s.dataset} · {s.licence}</li>)}</ul>
+              {realDefs.some((d) => layers[d.id].licence) && <p className="small">{layers[realDefs.find((d) => layers[d.id].licence)!.id].licence!.attribution} The Brazil figures Explore publishes are made available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License (ODbL)</a>.</p>}
               <p><a href="/methodology">How Operational Health is calculated</a></p>
               <p><a href="/privacy">Privacy</a> · © 2026 Tumblehill Holdings LLC</p>
             </div>

@@ -18,7 +18,7 @@ test("the map reads the combined layer when All sectors is chosen", () => {
   const v = inView("all", LAYERS, layers);
   assert.equal(v.length, 1);
   assert.equal(v[0].l.layer, ALL);
-  assert.deepEqual(inView("banks", LAYERS, layers).map((x) => x.l.layer).sort(), ["co-banks", "eu-banks", "us-banks"]);
+  assert.deepEqual(inView("banks", LAYERS, layers).map((x) => x.l.layer).sort(), ["br-banks", "co-banks", "eu-banks", "us-banks"]);
 });
 
 test("All sectors covers every country any single sector covers, coloured where any sector is", () => {
