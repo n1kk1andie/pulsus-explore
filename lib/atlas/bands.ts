@@ -54,3 +54,7 @@ export function rankedFirst<T>(rows: T[], n: (r: T) => number, by: (a: T, b: T) 
   const rest = rows.filter((r) => !canRank(n(r))).sort((a, b) => name(a).localeCompare(name(b)));
   return [...ranked, ...rest];
 }
+
+/** The count a group is ranked by: its institutions; a country-level reading from
+ *  country totals (g.totals, EIOPA) counts none, so it is never ranked or compared. */
+export const rankCount = (g: { n: number; totals?: true }) => (g.totals ? 0 : g.n);

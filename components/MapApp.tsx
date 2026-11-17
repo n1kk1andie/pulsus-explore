@@ -9,11 +9,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ExploreData, Mover, Hotspot } from "../lib/atlas/explore";
 import type { AtlasGroup, AtlasLayer } from "../lib/atlas/layers";
-import { countryGroup, regionKeyOf } from "../lib/atlas/layers";
+import { countryGroup, isCountryTotals, medianLayers, regionKeyOf } from "../lib/atlas/layers";
 import { INSIGHT_MIN, insightsOf } from "../lib/atlas/explore";
-import { Heartbeat, Matrix, Shapes, beatSentence, type Cell, type MatrixData, type ShapeRow } from "./PulseOverview";
+import { Heartbeat, Matrix, Shapes, TOTALS_TIP, beatSentence, type Cell, type MatrixData, type ShapeRow } from "./PulseOverview";
 import { ALL, ALL_DEF, allSectors, inView, valueAt, type Measure } from "../lib/atlas/allSectors";
-import { BAND_LABEL, RANK_MIN, SHOW_MIN, bandClass, bandOf, canRank, canShow, rankedFirst, sampleText } from "../lib/atlas/bands";
+import { BAND_LABEL, RANK_MIN, SHOW_MIN, bandClass, bandOf, canRank, canShow, rankCount, rankedFirst, sampleText } from "../lib/atlas/bands";
 import { ELSEWHERE, LAYERS, NEXT, SECTORS, type LayerDef, type SectorId } from "../lib/atlas/catalog";
 import { OPS_SOURCES, opsGroup, scoreOf, type OpsGroup } from "../lib/atlas/operational";
 import { COUNTRY, InstitutionCard, PlaceOpsCard, SAME_COUNTRY, groupWord, medianLabel, type OpsData } from "./Ops";
@@ -131,6 +131,41 @@ function Indicators({ l, g, publisher }: { l: AtlasLayer; g: AtlasGroup; publish
   );
 }
 
+/** A country-level reading, as its card shows it: what it is, and what it is not. */
+const TOTALS_LABEL = "Country-level reading (EIOPA totals)";
+const TOTALS_WHY = "Read from the totals EIOPA publishes for all of a country's reporting insurance and reinsurance undertakings, through the same engine and fixed levels as every other score. It is not a median of insurers: there is no spread of institutions behind it, so it is never ranked, compared, counted in a sector's or region's median, or listed among the movers.";
+/** EIOPA's reuse terms, as its legal notice asks: the acknowledgement, the twofold disclaimer, and where the original is free. */
+function Terms({ t }: { t: NonNullable<AtlasLayer["terms"]> }) {
+  return (
+    <div className="xa-terms">
+      <p>{t.acknowledgement}</p>
+      <p>{t.disclaimer}</p>
+      <p>{t.free} <a href={t.data}>EIOPA insurance statistics</a> · <a href={t.url}>EIOPA legal notice</a></p>
+    </div>
+  );
+}
+/** The regulatory indicators behind a country-level reading: the country's own totals, not medians. */
+function TotalsIndicators({ l, g }: { l: AtlasLayer; g: AtlasGroup }) {
+  const ind = l.indicators || [];
+  const fmt = (v: number | null | undefined, unit: string) => (v === null || v === undefined || !Number.isFinite(v) ? "—" : `${v.toFixed(Math.abs(v) >= 100 ? 0 : Math.abs(v) >= 10 ? 1 : 2)}${unit}`);
+  const higher = ind.filter((i) => i.better === "higher").map((i) => i.label.toLowerCase());
+  const lower = ind.filter((i) => i.better === "lower").map((i) => i.label.toLowerCase());
+  return (
+    <div className="xa-ind">
+      <p className="xa-label">Regulatory indicators · from country totals, not medians</p>
+      <dl>{ind.map((i) => <div key={i.id}><dt>{i.label}</dt><dd>{fmt(g.ind?.[i.id], i.unit)}</dd></div>)}</dl>
+      <p className="xa-src-line">Source: EIOPA insurance statistics, Solvency II, solo undertakings, {when(l, l.asOf)} · Pulsus independent analysis</p>
+      <details className="xa-how">
+        <summary>How this reading was calculated</summary>
+        <p>EIOPA publishes, for each country, the totals of every insurance and reinsurance undertaking that reports to its supervisor, and its own ratios of them. The SCR and MCR coverage ratios are EIOPA&apos;s; the excess of assets over liabilities to total assets is calculated from its balance sheet totals; the non-life combined and expense ratios are EIOPA&apos;s, year to date.</p>
+        <p>{higher.length ? `Higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; lower" : "Lower"} is stronger for ${lower.join(", ")}` : ""}. Each is measured against its own fixed levels over up to three years, and the Pulsus engine combines them into one score out of 100, as for every other place.</p>
+        <p>Its limits: a country&apos;s totals are dominated by its largest undertakings, and a country with a few very strong and many weak insurers can read well. It says nothing about how the insurers in between are doing. Undertakings exempted from quarterly reporting are not in the quarterly totals.</p>
+        <p><a href="/technology#totals">Country-level readings, and their limits →</a></p>
+      </details>
+    </div>
+  );
+}
+
 const I_CU = "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.9M16 3.1a4 4 0 0 1 0 7.8";
 const I_SHIELD = "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z";
 const I_GOV = "M5 22V3M5 4h12l-2.5 4L17 12H5";
@@ -142,7 +177,7 @@ const SECTOR_ICON: Record<string, string> = { banks: "M3 21h18M5 21V10M19 21V10M
 const EMPTY_WHY: Record<string, Record<string, string>> = {
   na: { insurance: "Not free: sold, not published openly" },
   lac: { government: "No source checked yet", hospitals: "No source checked yet" },
-  eu: { "credit-unions": "No EU-wide source", insurance: "Country totals only", government: "No EU-wide source", hospitals: "No EU-wide source" },
+  eu: { "credit-unions": "No EU-wide source", government: "No EU-wide source", hospitals: "No EU-wide source" },
 };
 const NOT_COVERED: Record<string, string> = {
   af: "South Africa's central bank requires written consent to reuse its data and publishes no profit or capital figures for each bank; other countries not yet checked",
@@ -275,12 +310,13 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   // A sector read from several sources (banks: US, Europe, Colombia) also has a
   // combined reading, so tapping the sector opens one card for all of it.
   const sectorDefs = useMemo(() => SECTORS.flatMap((x) => {
-    const own = realDefs.filter((d) => d.sector === x.id);
+    // A sector's combined reading is a median across its sources: country-totals layers stay out of it.
+    const own = realDefs.filter((d) => d.sector === x.id && !isCountryTotals(real[d.id]));
     return own.length > 1 ? [{ id: `sector-${x.id}`, sector: x.id, title: x.label, publisher: own.map((d) => d.publisher).join("; "), asOf: "", evidence: "financial" } as LayerDef] : [];
   }), [realDefs]);
   const layers = useMemo((): Record<string, AtlasLayer> => ({
     ...real, [ALL]: allSectors(realDefs.map((d) => real[d.id])),
-    ...Object.fromEntries(sectorDefs.map((sd) => [sd.id, allSectors(realDefs.filter((d) => d.sector === sd.sector).map((d) => real[d.id]), sd.id, sd.sector)])),
+    ...Object.fromEntries(sectorDefs.map((sd) => [sd.id, allSectors(medianLayers(realDefs.filter((d) => d.sector === sd.sector).map((d) => real[d.id])), sd.id, sd.sector)])),
   }), [real, realDefs, sectorDefs]);
   const defs = useMemo(() => [...realDefs, ...sectorDefs, ALL_DEF], [realDefs, sectorDefs]);
   const [theme, toggleTheme] = useTheme();
@@ -360,7 +396,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     if (s.region === null) return { def, l, g: l.national, title: def.title };
     const g = l.regionKind === "country" && l.countries.length === 1 && l.countries[0] === s.region ? l.national : l.regions[s.region];
     if (!g) return null;
-    return { def, l, g, title: `${place(l, s.region)}: ${NOUN[def.sector]}` };
+    return { def, l, g, title: isCountryTotals(l) ? `${place(l, s.region)}: insurance, country totals` : `${place(l, s.region)}: ${NOUN[def.sector]}` };
   }, [layers, defs, place]);
 
   // Each country's reading in the sector (the first layer that covers it).
@@ -476,6 +512,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     flyTo({ cx, cy, zoom });
   }, [wide, size, mh, base, flyTo]);
 
+
   // Drag to pan, pinch or wheel to zoom; a short press is a tap.
   const ptrs = useRef(new Map<number, { x: number; y: number }>());
   const moved = useRef(0);
@@ -569,7 +606,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     for (const def of realDefs) {
       const l = layers[def.id];
       out.push({ layerId: def.id, region: null, label: def.title, g: l.national, hay: fold(`${def.title} ${def.sector}`) });
-      for (const [r, g] of Object.entries(l.regions)) if (!g.hidden && !(l.regionKind === "country" && l.countries.length === 1)) { const label = `${place(l, r)}: ${NOUN[def.sector]}`; out.push({ layerId: def.id, region: r, label, g, hay: fold(`${label} ${def.sector} ${(g.members || []).map(cname).join(" ")}`) }); }
+      for (const [r, g] of Object.entries(l.regions)) if (!g.hidden && !(l.regionKind === "country" && l.countries.length === 1)) { const label = isCountryTotals(l) ? `${place(l, r)}: insurance, country totals` : `${place(l, r)}: ${NOUN[def.sector]}`; out.push({ layerId: def.id, region: r, label, g, hay: fold(`${label} ${def.sector} ${(g.members || []).map(cname).join(" ")}`) }); }
     }
     return out;
   }, [realDefs, layers, place, cname]);
@@ -640,6 +677,17 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     for (const k of world.countries) c[k.id] = mainland(k.d);
     setCentres(c);
   }, [world]);
+  /** Fly so several countries (a country-totals layer's) fill the part of the screen the card leaves free. */
+  const flyToCountries = useCallback((isos: string[]) => {
+    // From each country's largest piece of land (centres), so French Guiana does not pull the frame to South America.
+    const pts = isos.map((i) => centres[i]).filter(Boolean); if (!pts.length) return;
+    const b = { x0: Math.min(...pts.map((p) => p[0] - p[2] / 2)), x1: Math.max(...pts.map((p) => p[0] + p[2] / 2)), y0: Math.min(...pts.map((p) => p[1] - p[2] / 2)), y1: Math.max(...pts.map((p) => p[1] + p[2] / 2)) };
+    const bw = b.x1 - b.x0, bh = b.y1 - b.y0;
+    const freeW = wide ? size.w - 420 : size.w, freeH = wide ? mh - 120 : mh * 0.42;
+    const zoom = Math.min(10, Math.max(1, Math.min(freeW / (bw / base), freeH / (bh / base)) * 0.85));
+    const uu = base / zoom;
+    flyTo({ cx: (b.x0 + b.x1) / 2 + (wide ? (420 / 2) * uu : 0), cy: (b.y0 + b.y1) / 2 + (wide ? 0 : (mh * 0.27) * uu), zoom });
+  }, [centres, wide, size, mh, base, flyTo]);
   // Each covered country's reading at the chosen period: shown on the map, so the slider visibly moves it.
   const gridId = lens === "ops" ? null : usGridFor(sector);   // the US is drawn as its states, on the world map (financial view only)
   /** A country's colour and number in the Operational Health view: its median, with enough scored institutions. */
@@ -648,13 +696,13 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [insts, sector, centres]);
   const labels = useMemo(() => {
-    const out: { iso: string; v: number; lim: boolean }[] = [];
+    const out: { iso: string; v: number; lim: boolean; totals?: boolean }[] = [];
     for (const c of world.countries) {
       if (gridId && c.id === "840") continue;
       const r = atCountry(c.id); if (!r || !centres[c.id]) continue;
       if (r.g.members && r.g.members[0] !== c.id) continue;   // an area's number sits once, on its largest country
       const v = valueAt(r.g, measure, at);
-      if (v !== undefined) out.push({ iso: c.id, v, lim: !canRank(r.g.n) });
+      if (v !== undefined) out.push(r.g.totals ? { iso: c.id, v, lim: false, totals: true } : { iso: c.id, v, lim: !canRank(r.g.n) });
     }
     return lens === "ops" ? opsLabels : out;
   }, [world, atCountry, centres, measure, at, gridId, lens, opsLabels]);
@@ -708,6 +756,49 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
     }
     if (!cur) return null;
     const { def, l, g, title } = cur;
+    if (isCountryTotals(l)) {
+      // A country-level reading (EIOPA's country totals): labelled as such, never ranked or compared.
+      const whole = sel.region === null;
+      const v = valueAt(g, "ohi", at);
+      const tr = (g.trend || []).filter((t) => t[measure] !== null);
+      const each = whole ? Object.entries(l.regions).filter(([, rg]) => rg.totals).sort((a, b) => cname(a[0]).localeCompare(cname(b[0]))) : [];
+      return (
+        <div className="xa-card-in">
+          <div className="xa-card-h"><h2>{whole ? "Europe: insurance, country totals" : title}</h2><button className="xa-x" onClick={close} aria-label="Close">×</button></div>
+          <p className="xa-sub">{def.title} · {when(l, at || l.asOf)}</p>
+          <p className="xa-totals" title={TOTALS_TIP}>{TOTALS_LABEL}</p>
+          <p className="xa-totals-why">{whole ? <>The European Economic Area as a whole: EIOPA&apos;s totals for {g.undertakings ? `${n0(g.undertakings)} undertakings in ` : ""}{n0(g.n)} countries, read as one. </> : null}{TOTALS_WHY}</p>
+          <div className="xa-stats">
+            {whole && <div><small>countries</small><b>{n0(g.n)}</b></div>}
+            {g.undertakings ? <div><small>undertakings in the totals</small><b>{n0(g.undertakings)}</b></div> : null}
+          </div>
+          <dl className="xa-measures">
+            <div><dt>Organisational Health</dt><dd><b>{v ?? "—"}</b>{v !== undefined && <span>/100</span>}</dd><p>{whole ? "The EEA's" : "The country's"} published insurance totals, scored out of 100 by the same fixed levels as every other score. A country-level reading, not a median of insurers.</p></div>
+          </dl>
+          {tr.length > 1 && (
+            <>
+              <Spark values={tr.map((t) => t[measure])} color={lineShade(tr.map((t) => t[measure]))} />
+              <p className="xa-axis"><span>{when(l, tr[0].period)}</span><span>{WORD[measure]}</span><span>{when(l, tr[tr.length - 1].period)}</span></p>
+            </>
+          )}
+          {l.indicators && g.ind && <TotalsIndicators l={l} g={g} />}
+          {whole && each.length > 0 && (
+            <div className="xa-by">
+              <p className="xa-label">Each country · A to Z, not ranked · tap to open</p>
+              {each.map(([iso, rg]) => { const rv = valueAt(rg, measure, at);
+                return (
+                  <button key={iso} onClick={() => choose(l.layer, iso)}>
+                    <span><b>{cname(iso)}</b><small>{rg.undertakings ? `${n0(rg.undertakings)} undertakings · ` : ""}country totals</small></span>
+                    <em>{rv ?? "—"}</em>
+                  </button>
+                ); })}
+            </div>
+          )}
+          <p className="xa-note">Not ranked or compared, and not counted in any median or total: a country-level reading from EIOPA&apos;s published country totals.</p>
+          {l.terms && <Terms t={l.terms} />}
+        </div>
+      );
+    }
     const pinned = pins.includes(pinKey(sel));
     return (
       <div className="xa-card-in">
@@ -751,7 +842,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
               const rv = valueAt(rg, measure, at);
               return (
                 <button key={d.id} onClick={() => choose(d.id, st ? st : rl.regionKind === "state" ? null : rl.countries.length === 1 ? null : sel.region)}>
-                  <span><b>{SECTORS.find((x) => x.id === d.sector)?.label}</b><small>{n0(rg.n)} {NOUN[d.sector]} · {rg.hidden ? "too few for an average" : band(rg.n)} · {d.publisher}</small></span>
+                  <span><b>{SECTORS.find((x) => x.id === d.sector)?.label}</b><small>{rg.totals ? <>{TOTALS_LABEL}{rg.undertakings ? ` · ${n0(rg.undertakings)} undertakings` : ""} · not part of this place&apos;s figure</> : <>{n0(rg.n)} {NOUN[d.sector]} · {rg.hidden ? "too few for an average" : band(rg.n)} · {d.publisher}</>}</small></span>
                   <em>{rg.hidden ? "few" : rv ?? "—"}</em>
                 </button>
               ); })}
@@ -768,7 +859,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <div className="xa-cmp-note" role="status" aria-live="polite">
           {pinNote && <><span>{pinNote.text}</span>{pinNote.view && <button className="xa-linkbtn" onClick={viewComparison}>View comparison</button>}</>}
         </div>
-        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has. No institution is named in the financial figures.</> : <>{def.publisher}. No institution is named in the financial figures.</>}</p>
+        <p className="xa-note">{def.id === ALL ? <>Each sector&apos;s median, weighted by how many organisations it has; a country-level reading from country totals (European insurance) is listed but not part of it. No institution is named in the financial figures.</> : <>{def.publisher}. No institution is named in the financial figures.</>}</p>
       </div>
     );
   })();
@@ -800,7 +891,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   const openSector = (id: Sector) => { setSector(id); setSel(null); setStates(null); setView("map"); flyTo(home); };
   /** A sector card on the Overview: the map, on that sector, with its card open. */
   const openSectorCard = (id: Sector) => {
-    const own = realDefs.filter((d) => d.sector === id);
+    const own = realDefs.filter((d) => d.sector === id && !isCountryTotals(real[d.id]));
     const layerId = own.length > 1 ? `sector-${id}` : own[0]?.id;
     if (!layerId) { openSector(id); return; }
     setSector(id); setStates(null); setView("map"); setSheet(""); setSel({ layerId, region: null });
@@ -810,7 +901,8 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   // ── Overview (the Pulse tab): the world of business at a glance ──────────────────────────────────────
   const allL = layers[ALL];
   const sectorCards = SECTORS.filter((x) => x.status === "live").map((x) => {
-    const ls = realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]);
+    // Medians of institutions only: a country-totals layer is never part of a sector's total or shape.
+    const ls = medianLayers(realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id]));
     return ls.length ? { x, l: ls.length === 1 ? ls[0] : allSectors(ls), n: ls.length } : null;
   }).filter(Boolean) as { x: (typeof SECTORS)[number]; l: AtlasLayer; n: number }[];
   /** A group as a tile: its median, how many, and the change on a year ago (four quarters back). */
@@ -824,25 +916,33 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   const matrix: MatrixData = {
     why: EMPTY_WHY,
     rows: CONTINENTS.filter((ct) => realDefs.some((d) => continentOf(real[d.id]) === ct.id)).map((ct) => {
-      const ls = realDefs.map((d) => real[d.id]).filter((l) => continentOf(l) === ct.id);
+      // A region's "All sectors" tile is a median of institutions: country-totals layers stay out of it.
+      const ls = medianLayers(realDefs.map((d) => real[d.id]).filter((l) => continentOf(l) === ct.id));
       const sub = ls.length ? [...new Set(ls.map((l) => (l.countries.length === 1 ? (l.countries[0] === "840" ? "United States" : cname(l.countries[0])) : `${l.countries.length} countries`)))].join(", ") : "Not covered yet";
       return { id: ct.id, label: ct.label, sub, globe: ct.globe, total: ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null };
     }),
     cols: sectorCards.map(({ x, l }) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, total: cellOf(l) })),
     cells: Object.fromEntries(CONTINENTS.map((ct) => [ct.id, Object.fromEntries(sectorCards.map(({ x }) => {
-      const ls = realDefs.filter((d) => d.sector === x.id && continentOf(real[d.id]) === ct.id).map((d) => real[d.id]);
-      return [x.id, ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null];
+      const here = realDefs.filter((d) => d.sector === x.id && continentOf(real[d.id]) === ct.id).map((d) => real[d.id]);
+      const ls = medianLayers(here);
+      if (ls.length) return [x.id, cellOf(ls.length === 1 ? ls[0] : allSectors(ls))];
+      // No medians here, but a country-level reading (EIOPA's European insurance): its own, distinct tile.
+      const tot = here.find(isCountryTotals);
+      return [x.id, tot ? { ...cellOf(tot), totals: { undertakings: tot.national.undertakings ?? null } } : null];
     }))])),
     all: cellOf(allL),
   };
   const shapeRows: ShapeRow[] = [
     ...sectorCards.map(({ x, l }) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, n: l.national.n, median: l.national.ohi ?? null,
-      scores: realDefs.filter((d) => d.sector === x.id).flatMap((d) => real[d.id].peers?.all?.ohi || []) })),
+      scores: medianLayers(realDefs.filter((d) => d.sector === x.id).map((d) => real[d.id])).flatMap((l) => l.peers?.all?.ohi || []) })),
     ...SECTORS.filter((x) => x.status !== "live").map((x) => ({ id: x.id, label: x.label, icon: SECTOR_ICON[x.id] || I_ORGS, n: 0, median: null, scores: [], next: true, where: x.where })),
   ];
   const beats = (allL.national.trend || []).filter((t) => t.ohi !== null).map((t) => ({ label: when(allL, t.period), v: t.ohi as number }));
   const pickCell = (sector: string, region: string) => {
-    const ls = realDefs.filter((d) => d.sector === sector && (!region || continentOf(real[d.id]) === region)).map((d) => real[d.id]);
+    const all = realDefs.filter((d) => d.sector === sector && (!region || continentOf(real[d.id]) === region)).map((d) => real[d.id]);
+    const ls = medianLayers(all);
+    // A country-level reading's tile opens its own card: the area's totals, with each country A to Z.
+    if (region && !ls.length && all.length === 1) { setSector(sector as Sector); setStates(null); setView("map"); setSheet(""); setSel({ layerId: all[0].layer, region: null }); setTimeout(() => flyToCountries(all[0].countries), 30); return; }
     openSectorCard(sector as Sector);
     if (region && ls.length === 1 && ls[0].countries.length === 1) setTimeout(() => flyToCountry(ls[0].countries[0]), 60);
   };
@@ -885,7 +985,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         </ul>
         <div className="xa-btns"><button className="xa-btn" onClick={() => openSector("all")}>Open the map ›</button><button className="xa-btn ghost" onClick={() => { setLens("ops"); setSector("all"); setView("map"); flyTo(home); }}>Operational Health ›</button><button className="xa-btn ghost" onClick={() => setView("directory")}>Browse the directory</button></div>
         <details className="xa-how"><summary>How these scores work</summary>
-          <p className="xa-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, each indicator against its own fixed levels; a place&apos;s score is the median of its institutions, and in All sectors, each sector&apos;s median weighted by its number of organisations. Sectors share the 0 to 100 range but not their indicators, so comparisons across sectors are indicative. Operational Health: calculated from complaints data regulators publish by firm; each country&apos;s figure is the {(["840", "826"] as const).map((c) => `${c === "840" ? "US" : "UK"} ${medianLabel(opsGroup(insts, c, null).n)}`).join(" and the ")}. {SAME_COUNTRY} Every median shows how many organisations it describes: under {SHOW_MIN}, no median; {SHOW_MIN} to {RANK_MIN - 1}, a {BAND_LABEL.limited.toLowerCase()}, never ranked; {RANK_MIN} to 49, a {BAND_LABEL.moderate.toLowerCase()}; 50 or more, a {BAND_LABEL.broad.toLowerCase()}. The two measures are kept separate.</p>
+          <p className="xa-note">Organisational Health: each institution scored out of 100 from the figures its regulator publishes, each indicator against its own fixed levels; a place&apos;s score is the median of its institutions, and in All sectors, each sector&apos;s median weighted by its number of organisations. Sectors share the 0 to 100 range but not their indicators, so comparisons across sectors are indicative. European insurance is different: EIOPA publishes country totals, not each insurer&apos;s figures, so each country is a country-level reading of its totals, shown dashed and tagged, and never counted in these medians. Operational Health: calculated from complaints data regulators publish by firm; each country&apos;s figure is the {(["840", "826"] as const).map((c) => `${c === "840" ? "US" : "UK"} ${medianLabel(opsGroup(insts, c, null).n)}`).join(" and the ")}. {SAME_COUNTRY} Every median shows how many organisations it describes: under {SHOW_MIN}, no median; {SHOW_MIN} to {RANK_MIN - 1}, a {BAND_LABEL.limited.toLowerCase()}, never ranked; {RANK_MIN} to 49, a {BAND_LABEL.moderate.toLowerCase()}; 50 or more, a {BAND_LABEL.broad.toLowerCase()}. The two measures are kept separate.</p>
         </details>
       </section>
       <Invite />
@@ -896,7 +996,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       </section>
       <section className="xa-panel xa-ov-sec" aria-labelledby="xa-mx-h">
         <h2 id="xa-mx-h" className="xa-box-h">Sector by region</h2>
-        <p className="xa-sub">The median of each sector in each part of the world, with how many organisations it describes and its change on a year ago. Regions with no usable public data yet are listed below the grid, with the reason. Tap a tile to see it on the map.</p>
+        <p className="xa-sub">The median of each sector in each part of the world, with how many organisations it describes and its change on a year ago. Regions with no usable public data yet are listed below the grid, with the reason. A dashed, hatched tile tagged &ldquo;country totals&rdquo; is a country-level reading from published country totals, not a median of organisations: its count is countries (and the undertakings in their totals), and it is not part of any row&apos;s or column&apos;s total. Tap a tile to see it on the map.</p>
         <p className="xa-mx-swipe">Swipe the grid sideways for every sector →</p>
         <Matrix m={matrix} shade={shade} icon={(d) => <Ico d={d} size={16} />} onPick={pickCell} />
         {CONTINENTS.some((ct) => !realDefs.some((d) => continentOf(real[d.id]) === ct.id)) && (
@@ -937,7 +1037,8 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       && words.every((w) => r.hay.includes(w) || fold(r.def.title).includes(w)));
     const by = { high: (a: typeof out[0], b: typeof out[0]) => (b.v ?? -1) - (a.v ?? -1), low: (a: typeof out[0], b: typeof out[0]) => (a.v ?? 999) - (b.v ?? 999), change: (a: typeof out[0], b: typeof out[0]) => Math.abs(b.ch ?? 0) - Math.abs(a.ch ?? 0), az: (a: typeof out[0], b: typeof out[0]) => a.label.localeCompare(b.label) }[dirSort];
     // Highest, lowest and biggest change rank: only groups of RANK_MIN or more; limited samples follow, A to Z, not ranked.
-    return dirSort === "az" ? out.sort(by) : rankedFirst(out, (r) => r.g.n, by, (r) => r.label);
+    // Country-level readings (r.g.totals) are never ranked: they follow, A to Z, with the limited samples.
+    return dirSort === "az" ? out.sort(by) : rankedFirst(out, (r) => rankCount(r.g), by, (r) => r.label);
   }, [rows, dirQ, sector, measure, dirSort, dirKind]);
   const instShown = useMemo(() => {
     const sec = opsSector(sector);
@@ -987,7 +1088,9 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           <li key={`${r.layerId}|${r.region}`}>
             <button onClick={() => open(r.layerId, r.region)}>
               <span className="xa-dir-dot" style={{ background: r.v !== undefined ? shade(r.v) : COLOR.few }} />
-              <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b><small>{n0(r.g.n)} {NOUN[r.def.sector]} · <span className={`xa-band is-${bandOf(r.g.n)}`}>{band(r.g.n)}{!canRank(r.g.n) && dirSort !== "az" ? " · not ranked" : ""}</span> · {when(r.l, r.l.asOf)}</small></span>
+              <span className="xa-dir-name"><b>{r.region === null ? r.def.title : r.label}</b>{r.g.totals
+                ? <small title={TOTALS_TIP}>{r.region === null ? `${n0(r.g.n)} countries · ` : ""}{r.g.undertakings ? `${n0(r.g.undertakings)} undertakings · ` : ""}<span className="xa-band is-limited">{TOTALS_LABEL}{dirSort !== "az" ? " · not ranked" : ""}</span> · {when(r.l, r.l.asOf)}</small>
+                : <small>{n0(r.g.n)} {NOUN[r.def.sector]} · <span className={`xa-band is-${bandOf(r.g.n)}`}>{band(r.g.n)}{!canRank(r.g.n) && dirSort !== "az" ? " · not ranked" : ""}</span> · {when(r.l, r.l.asOf)}</small>}</span>
               <span className="xa-dir-v"><strong>{r.v ?? "—"}</strong>{r.ch !== null && r.ch !== 0 && <small style={{ color: r.ch > 0 ? COLOR.good : COLOR.bad }}><Delta n={r.ch} /></small>}</span>
             </button>
           </li>
@@ -1033,7 +1136,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           <p>Explore shows how healthy whole sectors are, country by country and state by state: banks, credit unions, insurers, hospitals and government agencies today, with universities next. Anyone can use it, with no account.</p>
           <p><b>Organisational Health</b> is a score out of 100 for financial condition. Each institution is scored from the figures its regulator publishes (for banks, credit unions and insurers: capital, profitability, loan quality and costs; for government agencies, published budget and reporting measures), each indicator measured against its own fixed levels over up to three years. A place&apos;s score is the median of its institutions. It describes financial condition, not how an organisation operates day to day; that takes an organisation&apos;s own operational data, which Pulsus <span className="xa-red">Platform</span> reads.</p>
           <p><b>Operational Health</b> is a separate Pulsus score, out of 100, for named banks, credit unions and insurers. It is calculated by a published formula from complaints data their regulators publish by firm (the US Consumer Financial Protection Bureau and the UK Financial Conduct Authority): how many complaints are received relative to size, and how quickly they are handled. The share of complaints a UK firm upheld is shown beside its score, for information only, not scored. {SAME_COUNTRY} Complaints received are not findings of wrongdoing. The two scores are never blended. <a href="/methodology">How Operational Health is calculated →</a></p>
-          <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b className="xa-sw-limited" />Limited sample ({SHOW_MIN}–{RANK_MIN - 1}), not ranked</span><span><b style={{ background: COLOR.few }} />Too few for an average (under {SHOW_MIN})</span><span><b style={{ background: COLOR.next }} />Coming next</span></p>
+          <p className="xa-legend"><span className="xa-scale"><i />Organisational Health, 0 to 100</span><span><b className="xa-sw-limited" />Limited sample ({SHOW_MIN}–{RANK_MIN - 1}), not ranked</span><span><b style={{ background: COLOR.few }} />Too few for an average (under {SHOW_MIN})</span><span><b style={{ background: COLOR.next }} />Coming next</span><span><b className="xa-k-totals" />Country-level reading from country totals (European insurance), not a median</span></p>
           <p className="xa-muted">Every place is scored the same way, out of 100. Explore does not sort scores into bands or categories: the colour moves smoothly from red at 0, through amber, to green at 100.</p>
           <p><a href="/technology">How Pulsus Explore works →</a></p>
         </div>
@@ -1049,7 +1152,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <div className="xa-sub-sec">
           <h3>Data streams (sources)</h3>
           <p className="xa-label">Organisational Health</p>
-          <ul className="xa-src">{realDefs.map((d) => { const lc = layers[d.id].licence; return <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small>{lc && <><small>Licence: <a href={lc.url}>Open Database License (ODbL) 1.0</a> · <a href="/data/brazil">the data, to download</a></small><small>{lc.attribution} The figures Explore publishes from it are made available under the ODbL.</small></>}</li>; })}</ul>
+          <ul className="xa-src">{realDefs.map((d) => { const lc = layers[d.id].licence, tm = layers[d.id].terms; return <li key={d.id}><b>{d.title}</b><small>{d.publisher} · {when(layers[d.id], layers[d.id].asOf)}</small>{tm && <><small>{TOTALS_LABEL}: each country read from EIOPA&apos;s published totals, not a median of insurers; never ranked, compared or counted in a median. <a href="/technology#totals">Its limits →</a></small><small>{tm.acknowledgement}</small><small>{tm.disclaimer}</small><small>{tm.free} <a href={tm.data}>EIOPA insurance statistics</a></small></>}{lc && <><small>Licence: <a href={lc.url}>Open Database License (ODbL) 1.0</a> · <a href="/data/brazil">the data, to download</a></small><small>{lc.attribution} The figures Explore publishes from it are made available under the ODbL.</small></>}</li>; })}</ul>
           <p className="xa-label">Operational Health</p>
           <ul className="xa-src">{OPS_SOURCES.filter((s) => s.used).map((s) => <li key={s.id}><b>{s.dataset}</b><small>{s.publisher} · {s.period}</small><small>Licence: <a href={s.licenceUrl}>{s.licence}</a></small><small>{s.attribution}</small></li>)}</ul>
           <p className="xa-muted small">Checked and not used, because they are not free to reuse: {OPS_SOURCES.filter((s) => !s.used).map((s) => s.publisher).join("; ")}. <a href="/methodology#sources">Why, and the full method →</a></p>
@@ -1082,9 +1185,10 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
           const col = lens === "ops" ? opsFill(c.id) : gridId && c.id === "840" ? COLOR.none : r && r.g.hidden && regionTint[c.id] ? regionTint[c.id] : r ? fill(r.g) : NEXT[c.id] ? COLOR.next : COLOR.none;
           const on = sel && ((sel.region === c.id) || (cur && sel.region === null && cur.l.countries.includes(c.id)) || (cur?.g.members?.includes(c.id) ?? false));
           const lim = lens === "ops" ? limCls(opsAt(c.id, sector)) : gridId && c.id === "840" ? "" : limCls(r?.g);
+          const tot = lens !== "ops" && !!r?.g.totals && valueAt(r.g, measure, at) !== undefined;
           return (
             <React.Fragment key={c.id + c.name}>
-              <path ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${lim}`} onClick={() => tapCountry(c.id)}><title>{lens === "ops" && opsAt(c.id, sector) && !opsAt(c.id, sector)!.hidden ? `${c.name}: ${medianLabel(opsAt(c.id, sector)!.n)}${lim ? " (limited sample)" : ""}` : lim ? `${c.name}: limited sample` : c.name}</title></path>
+              <path ref={(el) => { if (el) paths.current.set(c.id, el); }} d={c.d} style={{ fill: col }} className={`xa-c${on ? " on" : ""}${lim}${tot ? " is-totals" : ""}`} onClick={() => tapCountry(c.id)}><title>{lens === "ops" && opsAt(c.id, sector) && !opsAt(c.id, sector)!.hidden ? `${c.name}: ${medianLabel(opsAt(c.id, sector)!.n)}${lim ? " (limited sample)" : ""}` : tot ? `${c.name}: ${TOTALS_LABEL}, ${valueAt(r!.g, measure, at)}. ${TOTALS_TIP}.` : lim ? `${c.name}: limited sample` : c.name}</title></path>
               {lim && <path d={c.d} className="xa-hatch" />}
             </React.Fragment>
           );
@@ -1131,11 +1235,11 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
             </g>
           );
         })()}
-        {labels.map(({ iso, v, lim }) => {
+        {labels.map(({ iso, v, lim, totals }: { iso: string; v: number; lim: boolean; totals?: boolean }) => {
           const [x, y, w] = centres[iso];
           if (w / u < 26 && sel?.region !== iso) return null;   // too small on screen at this zoom: tap or zoom in
           return (
-            <g key={iso} className={`xa-val${lim ? " is-limited" : ""}`} transform={`translate(${x} ${y}) scale(${u})`}>
+            <g key={iso} className={`xa-val${lim ? " is-limited" : ""}${totals ? " is-totals" : ""}`} transform={`translate(${x} ${y}) scale(${u})`}>
               <rect x={-16} y={8} width={32} height={19} rx={9.5} style={{ stroke: shade(v), strokeWidth: 2 }} /><text x={0} y={22} textAnchor="middle">{v}</text>
             </g>
           );
@@ -1208,7 +1312,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
         <p className="xa-period" aria-live="polite"><b>{when(inSector[0]?.l || {}, at)}</b><span>{WORD[measure]} then · the numbers and colours show that quarter</span></p>
       )}
       {!at && !sel && !inst && !sheet && !pins.length && (lens === "ohi"
-        ? <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Organisational Health, 0 to 100</span><span className="xa-k-short">Org. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span></p>
+        ? <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Organisational Health, 0 to 100</span><span className="xa-k-short">Org. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} />Too few</span><span><b style={{ background: COLOR.next }} />Next</span>{inSector.some(({ l }) => isCountryTotals(l)) && <span title={TOTALS_TIP}><b className="xa-k-totals" /><span className="xa-k-long">Dashed: country-level reading (EIOPA totals)</span><span className="xa-k-short">Country totals</span></span>}</p>
         : <p className="xa-key" ref={setKeyEl} aria-hidden="true"><span className="xa-scale"><i /><span className="xa-k-long">Operational Health, 0 to 100 · each country&apos;s median of the institutions with a score</span><span className="xa-k-short">Op. Health 0–100</span></span><span><b className="xa-sw-limited" /><span className="xa-k-long">Limited sample</span><span className="xa-k-short">Limited</span></span><span><b style={{ background: COLOR.few }} /><span className="xa-k-long">Fewer than {SHOW_MIN} scored</span><span className="xa-k-short">Under {SHOW_MIN}</span></span></p>
       )}
 
@@ -1271,7 +1375,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
             <button className="xa-x" onClick={() => { setSheet(""); setQ(""); }} aria-label="Close">×</button>
           </div>
           <div className="xa-results">
-            {hits.map((h) => <button key={`${h.layerId}|${h.region}`} onClick={() => choose(h.layerId, h.region)}><b>{h.label}</b><small>{n0(h.g.n)} · {SHORT.ohi} {h.g.ohi ?? "—"} · {band(h.g.n)}</small></button>)}
+            {hits.map((h) => <button key={`${h.layerId}|${h.region}`} onClick={() => choose(h.layerId, h.region)}><b>{h.label}</b><small>{h.g.totals ? <>{SHORT.ohi} {h.g.ohi ?? "—"} · {TOTALS_LABEL}</> : <>{n0(h.g.n)} · {SHORT.ohi} {h.g.ohi ?? "—"} · {band(h.g.n)}</>}</small></button>)}
             {placeHit && <button onClick={() => openOps(placeHit)}><b>{COUNTRY[placeHit]}: Operational Health</b><small>{n0(insts.filter((i) => i.country === placeHit).length)} named institutions</small></button>}
             {instHits.length > 0 && <p className="xa-label">Named institutions · Operational Health</p>}
             {instHits.map((i) => { const s = scoreOf(i).score; return <button key={i.key} onClick={() => openOps(i.country, i.key)}><b>{i.name}</b><small>{COUNTRY[i.country]} · {SHORT.oh} {s ?? "—"}</small></button>; })}

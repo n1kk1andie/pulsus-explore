@@ -22,7 +22,8 @@ test("the map reads the combined layer when All sectors is chosen", () => {
 });
 
 test("All sectors covers every country any single sector covers, coloured where any sector is", () => {
-  for (const l of Object.values(real)) for (const iso of l.countries) {
+  // Medians only: a country-totals layer (EIOPA's European insurance) is never part of All sectors (tests/country-totals.test.mjs).
+  for (const l of Object.values(real).filter((x) => x.kind !== "country-totals")) for (const iso of l.countries) {
     const one = countryGroup(l, iso); if (!one) continue;
     const g = countryGroup(all, iso);
     assert.ok(g, `${l.layer}: ${iso} missing from All sectors`);

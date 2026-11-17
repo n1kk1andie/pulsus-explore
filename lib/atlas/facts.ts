@@ -2,7 +2,8 @@
 // layers themselves, so the page stays true each time the data is refreshed
 // (npm run sync-data). Pure: tested in tests/explore.test.mjs.
 
-import type { AtlasLayer, AtlasLicence } from "./layers";
+import type { AtlasLayer, AtlasLicence, AtlasTerms } from "./layers";
+import { isCountryTotals } from "./layers";
 import type { LayerDef, SectorDef } from "./catalog";
 import { INSIGHT_MIN } from "./explore";
 import { canShow } from "./bands";
@@ -20,6 +21,8 @@ export interface SourceFact {
   indicators: { label: string; better: "higher" | "lower"; context: boolean }[];
   /** The source's open-database licence and notice, when it has one (Brazil: ODbL). */
   licence?: AtlasLicence;
+  /** A country-totals source (EIOPA): `n` is its countries, `undertakings` the undertakings their totals sum; its reuse terms. */
+  totals?: { undertakings: number | null; terms?: AtlasTerms; note?: string };
 }
 
 export interface Facts {
@@ -47,6 +50,7 @@ export function factsOf(layers: AtlasLayer[], defs: LayerDef[], sectors: SectorD
       const st = Object.values(l.states), on = st.filter((g) => g.n >= l.minGroup).length, lim = st.filter((g) => canShow(g.n) && g.n < l.minGroup).length;
       places = `Read for the country as a whole; by head-office state, ${on} shown${lim ? ` and ${lim} as limited samples` : ""}`;
     } else if (l.countries.length === 1) places = "Read for the country as a whole";
+    else if (isCountryTotals(l)) places = `${count(shown.length, "country", "countries")}, each read from its published totals`;
     else {
       const areas = shown.filter(([, g]) => g.area);
       places = `${count(shown.length - areas.length, "country", "countries")} shown on their own; the rest read together in ${count(areas.length, "area", "areas")}`;
@@ -57,12 +61,15 @@ export function factsOf(layers: AtlasLayer[], defs: LayerDef[], sectors: SectorD
       from: t.length ? t[0].period : l.asOf, to: l.asOf, points: t.length, minGroup: l.minGroup, regionKind: l.regionKind, places,
       indicators: (l.indicators || []).map((i) => ({ label: i.label, better: i.better, context: !!i.context })),
       ...(l.licence ? { licence: l.licence } : {}),
+      ...(isCountryTotals(l) ? { totals: { undertakings: l.national.undertakings ?? null, ...(l.terms ? { terms: l.terms } : {}), ...(l.note ? { note: l.note } : {}) } } : {}),
     };
   });
-  const mins = live.map((d) => byId[d.id].minGroup);
+  // Medians only: a country-totals layer counts countries, has no floor of institutions, and adds no organisations.
+  const medians = live.filter((d) => !isCountryTotals(byId[d.id]));
+  const mins = medians.map((d) => byId[d.id].minGroup);
   const freq = (m: number) => mins.filter((x) => x === m).length;
   const common = [...new Set(mins)].sort((a, b) => freq(b) - freq(a) || b - a)[0];
-  const exceptions = live.map((d) => byId[d.id]).filter((l) => l.minGroup !== common).map((l) => {
+  const exceptions = medians.map((d) => byId[d.id]).filter((l) => l.minGroup !== common).map((l) => {
     const regs = Object.entries(l.regions);
     const countries = regs.filter(([, g]) => !g.area && g.n > 0);
     return {
@@ -79,7 +86,7 @@ export function factsOf(layers: AtlasLayer[], defs: LayerDef[], sectors: SectorD
     else for (const [k, g] of Object.entries(l.regions)) if (!g.area && g.n > 0 && l.countries.includes(k)) iso.add(k);
   }
   return {
-    organisations: live.reduce((t, d) => t + byId[d.id].national.n, 0),
+    organisations: medians.reduce((t, d) => t + byId[d.id].national.n, 0),
     sectorsLive: sectors.filter((s) => s.status === "live" && live.some((d) => d.sector === s.id)).length,
     sectorsNext: sectors.filter((s) => s.status !== "live").map((s) => ({ label: s.label, where: s.where })),
     sources, minGroup: common, insightMin: INSIGHT_MIN, exceptions, countries: iso.size,

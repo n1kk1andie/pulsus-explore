@@ -15,6 +15,7 @@
 // the layer's minimum stay hidden.
 
 import type { AtlasGroup, AtlasLayer } from "./layers";
+import { medianLayers } from "./layers";
 
 export type Depth = "preview" | "showcase" | "full";
 
@@ -54,9 +55,10 @@ export const INSIGHT_MIN = 20;
 export function insightsOf(layers: AtlasLayer[], depth: Depth): Insights {
   const movers: Mover[] = [];
   const hotspots: Hotspot[] = [];
-  for (const l of layers) {
+  // Country-totals readings (EIOPA's insurance) are never movers or areas to watch: they describe no institutions.
+  for (const l of medianLayers(layers)) {
     for (const [region, g] of Object.entries(l.regions)) {
-      if (g.hidden || g.n < INSIGHT_MIN) continue;
+      if (g.hidden || g.totals || g.n < INSIGHT_MIN) continue;
       const t = (g.trend || []).filter((p) => p.ohi !== null);
       const back = yearBack(l);
       if (t.length > back) {

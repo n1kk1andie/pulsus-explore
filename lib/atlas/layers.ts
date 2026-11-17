@@ -7,10 +7,23 @@ import { SHOW_MIN } from "./bands";
 /** `ind`: the median of each regulatory indicator across the group's organisations, at the layer's latest period. */
 /** `area`, `members`: a group of neighbouring countries too small to show alone (e.g. "Benelux and Ireland"). */
 /** `limited`: a group of 10–19, as built: still `hidden` to anything that ranks or compares, its figures kept apart (withLimited). */
-export interface AtlasGroup { n: number; hidden?: boolean; area?: string; members?: string[]; oh?: number; ohi?: number; trend?: { period: string; oh: number | null; ohi: number | null }[]; ind?: Record<string, number | null>; limited?: Omit<AtlasGroup, "n" | "hidden" | "limited"> }
+/** `totals`, `undertakings`: a country-totals reading (layer kind "country-totals"): `n` counts countries, not institutions, and `undertakings` how many reporting undertakings the published totals sum. */
+export interface AtlasGroup { n: number; hidden?: boolean; totals?: true; undertakings?: number | null; area?: string; members?: string[]; oh?: number; ohi?: number; trend?: { period: string; oh: number | null; ohi: number | null }[]; ind?: Record<string, number | null>; limited?: Omit<AtlasGroup, "n" | "hidden" | "limited"> }
 /** A regulatory indicator the score is built from: its name, unit, and which direction is stronger. */
 export interface AtlasIndicator { id: string; label: string; unit: string; better: "higher" | "lower"; context?: boolean }
+/** What a layer's figures are. "medians" (the default): each place's figure is the
+ *  median of its institutions' scores. "country-totals": each country is read from
+ *  the totals its publisher sums over all its undertakings (EIOPA's insurance
+ *  statistics) — one reading per country, with no distribution of institutions
+ *  behind it. A country-totals layer never feeds a median, total, ranking,
+ *  comparison, shape, mover or sample band (isCountryTotals, medianLayers). */
+export type LayerKind = "medians" | "country-totals";
+/** A publisher's reuse terms that travel with the data (EIOPA: its acknowledgement and twofold disclaimer). */
+export interface AtlasTerms { publisher: string; url: string; data: string; acknowledgement: string; disclaimer: string; free: string }
 export interface AtlasLayer {
+  kind?: LayerKind;
+  /** For a country-totals layer: its publisher's reuse terms, and what the reading is, in words. */
+  terms?: AtlasTerms; note?: string;
   layer: string; sector: string; scope: string; regionKind: "state" | "country"; countries: string[];
   source: string; asOf: string; cadence?: "quarterly" | "yearly"; measures: string[]; minGroup: number;
   national: AtlasGroup; regions: Record<string, AtlasGroup>;
@@ -39,6 +52,12 @@ export function countryGroup(l: AtlasLayer, iso: string): AtlasGroup | null {
 /** The key a country is read under: its own, or its area's. */
 export const regionKeyOf = (l: AtlasLayer, iso: string) => ((!l.regions[iso] || l.regions[iso].hidden) && l.areas?.[iso] ? l.areas[iso] : iso);
 
+/** Is this layer read from country totals (not medians of institutions)? */
+export const isCountryTotals = (l: Pick<AtlasLayer, "kind"> | null | undefined): boolean => l?.kind === "country-totals";
+/** The layers whose figures are medians of institutions: the only ones any median,
+ *  total, ranking, comparison, shape, mover or sample band is built from. */
+export const medianLayers = <T extends Pick<AtlasLayer, "kind">>(ls: T[]): T[] => ls.filter((l) => !isCountryTotals(l));
+
 /** A group as Explore shows it. The build writes a group of 10–19 as `hidden`,
  *  its figures under `limited`, so the Platform's rankings and peer comparisons
  *  never see it; Explore shows its average, as a limited sample
@@ -51,7 +70,9 @@ export function shownGroup(g: AtlasGroup): AtlasGroup {
   return rest;
 }
 /** A layer with its limited samples opened (shownGroup), for Explore. */
-export const withLimited = (l: AtlasLayer): AtlasLayer => ({
+export const withLimited = (l: AtlasLayer): AtlasLayer => (isCountryTotals(l) ? l : {
   ...l, national: shownGroup(l.national), regions: Object.fromEntries(Object.entries(l.regions).map(([k, g]) => [k, shownGroup(g)])),
   ...(l.states ? { states: Object.fromEntries(Object.entries(l.states).map(([k, g]) => [k, shownGroup(g)])) } : {}),
 });
+// A country-totals layer is left as built: its readings are one country each (n = 1),
+// so the 10/20 sample bands, which count institutions, do not apply to it.

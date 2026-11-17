@@ -81,7 +81,8 @@ test("a group of 10–19 shows its average; no group of 1–9 ever shows a figur
   assert.deepEqual(few, { n: 9, hidden: true });
   assert.deepEqual(shownGroup({ n: 3, hidden: true, limited: { ohi: 1 } }), { n: 3, hidden: true });
   let shown = 0, limited = 0;
-  for (const l of layers) for (const g of [l.national, ...Object.values(l.regions)]) {
+  // A country-totals layer (EIOPA) counts countries, not institutions: the bands do not apply (tests/country-totals.test.mjs).
+  for (const l of layers.filter((x) => x.kind !== "country-totals")) for (const g of [l.national, ...Object.values(l.regions)]) {
     if (g.n < SHOW_MIN) { for (const k of ["ohi", "oh", "trend", "ind", "limited"]) assert.equal(g[k], undefined, `${l.layer} n=${g.n} has ${k}`); assert.equal(g.hidden, true); }
     if (!g.hidden) { assert.ok(g.n >= SHOW_MIN, l.layer); shown++; if (g.n < RANK_MIN) limited++; }
   }

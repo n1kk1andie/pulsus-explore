@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import React from "react";
 import { ALL_LAYERS } from "../../lib/atlas/serve";
 import { LAYERS, SECTORS } from "../../lib/atlas/catalog";
 import { factsOf, periodLabel } from "../../lib/atlas/facts";
@@ -111,6 +112,7 @@ export default function Technology() {
   const withContext = f.sources.filter((s) => s.indicators.some((i) => i.context));
   const quarterly = f.sources.filter((s) => s.cadence === "quarterly" && s.id !== "eu-banks"), yearly = f.sources.filter((s) => s.cadence === "yearly");
   const ex = f.exceptions[0];
+  const totals = f.sources.filter((s) => s.totals);
 
   // The globe's places: each country a layer covers on its own, Europe as one, and the UK for Operational Health.
   const globePlaces: GlobePlace[] = (() => {
@@ -120,7 +122,8 @@ export default function Technology() {
       const id = one ? l.countries[0] : "europe";
       const label = one ? (l.countries[0] === "840" ? "United States" : l.countries[0] === "170" ? "Colombia" : l.scope.split(" (")[0]) : "Europe";
       const e = by.get(id) || { label, isos: new Set<string>(), n: 0, sectors: new Set<string>() };
-      l.countries.forEach((c) => e.isos.add(c)); e.n += l.national.n; e.sectors.add(NOUN[l.sector] ?? l.sector);
+      // A country-totals layer (EIOPA) counts countries, not organisations: it adds none to the count.
+      l.countries.forEach((c) => e.isos.add(c)); if (l.kind !== "country-totals") e.n += l.national.n; e.sectors.add(NOUN[l.sector] ?? l.sector);
       by.set(id, e);
     }
     const out: GlobePlace[] = [...by.entries()].map(([id, e]) => ({ id, label: e.label, isos: [...e.isos], sub: `${n0(e.n)} organisations · ${[...e.sectors].join(", ")}` }));
@@ -167,7 +170,7 @@ export default function Technology() {
               <p className="tk-num">01</p>
               <h2 id="what-h">What Explore is</h2>
               <p>Pulsus Explore shows the financial condition of whole sectors: {list(liveSectors)}, country by country and, in the United States, state by state. {nextSectors.length > 0 && <>Next: {list(nextSectors)}.</>}</p>
-              <p>Every figure is read from public regulatory and government data. The financial figures name no institution. They show places and sectors only, as the median of the organisations in each place, and hide any group of fewer than {SHOW_MIN}. Operational Health is different: in the United States and the United Kingdom it names banks, credit unions and insurers, from complaints data their regulators publish by firm.</p>
+              <p>Every figure is read from public regulatory and government data. The financial figures name no institution. They show places and sectors only, as the median of the organisations in each place, and hide any group of fewer than {SHOW_MIN}.{totals.length > 0 && <> European insurance is the one exception: its publisher releases only each country&apos;s totals, so each country is a <a href="#totals">country-level reading</a> of those totals, labelled as such.</>} Operational Health is different: in the United States and the United Kingdom it names banks, credit unions and insurers, from complaints data their regulators publish by firm.</p>
               <p>It is free and needs no account. You can read it on the map, in the directory of places, or through the lists of improving and declining places and areas to watch.</p>
               <Flow />
             </section>
@@ -183,13 +186,17 @@ export default function Technology() {
                     <h3>{s.title}</h3>
                     <p className="tk-src-pub">{s.publisher}</p>
                     <dl>
-                      <div><dt>Organisations</dt><dd>{n0(s.n)}</dd></div>
+                      {s.totals ? <>
+                        <div><dt>Countries</dt><dd>{n0(s.n)}</dd></div>
+                        {s.totals.undertakings ? <div><dt>Undertakings in the totals</dt><dd>{n0(s.totals.undertakings)}</dd></div> : null}
+                      </> : <div><dt>Organisations</dt><dd>{n0(s.n)}</dd></div>}
                       <div><dt>Latest</dt><dd>{periodLabel(s.cadence, s.to)}</dd></div>
                       <div><dt>History</dt><dd>{s.points} {s.cadence === "yearly" ? "years" : "quarters"}, from {periodLabel(s.cadence, s.from)}</dd></div>
                       <div><dt>Places</dt><dd>{s.places}</dd></div>
                     </dl>
                     <p className="tk-src-raw">{s.source}</p>
                     {s.licence && <p className="tk-src-raw">{s.licence.attribution} Licence: <a href={s.licence.url}>Open Database License (ODbL) 1.0</a>.</p>}
+                    {s.totals && <p className="tk-src-raw">Country-level reading from country totals, not a median of institutions. <a href="#totals">What that means →</a></p>}
                   </li>
                 ))}
               </ul>
@@ -202,6 +209,7 @@ export default function Technology() {
                 {eu && <>Europe’s banks, the {n0(eu.n)} of the {EBA_BANKS} banks in the European Banking Authority’s 2025 EU-wide transparency exercise that publish every indicator needed (the rest publish no profit or cost figures, or only half-yearly ones); </>}
                 {src("co-banks") && <>Colombia’s banks and insurers, from the supervisory accounts they file with the Superintendencia Financiera de Colombia; </>}
                 {brBanks && <>Brazil’s banks (commercial, multiple, investment and development banks, each banking group read once, as its capital is supervised) and its single credit cooperatives, from the Banco Central do Brasil’s IF.data, read from {periodLabel(brBanks.cadence, brBanks.from)}, the first quarter after the accounting change of Resolução CMN nº 4.966; the card for each also gives the medians by the state of each institution’s head office; </>}
+                {totals.length > 0 && <>European insurance, as country totals: every insurance and reinsurance undertaking that reports quarterly under Solvency II, summed by EIOPA country by country; </>}
                 {gov && <>and US federal agencies, from their published budget, reporting and FOIA figures.</>}
               </p>
 
@@ -212,6 +220,22 @@ export default function Technology() {
                   <p>The Brazil layer data published by Explore is made available under the <a href="https://opendatacommons.org/licenses/odbl/1-0/">Open Database License (ODbL) 1.0</a>, and can be <a href="/data/brazil">downloaded in full</a>, with how it is derived.</p>
                 </>
               )}
+
+              {totals.map((s) => (
+                <React.Fragment key={s.id}>
+                  <h3 id="totals">Country-level readings: European insurance</h3>
+                  <p>Everywhere else in Explore, a place&apos;s figure is the median of its institutions&apos; scores. For European insurance, the European Insurance and Occupational Pensions Authority (EIOPA) publishes each country&apos;s totals (the sums over all its reporting insurance and reinsurance undertakings, and its own ratios of them), not each insurer&apos;s figures. So each country is read from its totals as if it were one institution, through the same engine and against fixed levels in line with Colombia&apos;s insurers: {list(s.indicators.map((i) => `${i.label.toLowerCase()} (${i.better} is stronger)`))}. The result is a <b>country-level reading</b>, from {periodLabel(s.cadence, s.from)} to {periodLabel(s.cadence, s.to)}{s.totals?.undertakings ? `, covering ${n0(s.n)} countries and ${n0(s.totals.undertakings)} undertakings at the latest quarter` : ""}.</p>
+                  <p>It is a different kind of figure, and Explore keeps it apart. It is drawn dashed and tagged &ldquo;country totals&rdquo; on the Pulse grid and the map, and its count is countries and undertakings, not institutions. It is never part of a sector&apos;s or region&apos;s median, the All sectors and All regions totals, the headline figure, the shape of each sector, the improving and declining lists, the areas to watch, the &ldquo;highest&rdquo; and &ldquo;lowest&rdquo; orderings or any comparison, and the sample bands below do not apply to it.</p>
+                  <p>Its limits: totals are dominated by a country&apos;s largest undertakings, and say nothing about the spread between strong and weak insurers, so a country can read well while many of its insurers are weak. The ratios are aggregates (total eligible own funds over total requirements), not any insurer&apos;s own ratio. Quarterly totals leave out undertakings exempted from quarterly reporting, and the non-life ratios are year to date. EIOPA revises its history with each release.</p>
+                  {s.totals?.terms && (
+                    <>
+                      <p>{s.totals.terms.acknowledgement}</p>
+                      <p>{s.totals.terms.disclaimer}</p>
+                      <p>{s.totals.terms.free} <a href={s.totals.terms.data}>EIOPA insurance statistics</a> · <a href={s.totals.terms.url}>EIOPA legal notice</a>.</p>
+                    </>
+                  )}
+                </React.Fragment>
+              ))}
 
               <h3 id="sample">How many organisations stand behind a median</h3>
               <p>Every median in Explore says how many organisations it describes, in four bands. (In the All sectors view, a place’s figure is its sectors’ medians weighted by size, labelled with their total count.)</p>
