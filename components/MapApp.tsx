@@ -128,6 +128,13 @@ const I_GOV = "M5 22V3M5 4h12l-2.5 4L17 12H5";
 const I_HOSP = "M4 21V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v16M3 21h18M12 7v6M9 10h6";
 const I_UNI = "M22 10 12 5 2 10l10 5 10-5zM6 12v5c3 2 9 2 12 0v-5";
 const SECTOR_ICON: Record<string, string> = { banks: "M3 21h18M5 21V10M19 21V10M9 21V10M15 21V10M12 3l9 5H3z", "credit-unions": I_CU, insurance: I_SHIELD, government: I_GOV, hospitals: I_HOSP, universities: I_UNI };
+/** Why a region has no figures in Explore yet: shown under the grid instead of empty rows. */
+const NOT_COVERED: Record<string, string> = {
+  af: "South Africa's central bank requires written consent to reuse its data and publishes no profit or capital figures for each bank; other countries not yet checked",
+  me: "no source checked yet",
+  as: "India's central bank reserves all rights to its data; other countries not yet checked",
+  oc: "Australia's open data has no profit or loan-quality figures for each institution, so the score can't be calculated; New Zealand not yet checked",
+};
 const CONTINENTS = [
   { id: "na", label: "North America", globe: "🌎" },
   { id: "lac", label: "Latin America & Caribbean", globe: "🌎" },
@@ -786,7 +793,7 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   // Sector by region: every continent, so a reader sees what is covered and what is not yet.
   const continentOf = (l: AtlasLayer) => (l.countries.length === 1 ? CONTINENT_OF[l.countries[0]] : /europe/i.test(l.scope) ? "eu" : CONTINENT_OF[l.countries[0]]) || "other";
   const matrix: MatrixData = {
-    rows: CONTINENTS.map((ct) => {
+    rows: CONTINENTS.filter((ct) => realDefs.some((d) => continentOf(real[d.id]) === ct.id)).map((ct) => {
       const ls = realDefs.map((d) => real[d.id]).filter((l) => continentOf(l) === ct.id);
       const sub = ls.length ? [...new Set(ls.map((l) => (l.countries.length === 1 ? (l.countries[0] === "840" ? "United States" : cname(l.countries[0])) : `${l.countries.length} countries`)))].join(", ") : "Not covered yet";
       return { id: ct.id, label: ct.label, sub, globe: ct.globe, total: ls.length ? cellOf(ls.length === 1 ? ls[0] : allSectors(ls)) : null };
@@ -859,9 +866,18 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
       </section>
       <section className="xa-panel xa-ov-sec" aria-labelledby="xa-mx-h">
         <h2 id="xa-mx-h" className="xa-box-h">Sector by region</h2>
-        <p className="xa-sub">The median of each sector in each part of the world, with how many organisations it describes and its change on a year ago. Where Explore has no public data yet, it says so. Tap a tile to see it on the map.</p>
+        <p className="xa-sub">The median of each sector in each part of the world, with how many organisations it describes and its change on a year ago. Regions with no usable public data yet are listed below the grid, with the reason. Tap a tile to see it on the map.</p>
         <p className="xa-mx-swipe">Swipe the grid sideways for every sector →</p>
         <Matrix m={matrix} shade={shade} icon={(d) => <Ico d={d} size={16} />} onPick={pickCell} />
+        {CONTINENTS.some((ct) => !realDefs.some((d) => continentOf(real[d.id]) === ct.id)) && (
+          <div className="xa-mx-out">
+            <p className="xa-label">Not yet in Explore</p>
+            <ul>{CONTINENTS.filter((ct) => !realDefs.some((d) => continentOf(real[d.id]) === ct.id)).map((ct) => (
+              <li key={ct.id}><b>{ct.label}</b>: {NOT_COVERED[ct.id] || "no public data for each institution that Explore can use yet"}.</li>
+            ))}</ul>
+            <p className="xa-note">Explore only uses data its publisher allows to be reused, with figures for each institution that the score needs. Regions are added as such sources are confirmed.</p>
+          </div>
+        )}
       </section>
       <h2 className="xa-h2">What&apos;s moving · {ovLabel}</h2>
       <p className="xa-sub xa-hint">Choose a sector for the lists below. Tap a place to see it on the map.</p>
