@@ -136,14 +136,16 @@ export interface MatrixData {
   cols: { id: string; label: string; icon: string; total: Cell }[];
   cells: Record<string, Record<string, Cell | null>>;   // row id → col id → cell (null: no data)
   all: Cell;
+  /** Why a box is empty: region id → sector id → a few words. */
+  why?: Record<string, Record<string, string>>;
 }
 
 const arrow = (c: number | null) => (c === null || c === 0 ? null : c > 0 ? <i className="xa-up">▲{c}</i> : <i className="xa-down">▼{-c}</i>);
 
 export function Matrix({ m, shade, icon, onPick }: { m: MatrixData; shade: Shade; icon: (d: string) => React.ReactNode; onPick: (sector: string, region: string) => void }) {
   const [ref, seen] = useSeen<HTMLDivElement>();
-  const tile = (c: Cell | null, key: string, label: string, pick?: () => void, strong = false) => {
-    if (!c || c.v === null) return <span key={key} role="cell" className="xa-mx-c is-none" aria-label={`${label}: no data available yet`}><small>No data</small></span>;
+  const tile = (c: Cell | null, key: string, label: string, pick?: () => void, strong = false, reason?: string) => {
+    if (!c || c.v === null) { const why = reason || "No public data yet"; return <span key={key} role="cell" className="xa-mx-c is-none" title={why} aria-label={`${label}: ${why}`}><small>{why}</small></span>; }
     const body = <><b>{c.v}</b>{arrow(c.change)}<small>{c.n.toLocaleString("en-US")}</small></>;
     const style = { "--c": shade(c.v) } as React.CSSProperties;
     const aria = `${label}: median ${c.v} of ${c.n.toLocaleString("en-US")}${c.change ? `, ${c.change > 0 ? "up" : "down"} ${Math.abs(c.change)} on a year ago` : ""}`;
@@ -162,7 +164,7 @@ export function Matrix({ m, shade, icon, onPick }: { m: MatrixData; shade: Shade
         <div key={r.id} className={`xa-mx-r${r.total ? "" : " is-empty"}`} role="row">
           <span role="rowheader" className="xa-mx-l"><em aria-hidden="true">{r.globe}</em><span><b>{r.label}</b><small>{r.sub}</small></span></span>
           {r.total
-            ? <>{m.cols.map((c) => tile(m.cells[r.id]?.[c.id] ?? null, c.id, `${r.label}, ${c.label}`, () => onPick(c.id, r.id)))}{tile(r.total, "t", `${r.label}, all sectors`, undefined, true)}</>
+            ? <>{m.cols.map((c) => tile(m.cells[r.id]?.[c.id] ?? null, c.id, `${r.label}, ${c.label}`, () => onPick(c.id, r.id), false, m.why?.[r.id]?.[c.id]))}{tile(r.total, "t", `${r.label}, all sectors`, undefined, true)}</>
             : <span role="cell" className="xa-mx-none">No data available yet for any sector</span>}
         </div>
       ))}
