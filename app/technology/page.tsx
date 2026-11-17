@@ -4,6 +4,7 @@ import { LAYERS, SECTORS } from "../../lib/atlas/catalog";
 import { factsOf, periodLabel } from "../../lib/atlas/facts";
 import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN } from "../../lib/atlas/bands";
 import ThemeSwitch from "../../components/ThemeSwitch";
+import Globe, { type GlobePlace } from "../../components/Globe";
 import "./technology.css";
 
 // How Pulsus Explore works: the public account of its data, score, checks and
@@ -106,6 +107,22 @@ export default function Technology() {
   const quarterly = f.sources.filter((s) => s.cadence === "quarterly" && s.id !== "eu-banks"), yearly = f.sources.filter((s) => s.cadence === "yearly");
   const ex = f.exceptions[0];
 
+  // The globe's places: each country a layer covers on its own, Europe as one, and the UK for Operational Health.
+  const globePlaces: GlobePlace[] = (() => {
+    const by = new Map<string, { label: string; isos: Set<string>; n: number; sectors: Set<string> }>();
+    for (const l of ALL_LAYERS) {
+      const one = l.countries.length === 1;
+      const id = one ? l.countries[0] : "europe";
+      const label = one ? (l.countries[0] === "840" ? "United States" : l.countries[0] === "170" ? "Colombia" : l.scope.split(" (")[0]) : "Europe";
+      const e = by.get(id) || { label, isos: new Set<string>(), n: 0, sectors: new Set<string>() };
+      l.countries.forEach((c) => e.isos.add(c)); e.n += l.national.n; e.sectors.add(NOUN[l.sector] ?? l.sector);
+      by.set(id, e);
+    }
+    const out: GlobePlace[] = [...by.entries()].map(([id, e]) => ({ id, label: e.label, isos: [...e.isos], sub: `${n0(e.n)} organisations · ${[...e.sectors].join(", ")}` }));
+    if (!by.has("826")) out.push({ id: "826", label: "United Kingdom", left: true, isos: ["826"], sub: "Operational Health: named banks, credit unions and insurers, from FCA complaints data" });
+    return out;
+  })();
+
   return (
     <div className="tk">
       <a className="tk-skip" href="#main">Skip to content</a>
@@ -122,6 +139,7 @@ export default function Technology() {
 
       <main id="main">
         <section className="tk-hero">
+          <div className="tk-hero-globe"><Globe places={globePlaces} /></div>
           <p className="tk-eyebrow">Technology</p>
           <h1>How Pulsus Explore works</h1>
           <p className="tk-deck">Explore is a free map of organisational health across sectors and places, read from the figures regulators and governments publish. This page sets out where the data comes from, how the score is formed, how the figures are checked, and what Explore does with your visit.</p>

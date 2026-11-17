@@ -163,3 +163,32 @@ html[data-pz-theme="dark"] .tk-logo-night { display: block !important; }
 .tk-foot-links a { color: var(--tk-ink2); padding: 8px 2px; display: inline-block; }
 
 @media (prefers-reduced-motion: no-preference) { html:has(.tk) { scroll-behavior: smooth; } }
+
+/* ── The globe (components/Globe.tsx) ── */
+.tk-hero { position: relative; }
+.tk-hero-globe { width: min(78vw, 360px); margin: 0 auto 18px; }
+@media (min-width: 900px) {
+  .tk-hero { display: grid; grid-template-columns: minmax(0, 1fr) 420px; column-gap: 32px; align-items: start; }
+  .tk-hero > * { grid-column: 1; }
+  .tk-hero > .tk-hero-globe { grid-column: 2; grid-row: 1 / span 5; width: 420px; margin: 0; align-self: center; }
+}
+.gl { position: relative; width: 100%; aspect-ratio: 1; user-select: none; -webkit-user-select: none; touch-action: pan-y;
+  --gl-halo: rgba(90, 140, 255, .32); --gl-sea: #0a1236; --gl-sea-hi: #1d2d72; --gl-land: #9fb3f5; --gl-lit: #ffffff; }
+.gl-canvas { display: block; cursor: grab; border-radius: 50%; }
+.gl-canvas:active { cursor: grabbing; }
+.gl-canvas:focus-visible { outline: 2px solid #7aa2ff; outline-offset: 4px; }
+.gl-mark { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 6px; padding: 4px; border: 0; background: none; color: #fff; font: 600 11.5px "IBM Plex Sans", system-ui, sans-serif; cursor: pointer; transition: opacity .3s; white-space: nowrap; }
+.gl-mark i { position: relative; width: 10px; height: 10px; border-radius: 50%; background: #ff3b5c; box-shadow: 0 0 0 2px rgba(255,255,255,.9); flex: none; }
+.gl-mark i::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid #ff3b5c; animation: gl-ping 1.8s ease-out infinite; }
+.gl-mark span { background: rgba(10, 15, 44, .72); padding: 1px 6px; border-radius: 6px; }
+.gl-mark.is-back { opacity: 0; pointer-events: none; }
+.gl-mark.is-on span { background: #ff3b5c; }
+@keyframes gl-ping { 0% { transform: scale(.4); opacity: .9; } 100% { transform: scale(1.6); opacity: 0; } }
+.gl-card { position: absolute; left: 50%; bottom: 4%; transform: translateX(-50%); width: min(92%, 300px); background: var(--tk-panel, #fff); color: var(--tk-ink, #121a42); border: 1px solid var(--tk-line, #d6dcec); border-radius: 14px; padding: 12px 34px 12px 14px; box-shadow: 0 12px 30px rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 3px; font-size: 13px; }
+.gl-card b { font: 700 15px Sora, system-ui, sans-serif; }
+.gl-card span { color: var(--tk-mute, #5b6490); }
+.gl-card a { color: var(--tk-link, #e4012b); font-weight: 600; margin-top: 4px; }
+.gl-x { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 18px; color: inherit; cursor: pointer; }
+.gl-hint { position: absolute; left: 0; right: 0; bottom: -22px; margin: 0; text-align: center; font-size: 11.5px; color: var(--tk-mute, #5b6490); }
+@media (prefers-reduced-motion: reduce) { .gl-mark i::after { animation: none; } }
+.gl-mark.is-left { flex-direction: row-reverse; transform: translate(calc(-100% + 13px), -50%); }
