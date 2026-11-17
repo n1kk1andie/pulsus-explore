@@ -25,6 +25,10 @@ export const metadata: Metadata = {
 };
 
 const ABOUT = "https://about.pulsus.tech";
+// The EBA's 2025 EU-wide transparency exercise covers 119 banks (its own page and
+// list of institutions). Not every one publishes every indicator Explore needs.
+const EBA_BANKS = 119;
+const EBA_P3DH = "https://www.eba.europa.eu/risk-and-data-analysis/pillar-3-data-hub";
 const n0 = (x: number) => x.toLocaleString("en-US");
 const WORDS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
 const word = (n: number) => WORDS[n] ?? n0(n);
@@ -70,7 +74,7 @@ function Flow() {
           </li>
         ))}
       </ol>
-      <p className="tk-flow-note">Steps 1 to 4 are built by Pulsus, away from this app. Explore receives only the finished, anonymous medians and counts.</p>
+      <p className="tk-flow-note">Steps 1 to 4 are built by Pulsus, away from this app. For financial figures, Explore receives only the finished medians and counts, with no institution named.</p>
     </figure>
   );
 }
@@ -147,7 +151,7 @@ export default function Technology() {
             <div><dt>Organisations read</dt><dd>{n0(f.organisations)}</dd></div>
             <div><dt>Sectors</dt><dd>{f.sectorsLive}</dd></div>
             <div><dt>Public data streams (sources)</dt><dd>{f.sources.length}</dd></div>
-            <div><dt>Fewest behind an average</dt><dd>{SHOW_MIN}</dd></div>
+            <div><dt>Fewest behind a median</dt><dd>{SHOW_MIN}</dd></div>
           </dl>
         </section>
 
@@ -162,7 +166,7 @@ export default function Technology() {
               <p className="tk-num">01</p>
               <h2 id="what-h">What Explore is</h2>
               <p>Pulsus Explore shows the financial condition of whole sectors: {list(liveSectors)}, country by country and, in the United States, state by state. {nextSectors.length > 0 && <>Next: {list(nextSectors)}.</>}</p>
-              <p>Every figure is read from public regulatory and government data. Explore names no institution. It shows places and sectors only, as the median of the organisations in each place, and hides any group too small to keep anonymous.</p>
+              <p>Every figure is read from public regulatory and government data. The financial figures name no institution. They show places and sectors only, as the median of the organisations in each place, and hide any group of fewer than {SHOW_MIN}. Operational Health is different: in the United States and the United Kingdom it names banks, credit unions and insurers, from complaints data their regulators publish by firm.</p>
               <p>It is free and needs no account. You can read it on the map, in the directory of places, or through the lists of improving and declining places and areas to watch.</p>
               <Flow />
             </section>
@@ -190,36 +194,38 @@ export default function Technology() {
 
               <h3>Who is included</h3>
               <p>
-                {usBanks && <>US banks are every FDIC-insured bank with all {usBanks.points} quarters of data; </>}
+                {usBanks && <>US banks are every bank that files quarterly figures with the FDIC and has a report in each of the {usBanks.points} quarters, with every indicator for the latest. Most are FDIC-insured; a few are uninsured trust companies, so the total is not the FDIC’s own count of insured institutions; </>}
                 {usCU && <>US credit unions, every federally insured credit union with all {usCU.points} quarters; </>}
                 {usHosp && <>US hospitals, general short-term acute-care hospitals, so that like is compared with like; </>}
-                {eu && <>Europe’s banks, the largest banks in the European Banking Authority’s EU-wide transparency exercise; </>}
+                {eu && <>Europe’s banks, the {n0(eu.n)} of the {EBA_BANKS} banks in the European Banking Authority’s 2025 EU-wide transparency exercise that publish every indicator needed (the rest publish no profit or cost figures, or only half-yearly ones); </>}
                 {src("co-banks") && <>Colombia’s banks and insurers, from the supervisory accounts they file with the Superintendencia Financiera de Colombia; </>}
                 {gov && <>and US federal agencies, from their published budget, reporting and FOIA figures.</>}
               </p>
 
-              <h3 id="sample">How many organisations stand behind an average</h3>
-              <p>Every average in Explore says how many organisations it describes, in four bands:</p>
+              <h3 id="sample">How many organisations stand behind a median</h3>
+              <p>Every median in Explore says how many organisations it describes, in four bands. (In the All sectors view, a place’s figure is its sectors’ medians weighted by size, labelled with their total count.)</p>
               <ul>
-                <li><b>{BAND_LABEL.insufficient}</b>, 1 to {SHOW_MIN - 1}: no average, only the count. Too few for a fair average, and too few to be sure no single institution could be picked out. They are still counted in the totals.</li>
-                <li><b>{BAND_LABEL.limited}</b>, {SHOW_MIN} to {RANK_MIN - 1}: the average is shown, labelled, and drawn lighter on the map, but never ranked or compared, because one organisation can still move it a long way.</li>
-                <li><b>{BAND_LABEL.moderate}</b>, {RANK_MIN} to {BROAD_MIN - 1}, and <b>{BAND_LABEL.broad.toLowerCase()}</b>, {BROAD_MIN} or more: shown, ranked and compared.</li>
+                <li><b>{BAND_LABEL.insufficient}</b>, 1 to {SHOW_MIN - 1}: no median, only the count. Too few for a fair median, and too few to be sure no single institution could be picked out. They are still counted in the totals.</li>
+                <li><b>{BAND_LABEL.limited}</b>, {SHOW_MIN} to {RANK_MIN - 1}: the median is shown, labelled, and drawn lighter on the map, but never ranked or compared, because one organisation can still move it a long way.</li>
+                <li><b>{BAND_LABEL.moderate}</b>, {RANK_MIN} to {BROAD_MIN - 1}, and <b>{BAND_LABEL.broad.toLowerCase()}</b>, {BROAD_MIN} or more: shown, ranked and compared. {RANK_MIN} is a practical floor for ranking, not a point of statistical validity.</li>
               </ul>
+              {f.minGroup > SHOW_MIN && <p>Most datasets are built with a floor of {f.minGroup}, so their places with {SHOW_MIN} to {f.minGroup - 1} organisations show the count only.</p>}
               {ex && <p>{ex.title}, {n0(ex.n)} banks across {ex.countries} countries: {word(ex.alone)} countries have at least {SHOW_MIN} on their own, and the rest are read together as {list(ex.areas)}.</p>}
+              <p>A floor of {SHOW_MIN} lowers the risk that one institution’s figures can be worked out. It does not guarantee anonymity: many of these institutions are well known, and their regulators publish their figures by name.</p>
               <p>The lists of improving and declining places, the areas to watch, the “highest” and “lowest” orderings and every comparison include only places with at least {f.insightMin} organisations.</p>
 
               <h3>How often it is refreshed</h3>
-              <p>The figures are rebuilt from the sources each quarter. {quarterly.length > 0 && <>Quarterly sources ({list(quarterly.map((s) => s.title))}) add a quarter at a time; </>}{yearly.length > 0 && <>{list(yearly.map((s) => s.title))} are published by fiscal year and move a year at a time.</>}{eu && <> {eu.title} come from the European Banking Authority’s yearly transparency exercise, which covers the {word(eu.points)} quarters to {periodLabel(eu.cadence, eu.to)}.</>} Each card in Explore names its source and the period it describes.{built && <> The current figures were built on {longDate(built)}.</>}</p>
+              <p>The figures are rebuilt from the sources each quarter. {quarterly.length > 0 && <>Quarterly sources ({list(quarterly.map((s) => s.title))}) add a quarter at a time; </>}{yearly.length > 0 && <>{list(yearly.map((s) => s.title))} are published by fiscal year and move a year at a time.</>}{eu && <> {eu.title} come from the European Banking Authority’s 2025 transparency exercise, which covers the {word(eu.points)} quarters to {periodLabel(eu.cadence, eu.to)}. The EBA has since discontinued the exercise, so this is the latest; future updates will come from its <a href={EBA_P3DH}>Pillar 3 Data Hub</a>.</>} Each card in Explore names its source and the period it describes.{built && <> The current figures were built on {longDate(built)}.</>}</p>
             </section>
 
             <section id="score" aria-labelledby="score-h">
               <p className="tk-num">03</p>
               <h2 id="score-h">The score</h2>
-              <p className="tk-lede">Each institution is scored out of 100 from the figures its regulator publishes, each measured against the same fixed levels over up to three years.</p>
+              <p className="tk-lede">Each institution is scored out of 100 from the figures its regulator publishes. Each indicator is measured against its own fixed levels, over up to three years.</p>
               <p>Each organisation is scored from regulatory indicators taken or calculated from its source’s published figures. The figure Explore shows for a place is the median of the scores of its organisations.</p>
-              <p>Each indicator is compared with a range from weak to strong. For some, higher is stronger, such as return on assets and capital; for others, lower is stronger, such as costs, problem loans and charge-offs. The Pulsus engine combines them into one score, calculated the same way for every place.</p>
+              <p>Each indicator is compared with its own fixed range from weak to strong, the same for every organisation. For some, higher is stronger, such as return on assets and capital; for others, lower is stronger, such as costs, problem loans and charge-offs. The Pulsus engine combines them into one score, calculated the same way for every place.</p>
               <ul className="tk-props">
-                <li><b>Out of 100</b><span>One scale for every sector and place.</span></li>
+                <li><b>Out of 100</b><span>A common 0 to 100 range. Each sector is read against its own indicators and fixed levels, so comparisons across sectors are indicative.</span></li>
                 <li><b>Median per place</b><span>The middle organisation’s score, not an average that a few outliers can pull.</span></li>
                 <li><b>Not banded</b><span>No grades, bands or categories are applied.</span></li>
                 <li><b>Same inputs, same score</b><span>Fixed rules: identical inputs and settings give identical results.</span></li>
@@ -252,7 +258,8 @@ export default function Technology() {
                 <p key={s.id}>For {s.title}, {list(s.indicators.filter((i) => i.context).map((i) => lower(i.label)))} are shown beside the score. They describe funding, interest-rate and liquidity risk, which the score itself does not measure. Pulsus calculates them from the same filings; they do not change the score.</p>
               ))}
               {gov && <p>For US federal agencies, the indicators are a few published operational measures rather than financial ratios: how budgets are committed, reporting accuracy and FOIA request handling. They are part of the operational picture, not all of it.</p>}
-              <p>Explore also lists a second Pulsus measure, Operational Health, as a dash. Public data does not hold enough operational detail to calculate it; that takes an organisation’s own data. In the All sectors view, a place’s figure is each sector’s median weighted by how many organisations it has.</p>
+              <p>In the All sectors view, a place’s figure is not the median of all its organisations. It is each sector’s median, weighted by how many organisations that sector has there.</p>
+              <p>Explore also shows a second Pulsus measure, Operational Health, for named banks, credit unions and insurers in the United States and the United Kingdom. It is read from complaints data the CFPB and the FCA publish by firm, and kept separate from the financial score. Pulsus <span className="tk-red">Platform</span>’s Operational Health goes further: it reads an organisation’s own operational data, which public data does not hold. <a href="/methodology">Explore’s Operational Health method, in full →</a></p>
               <p className="tk-small">Scores are calculated by Pulsus from published regulatory data. They are not official regulatory ratings.</p>
             </section>
 
@@ -263,10 +270,10 @@ export default function Technology() {
               <p>Explore’s automated tests, run before each release, check that:</p>
               <ul className="tk-checks">
                 <li>every dataset in the catalogue is present, with its date;</li>
-                <li>no institution’s name or regulatory identifier appears in the data sent to a browser;</li>
+                <li>no institution’s name or regulatory identifier appears in the financial figures sent to a browser;</li>
                 <li>every place shown has at least its dataset’s minimum number of organisations;</li>
                 <li>the improving, declining and areas-to-watch lists use only places with at least {f.insightMin} organisations;</li>
-                <li>none of the scoring engine or its method is in Explore’s code: the app receives finished aggregates only.</li>
+                <li>none of the Organisational Health scoring engine or its method is in Explore’s code: the app receives finished aggregates only.</li>
               </ul>
             </section>
 
