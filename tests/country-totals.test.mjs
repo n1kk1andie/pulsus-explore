@@ -96,6 +96,10 @@ test("the grid, map and cards label it, and the grid no longer calls the box emp
   assert.match(grid, /is-ctotals/); assert.match(grid, /country totals/);
   assert.match(app, /Country-level reading \(EIOPA totals\)/);
   assert.match(app, /<Terms t=\{l\.terms\} \/>/, "the card carries EIOPA's acknowledgement and disclaimer");
+  // An indicator left out for a country (the Netherlands' expense ratio) says so on its card, with no value.
+  assert.deepEqual(eu.regions["528"].excluded.map((x) => x.id), ["er"]);
+  assert.equal(eu.regions["528"].ind.er, null);
+  assert.match(app, /g\.excluded\?\.map/);
   // Every consumer that forms a median or ranks reads medianLayers or rankCount.
   for (const k of ["sectorCards", "shapeRows", "matrix"]) assert.ok(app.includes(k), k);
   assert.match(app, /const ls = medianLayers\(realDefs\.filter\(\(d\) => d\.sector === x\.id\)/);

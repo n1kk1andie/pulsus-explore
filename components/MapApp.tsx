@@ -153,11 +153,12 @@ function TotalsIndicators({ l, g }: { l: AtlasLayer; g: AtlasGroup }) {
   return (
     <div className="xa-ind">
       <p className="xa-label">Regulatory indicators · from country totals, not medians</p>
-      <dl>{ind.map((i) => <div key={i.id}><dt>{i.label}</dt><dd>{fmt(g.ind?.[i.id], i.unit)}</dd></div>)}</dl>
+      <dl>{ind.map((i) => { const out = g.excluded?.find((x) => x.id === i.id); return <div key={i.id}><dt>{i.label}</dt><dd title={out?.why}>{out ? "left out" : fmt(g.ind?.[i.id], i.unit)}</dd></div>; })}</dl>
+      {g.excluded?.map((x) => <p key={x.id} className="xa-note">{x.why} The reading is calculated from the other indicators; no value is put in its place.</p>)}
       <p className="xa-src-line">Source: EIOPA insurance statistics, Solvency II, solo undertakings, {when(l, l.asOf)} · Pulsus independent analysis</p>
       <details className="xa-how">
         <summary>How this reading was calculated</summary>
-        <p>EIOPA publishes, for each country, the totals of every insurance and reinsurance undertaking that reports to its supervisor, and its own ratios of them. The SCR and MCR coverage ratios are EIOPA&apos;s; the excess of assets over liabilities to total assets is calculated from its balance sheet totals; the non-life combined and expense ratios are EIOPA&apos;s, year to date.</p>
+        <p>EIOPA publishes, for each country, the totals of every insurance and reinsurance undertaking that reports to its supervisor, and its own ratios of them. The SCR and MCR coverage ratios are EIOPA&apos;s; the excess of assets over liabilities to total assets is calculated from its balance sheet totals; the non-life combined and expense ratios are calculated as EIOPA defines them (claims and expenses incurred over premiums earned, net of reinsurance), over the trailing four quarters, from its year-to-date figures, so they do not swing with the season.</p>
         <p>{higher.length ? `Higher is stronger for ${higher.join(", ")}` : ""}{lower.length ? `${higher.length ? "; lower" : "Lower"} is stronger for ${lower.join(", ")}` : ""}. Each is measured against its own fixed levels over up to three years, and the Pulsus engine combines them into one score out of 100, as for every other place.</p>
         <p>Its limits: a country&apos;s totals are dominated by its largest undertakings, and a country with a few very strong and many weak insurers can read well. It says nothing about how the insurers in between are doing. Undertakings exempted from quarterly reporting are not in the quarterly totals.</p>
         <p><a href="/technology#totals">Country-level readings, and their limits →</a></p>

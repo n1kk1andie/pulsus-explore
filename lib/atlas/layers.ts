@@ -8,7 +8,8 @@ import { SHOW_MIN } from "./bands";
 /** `area`, `members`: a group of neighbouring countries too small to show alone (e.g. "Benelux and Ireland"). */
 /** `limited`: a group of 10–19, as built: still `hidden` to anything that ranks or compares, its figures kept apart (withLimited). */
 /** `totals`, `undertakings`: a country-totals reading (layer kind "country-totals"): `n` counts countries, not institutions, and `undertakings` how many reporting undertakings the published totals sum. */
-export interface AtlasGroup { n: number; hidden?: boolean; totals?: true; undertakings?: number | null; area?: string; members?: string[]; oh?: number; ohi?: number; trend?: { period: string; oh: number | null; ohi: number | null }[]; ind?: Record<string, number | null>; limited?: Omit<AtlasGroup, "n" | "hidden" | "limited"> }
+/** `excluded`: indicators left out for a country-totals reading, with why (its figure is not comparable; nothing is put in its place). */
+export interface AtlasGroup { n: number; hidden?: boolean; totals?: true; undertakings?: number | null; excluded?: { id: string; why: string }[]; area?: string; members?: string[]; oh?: number; ohi?: number; trend?: { period: string; oh: number | null; ohi: number | null }[]; ind?: Record<string, number | null>; limited?: Omit<AtlasGroup, "n" | "hidden" | "limited"> }
 /** A regulatory indicator the score is built from: its name, unit, and which direction is stronger. */
 export interface AtlasIndicator { id: string; label: string; unit: string; better: "higher" | "lower"; context?: boolean }
 /** What a layer's figures are. "medians" (the default): each place's figure is the
