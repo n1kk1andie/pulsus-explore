@@ -5,7 +5,15 @@ import brBanks from "../../lib/atlas/data/br-banks.json";
 import euInsurers from "../../lib/atlas/data/eu-insurers.json";
 import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN, bandOf, sampleText } from "../../lib/atlas/bands";
 
-export const metadata: Metadata = { title: "Operational Health: method and sources · Pulsus Platform · Explore" };
+const TITLE = "Operational Health: method and sources · Pulsus Platform · Explore";
+const DESCRIPTION = "The Pulsus Operational Health Score is a reading, out of 100, of how a named bank, credit union or insurer handles complaints, from complaints data that its regulator publishes by firm.";
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/methodology" },
+  openGraph: { type: "article", url: "/methodology", siteName: "Pulsus Explore", title: TITLE, description: DESCRIPTION, locale: "en_GB", images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/opengraph-image"] },
+};
 export const dynamic = "force-static";
 
 const insts = operational.institutions as OpsInstitution[];
