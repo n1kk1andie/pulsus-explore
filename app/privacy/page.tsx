@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Privacy · Pulsus Platform · Explore" };
+const TITLE = "Privacy · Pulsus Platform · Explore";
+const DESCRIPTION = "What Explore collects: nothing, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no analytics or tracking.";
+export const metadata: Metadata = {
+  title: TITLE,
+  description: DESCRIPTION,
+  alternates: { canonical: "/privacy" },
+  openGraph: { type: "article", url: "/privacy", siteName: "Pulsus Explore", title: TITLE, description: DESCRIPTION, locale: "en_GB", images: ["/opengraph-image"] },
+  twitter: { card: "summary_large_image", title: TITLE, description: DESCRIPTION, images: ["/opengraph-image"] },
+};
 
 // Plain and short, because there is little to say: Explore collects nothing.
 export default function Privacy() {
