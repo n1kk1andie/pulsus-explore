@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 
 // Structured data: what Explore is, that it is free, and who makes it.
 // Creator and owner: in the metadata only (search engines and AI read it; visitors never see it).
-const CREATOR = { "@type": "Person", "@id": "https://about.pulsus.tech/#creator", name: "Nicola Anderson", jobTitle: "Founder", sameAs: ["https://www.linkedin.com/in/nicolaanderson/"] };
+const CREATOR = { "@type": "Person", "@id": "https://about.pulsus.tech/#creator", name: "Nicola Anderson", alternateName: ["Nicola Onju Isak", "Nicola (Anderson) Onju Isak"], jobTitle: "Founder", sameAs: ["https://www.linkedin.com/in/nicolaanderson/"] };
 
 const LD = {
   "@context": "https://schema.org",
