@@ -105,3 +105,10 @@ reach the app with no new store release.
    `public/icon.svg`).
 
 © 2026 Tumblehill Holdings LLC.
+
+## IndexNow
+
+IndexNow key (Bing, Yandex and other engines): `6589a70edefc060c8df79e5dc92e2882`,
+served from `public/6589a70edefc060c8df79e5dc92e2882.txt`. To resubmit the pages
+in `app/sitemap.xml` after a change, run `node scripts/indexnow.mjs explore.pulsus.tech`
+from the `pulsus-about` repo.
