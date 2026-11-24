@@ -7,6 +7,7 @@ import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN } from "../../lib/atlas/bands
 import ThemeSwitch from "../../components/ThemeSwitch";
 import Globe, { type GlobePlace } from "../../components/Globe";
 import "./technology.css";
+import PageLd from "../../components/PageLd";
 
 // How Pulsus Explore works: the public account of its data, score, checks and
 // privacy. Every figure on it is worked out from the layers at build time
@@ -145,7 +146,7 @@ export default function Technology() {
         </nav>
       </header>
 
-      <main id="main">
+      <main id="main"><PageLd path="/technology" name={`${TITLE} · Pulsus Explore`} description={DESCRIPTION} />
         <section className="tk-hero">
           <div className="tk-hero-globe"><Globe places={globePlaces} /></div>
           <p className="tk-eyebrow">Technology</p>

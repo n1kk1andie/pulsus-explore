@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import PageLd from "../../components/PageLd";
 
 const TITLE = "Privacy · Pulsus Platform · Explore";
 const DESCRIPTION = "What Explore collects: nothing, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no analytics or tracking.";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 // Plain and short, because there is little to say: Explore collects nothing.
 export default function Privacy() {
   return (
-    <main className="pz pz-xp-page"><div className="pz-main pz-xp-main" style={{ maxWidth: 720 }}>
+    <main className="pz pz-xp-page"><PageLd path="/privacy" name={TITLE} description={DESCRIPTION} /><div className="pz-main pz-xp-main" style={{ maxWidth: 720 }}>
       <p className="pz-eyebrow"><a className="pz-link-btn" href="/">← Explore</a></p>
       <h1>Privacy</h1>
       <p className="pz-muted">Last updated 16 November 2026.</p>
