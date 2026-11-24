@@ -4,6 +4,7 @@ import { INDICATORS, MIN_COMPLAINTS, MIN_INDICATORS, OPS_SOURCES, RANGES, US_TIM
 import brBanks from "../../lib/atlas/data/br-banks.json";
 import euInsurers from "../../lib/atlas/data/eu-insurers.json";
 import { BAND_LABEL, BROAD_MIN, RANK_MIN, SHOW_MIN, bandOf, sampleText } from "../../lib/atlas/bands";
+import PageLd from "../../components/PageLd";
 
 const TITLE = "Operational Health: method and sources · Pulsus Platform · Explore";
 const DESCRIPTION = "The Pulsus Operational Health Score is a reading, out of 100, of how a named bank, credit union or insurer handles complaints, from complaints data that its regulator publishes by firm.";
@@ -32,7 +33,7 @@ export default function Methodology() {
   const median = (n: number) => `median of the ${n} ${n === 1 ? "institution" : "institutions"} with a score`;
   const groups: [string, string, string | null][] = [["US banks", "840", "banks"], ["US credit unions", "840", "credit-unions"], ["UK banks", "826", "banks"], ["UK insurers", "826", "insurance"]];
   return (
-    <main className="pz pz-xp-page"><div className="pz-main pz-xp-main" style={{ maxWidth: 820 }}>
+    <main className="pz pz-xp-page"><PageLd path="/methodology" name={TITLE} description={DESCRIPTION} /><div className="pz-main pz-xp-main" style={{ maxWidth: 820 }}>
       <p className="pz-eyebrow"><a className="pz-link-btn" href="/">← Explore</a></p>
       <h1>Operational Health: how it&apos;s calculated</h1>
       <p className="pz-muted">Data built {operational.built}. Every figure here comes from the publishers&apos; own files; nothing is estimated.</p>
