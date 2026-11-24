@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: "Pulsus Platform · Explore",
   description: "A free window on the world's sectors: the health of banks, credit unions, insurers and government agencies, read from public data. Financial condition by place; Operational Health for named institutions, from regulators' published complaints data.",
   applicationName: "Pulsus Platform",
+  authors: [{ name: "Nicola Anderson", url: "https://www.linkedin.com/in/nicolaanderson/" }],
+  creator: "Nicola Anderson",
+  publisher: "Tumblehill Holdings LLC",
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true, statusBarStyle: "default", title: "Pulsus" },
   icons: {

@@ -19,6 +19,9 @@ export const metadata: Metadata = {
 };
 
 // Structured data: what Explore is, that it is free, and who makes it.
+// Creator and owner: in the metadata only (search engines and AI read it; visitors never see it).
+const CREATOR = { "@type": "Person", "@id": "https://about.pulsus.tech/#creator", name: "Nicola Anderson", jobTitle: "Founder", sameAs: ["https://www.linkedin.com/in/nicolaanderson/"] };
+
 const LD = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
@@ -31,7 +34,9 @@ const LD = {
   isAccessibleForFree: true,
   offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
   isPartOf: { "@type": "WebSite", "@id": "https://about.pulsus.tech/#website", name: "Pulsus Intelligence Suite", url: "https://about.pulsus.tech/" },
-  publisher: { "@type": "Organization", "@id": "https://about.pulsus.tech/#org", name: "Tumblehill Labs", url: "https://about.pulsus.tech/", parentOrganization: { "@type": "Organization", name: "Tumblehill Holdings LLC" } },
+  publisher: { "@type": "Organization", "@id": "https://about.pulsus.tech/#org", name: "Tumblehill Labs", url: "https://about.pulsus.tech/", founder: CREATOR, parentOrganization: { "@type": "Organization", name: "Tumblehill Holdings LLC", founder: CREATOR } },
+  creator: CREATOR,
+  copyrightHolder: { "@type": "Organization", name: "Tumblehill Holdings LLC" },
 };
 
 export default function Home() {
