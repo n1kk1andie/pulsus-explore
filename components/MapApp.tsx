@@ -601,6 +601,13 @@ export default function MapApp({ data, world, ops }: { data: ExploreData; world:
   }, [trayFlash]);
 
   // ── search ───────────────────────────────────────────────────────────────
+  // Count a search (not what was typed) with the visit counter, once a query has settled.
+  useEffect(() => {
+    const v = (q || dirQ).trim();
+    if (v.length < 2) return;
+    const t = setTimeout(() => { try { (window as unknown as { pzt?: (e: string) => void }).pzt?.("search"); } catch { /* never in the way */ } }, 1500);
+    return () => clearTimeout(t);
+  }, [q, dirQ]);
   const allGroups = useMemo(() => {
     // `hay`: what a search matches, without case or accents; an area ("Benelux and Ireland") also answers to its countries' names.
     const out: { layerId: string; region: string | null; label: string; g: AtlasGroup; hay: string }[] = [];

@@ -15,8 +15,8 @@ const csp = [
   "img-src 'self' data:",
   "font-src 'self' https://fonts.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-  "script-src 'self' 'unsafe-inline'",
-  `connect-src 'self' ${(process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pulsus.tech").replace(/\/+$/, "")}`,
+  "script-src 'self' https://executive.pulsus.tech 'unsafe-inline'",
+  `connect-src 'self' https://executive.pulsus.tech ${(process.env.NEXT_PUBLIC_PLATFORM_URL || "https://executive.pulsus.tech").replace(/\/+$/, "")}`,
   "worker-src 'self'",
   "manifest-src 'self'",
 ].join("; ");
