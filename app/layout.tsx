@@ -48,6 +48,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0 }}>
         {children}
         <script dangerouslySetInnerHTML={{ __html: SW }} />
+        {/* Visit counter (no cookies; no IP address is kept): executive.pulsus.tech/t.js */}
+        <script src="https://executive.pulsus.tech/t.js" async />
       </body>
     </html>
   );

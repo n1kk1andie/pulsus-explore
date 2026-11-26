@@ -321,7 +321,7 @@ export default function Technology() {
                   <h3>Privacy</h3>
                   <ul className="tk-checks">
                     <li>No sign-in or account to browse.</li>
-                    <li>No advertising, analytics or tracking. The app’s security policy allows scripts only from Explore itself.</li>
+                    <li>No advertising and no tracking cookies. The app’s security policy allows scripts only from Explore itself and the Pulsus visit counter, which counts visits without storing IP addresses.</li>
                     <li>Stored on your device only: your day or night choice, whether you dismissed or answered the updates invitation, and an offline copy of the app and its public figures.</li>
                     <li>If you subscribe for updates, your email address is the only thing collected. It goes to Pulsus <span className="tk-red">Platform</span> and is used only to send updates.</li>
                     <li>The typefaces load from Google Fonts. Like any website, the hosting provider receives standard request information.</li>

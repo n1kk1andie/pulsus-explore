@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import PageLd from "../../components/PageLd";
 
 const TITLE = "Privacy · Pulsus Platform · Explore";
-const DESCRIPTION = "What Explore collects: nothing, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no analytics or tracking.";
+const DESCRIPTION = "What Explore collects: nothing about you, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no tracking cookies.";
 export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
@@ -17,9 +17,10 @@ export default function Privacy() {
     <main className="pz pz-xp-page"><PageLd path="/privacy" name={TITLE} description={DESCRIPTION} /><div className="pz-main pz-xp-main" style={{ maxWidth: 720 }}>
       <p className="pz-eyebrow"><a className="pz-link-btn" href="/">← Explore</a></p>
       <h1>Privacy</h1>
-      <p className="pz-muted">Last updated 16 November 2026.</p>
+      <p className="pz-muted">Last updated 26 November 2026.</p>
       <h2 className="pz-h3">What Explore collects</h2>
-      <p>Nothing, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no analytics or tracking. It does not read your contacts, location or anything else on your device.</p>
+      <p>Nothing about you, unless you subscribe. Explore has no accounts, no sign-in, no advertising and no tracking cookies. It does not read your contacts, location or anything else on your device.</p>
+      <p>We measure visits to our websites and demos (country, pages viewed, time spent, and, where available, the visiting organisation&apos;s network name) to improve the service; we don&apos;t store your IP address.</p>
       <h2 className="pz-h3">If you subscribe for updates</h2>
       <p>Subscribing asks only for your email address. It goes to Pulsus <span style={{ color: "#d0284a" }}>Platform</span>, is stored encrypted, and is used only to send you updates about Pulsus Platform. It is never sold or shared. To unsubscribe or have it deleted, reply to any update or contact us (below), and we will remove it.</p>
       <h2 className="pz-h3">What is stored on your device</h2>
